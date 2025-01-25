@@ -1,0 +1,25 @@
+name: fresheval
+description: A new Flutter project.
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+dependencies:
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.1.0
+  camera: ^0.11.0+2
+  http: ^0.13.5  # For making HTTP requests
+  image_picker: ^0.8.7+4
+  permission_handler: ^10.3.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
