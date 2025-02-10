@@ -33,28 +33,35 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initializeCamera() async {
-    try {
-      final cameras = await availableCameras();
-      final backCamera = cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.back,
-      );
-
-      _cameraController = CameraController(
-        backCamera,
-        ResolutionPreset.high,
-      );
-
-      await _cameraController?.initialize();
-
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
-    } catch (e) {
-      print('Error initializing camera: $e');
+  try {
+    final cameras = await availableCameras();
+    if (cameras.isEmpty) {
+      throw Exception("No cameras found.");
     }
+    final backCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+    );
+
+    _cameraController = CameraController(
+      backCamera,
+      ResolutionPreset.high,
+    );
+
+    await _cameraController?.initialize();
+
+    if (mounted) {
+      setState(() {
+        _isCameraInitialized = true;
+      });
+    }
+  } catch (e) {
+    print('Error initializing camera: $e');
+    setState(() {
+      _isCameraInitialized = false;
+    });
   }
+}
+
 
   Future<void> _captureImage() async {
     if (!_isCameraInitialized || _cameraController == null) return;
