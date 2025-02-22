@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'dart:developer';
 import 'dart:isolate';
 import 'dart:math' as math;
+import 'dart:convert';
 
 class ModelService {
   late Interpreter _yoloInterpreter;
@@ -15,22 +16,40 @@ class ModelService {
 
   Future<void> loadModels() async {
     try {
+      // Load YOLO labels from assets/yolov8_label.txt
+      _yoloLabels = await _loadLabels("assets/yolov8_label.txt");
+
+      // Load EfficientNet labels from assets/efficientnetb7_label.txt
+      _efficientNetLabels =
+          await _loadLabels("assets/efficientnetb7_label.txt");
+
+      // Load YOLO model
       _yoloInterpreter = await Interpreter.fromAsset(
-        'assets/yolov8_best.tflite', // Ensure this is float32 model
+        'assets/yolov8_best.tflite',
         options: InterpreterOptions()..threads = 2,
       );
-      _yoloLabels = ['Eggplant', 'Potato', 'Tomato']; // Update based on dataset
 
+      // Load EfficientNet model
       _efficientNetInterpreter = await Interpreter.fromAsset(
         'assets/efficientnetb7_fixed.tflite',
         options: InterpreterOptions()..threads = 2,
       );
-      _efficientNetLabels = ['Fresh', 'Rotten'];
 
       _modelsLoaded = true;
       log("✅ Models loaded successfully.");
     } catch (e) {
       log("⚠️ Error loading models: $e");
+    }
+  }
+
+  /// Load labels from .txt file
+  Future<List<String>> _loadLabels(String assetPath) async {
+    try {
+      String labelsString = await rootBundle.loadString(assetPath);
+      return LineSplitter.split(labelsString).toList();
+    } catch (e) {
+      log("⚠️ Error loading labels from $assetPath: $e");
+      return [];
     }
   }
 
@@ -61,7 +80,8 @@ class ModelService {
         for (var detection in detections) {
           double objectness = sigmoid(detection[4]);
 
-          if (objectness >= 0.5) {
+          if (objectness >= 0.4) {
+            // Adjusted threshold for better detections
             double cx = detection[0] * originalImage.width;
             double cy = detection[1] * originalImage.height;
             double w = detection[2] * originalImage.width;
@@ -77,7 +97,6 @@ class ModelService {
                 (cy + h / 2).clamp(0.0, originalImage.height.toDouble());
 
             final bbox = [xMin, yMin, xMax, yMax];
-
 
             final classLogits = detection.sublist(5, 5 + _yoloLabels.length);
             final classProbabilities = softmax(classLogits);

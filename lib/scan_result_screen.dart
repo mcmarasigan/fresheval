@@ -36,8 +36,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final imageBytes = await File(widget.imagePath).readAsBytes();
 
       // Step 1: Detect object using YOLOv8.
-      final yoloResult =
-          await _modelService.detectObject(imageBytes); // Fixed missing await
+      final yoloResult = await _modelService.detectObject(imageBytes);
       if (yoloResult == null) {
         log("No object detected.");
         setState(() {
@@ -59,8 +58,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final croppedImage = _modelService.cropObject(imageBytes, bbox);
 
       // Step 3: Classify freshness using EfficientNetB7.
-      final freshnessResult = await _modelService
-          .classifyFreshness(croppedImage); // Fixed missing await
+      final freshnessResult =
+          await _modelService.classifyFreshness(croppedImage);
       final freshnessLabel = freshnessResult['label'];
       final freshnessConfidence = freshnessResult['confidence'];
 
@@ -125,8 +124,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                           ),
                           if (_detectedObject != null)
                             LayoutBuilder(builder: (context, constraints) {
-                              final double scaleX = constraints.maxWidth /
-                                  416; // Fixed scaling issue
+                              // Siguraduhing ang scaling factor ay naaayon sa model input size.
+                              // Dito, naka-hardcode ang 416; baguhin ito kung iba ang model input.
+                              final double scaleX = constraints.maxWidth / 416;
                               final double scaleY = constraints.maxHeight / 416;
                               final bbox = _detectedObject!['bbox'];
                               final double xMin = bbox[0] * scaleX;

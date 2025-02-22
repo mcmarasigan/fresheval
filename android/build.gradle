@@ -1,3 +1,21 @@
+// android/build.gradle
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    // Define the Kotlin version for your project.
+    ext.kotlin_version = '2.0.20'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Gradle plugin for Kotlin.
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // If needed, you can also add the Android Gradle plugin here:
+        // classpath 'com.android.tools.build:gradle:7.0.4'
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,14 +23,16 @@ allprojects {
     }
 }
 
-rootProject.buildDir = "../build"
+// Set custom build directories for the project.
+rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-    project.evaluationDependsOn(":app")
+    project.evaluationDependsOn(':app')
 }
 
+// Task to clean the build directory.
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
