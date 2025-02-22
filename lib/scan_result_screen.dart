@@ -36,7 +36,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final imageBytes = await File(widget.imagePath).readAsBytes();
 
       // Step 1: Detect object using YOLOv8.
-      final yoloResult = _modelService.detectObject(imageBytes);
+      final yoloResult =
+          await _modelService.detectObject(imageBytes); // Fixed missing await
       if (yoloResult == null) {
         log("No object detected.");
         setState(() {
@@ -48,7 +49,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       }
 
       final detectedLabel = yoloResult['label'];
-      final detectionConfidence = yoloResult['confidence']; // Already in percentage.
+      final detectionConfidence = yoloResult['confidence'];
       final bbox = yoloResult['bbox'];
 
       log("YOLOv8 Detection - Label: $detectedLabel, Confidence: $detectionConfidence%");
@@ -56,8 +57,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
       // Step 2: Crop the detected object from the original image.
       final croppedImage = _modelService.cropObject(imageBytes, bbox);
+
       // Step 3: Classify freshness using EfficientNetB7.
-      final freshnessResult = _modelService.classifyFreshness(croppedImage);
+      final freshnessResult = await _modelService
+          .classifyFreshness(croppedImage); // Fixed missing await
       final freshnessLabel = freshnessResult['label'];
       final freshnessConfidence = freshnessResult['confidence'];
 
@@ -111,7 +114,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       ),
                       child: Stack(
                         children: [
-                          // Display the original image.
                           ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: Image.file(
@@ -121,17 +123,18 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                               height: double.infinity,
                             ),
                           ),
-                          // Overlay the detection bounding box and label.
                           if (_detectedObject != null)
                             LayoutBuilder(builder: (context, constraints) {
-                              // Scale bounding box from 224 to the displayed size.
-                              final double scaleX = constraints.maxWidth / 224;
-                              final double scaleY = constraints.maxHeight / 224;
+                              final double scaleX = constraints.maxWidth /
+                                  416; // Fixed scaling issue
+                              final double scaleY = constraints.maxHeight / 416;
                               final bbox = _detectedObject!['bbox'];
                               final double xMin = bbox[0] * scaleX;
                               final double yMin = bbox[1] * scaleY;
-                              final double boxWidth = (bbox[2] - bbox[0]) * scaleX;
-                              final double boxHeight = (bbox[3] - bbox[1]) * scaleY;
+                              final double boxWidth =
+                                  (bbox[2] - bbox[0]) * scaleX;
+                              final double boxHeight =
+                                  (bbox[3] - bbox[1]) * scaleY;
 
                               return Positioned(
                                 left: xMin,
@@ -140,7 +143,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                 height: boxHeight,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.red, width: 2),
+                                    border:
+                                        Border.all(color: Colors.red, width: 2),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.all(4.0),
@@ -164,11 +168,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                   Text(
                     _detectedObject != null
                         ? "Object: ${_detectedObject!['label']}\n"
-                          "Detection Confidence: ${(_detectedObject!['confidence']).toStringAsFixed(2)}%\n"
-                          "Freshness: ${_classification?['label'] ?? 'Unknown'}\n"
-                          "Freshness Confidence: ${(_classification?['confidence'] ?? 0.0).toStringAsFixed(2)}%"
+                            "Detection Confidence: ${(_detectedObject!['confidence']).toStringAsFixed(2)}%\n"
+                            "Freshness: ${_classification?['label'] ?? 'Unknown'}\n"
+                            "Freshness Confidence: ${(_classification?['confidence'] ?? 0.0).toStringAsFixed(2)}%"
                         : "No object detected",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
@@ -177,7 +182,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
