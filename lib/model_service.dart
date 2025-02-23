@@ -1,14 +1,14 @@
 import 'dart:typed_data';
+import 'package:flutter_vision/flutter_vision.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter/services.dart';
 import 'dart:developer';
-import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:convert';
 
 class ModelService {
-  late Interpreter _yoloInterpreter;
+  late FlutterVision _flutterVision;
   late Interpreter _efficientNetInterpreter;
   late List<String> _yoloLabels;
   late List<String> _efficientNetLabels;
@@ -16,202 +16,186 @@ class ModelService {
 
   Future<void> loadModels() async {
     try {
-      // Load YOLO labels from assets/yolov8_label.txt
-      _yoloLabels = await _loadLabels("assets/yolov8_label.txt");
+      _flutterVision = FlutterVision();
 
-      // Load EfficientNet labels from assets/efficientnetb7_label.txt
+      _yoloLabels = await _loadLabels("assets/yolov8_label.txt");
       _efficientNetLabels =
           await _loadLabels("assets/efficientnetb7_label.txt");
 
-      // Load YOLO model
-      _yoloInterpreter = await Interpreter.fromAsset(
-        'assets/yolov8_best.tflite',
-        options: InterpreterOptions()..threads = 2,
+      // Load YOLOv8 model using Flutter Vision
+      await _flutterVision.loadYoloModel(
+        modelPath: "assets/yolov8_best.tflite",
+        labels: "assets/yolov8_label.txt",
+        modelVersion: "yolov8",
+        quantization: false,
+        numThreads: 2,
       );
 
-      // Load EfficientNet model
+      // Load EfficientNetB7 model using TFLite
       _efficientNetInterpreter = await Interpreter.fromAsset(
-        'assets/efficientnetb7_fixed.tflite',
+        "assets/efficientnetb7_fixed.tflite",
         options: InterpreterOptions()..threads = 2,
       );
 
       _modelsLoaded = true;
-      log("✅ Models loaded successfully.");
+      log("✅ YOLOv8 & EfficientNetB7 models loaded successfully.");
     } catch (e) {
       log("⚠️ Error loading models: $e");
     }
   }
 
-  /// Load labels from .txt file
   Future<List<String>> _loadLabels(String assetPath) async {
     try {
       String labelsString = await rootBundle.loadString(assetPath);
-      return LineSplitter.split(labelsString).toList();
+      return LineSplitter.split(labelsString)
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
     } catch (e) {
       log("⚠️ Error loading labels from $assetPath: $e");
       return [];
     }
   }
 
-  double sigmoid(double x) => 1 / (1 + math.exp(-x));
-
-  Future<Map<String, dynamic>?> detectObject(Uint8List imageBytes) async {
+  /// **🔥 Runs YOLOv8 object detection**
+ Future<Map<String, dynamic>?> detectObject(Uint8List imageBytes) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
       return null;
     }
 
-    return await Isolate.run(() {
-      try {
-        final img.Image? originalImage = img.decodeImage(imageBytes);
-        if (originalImage == null) throw Exception("Failed to decode image.");
+    try {
+      final detections = await _flutterVision.yoloOnImage(
+        bytesList: imageBytes,
+        imageHeight: 640,
+        imageWidth: 640,
+        iouThreshold: 0.3,
+        confThreshold: 0.5,
+      );
 
-        final input = preprocessImage(imageBytes, 416, 416);
-        final outputShape = _yoloInterpreter.getOutputTensor(0).shape;
-        final output = List.filled(outputShape.reduce((a, b) => a * b), 0.0)
-            .reshape([1, outputShape[1], outputShape[2]]);
+      log("🔍 YOLOv8 Raw Detections: $detections");
 
-        _yoloInterpreter.run(input, output);
-        final detections = output[0];
-
-        double maxConfidence = 0;
-        Map<String, dynamic>? bestDetection;
-
-        for (var detection in detections) {
-          double objectness = sigmoid(detection[4]);
-
-          if (objectness >= 0.4) {
-            // Adjusted threshold for better detections
-            double cx = detection[0] * originalImage.width;
-            double cy = detection[1] * originalImage.height;
-            double w = detection[2] * originalImage.width;
-            double h = detection[3] * originalImage.height;
-
-            double xMin =
-                (cx - w / 2).clamp(0.0, originalImage.width.toDouble());
-            double yMin =
-                (cy - h / 2).clamp(0.0, originalImage.height.toDouble());
-            double xMax =
-                (cx + w / 2).clamp(0.0, originalImage.width.toDouble());
-            double yMax =
-                (cy + h / 2).clamp(0.0, originalImage.height.toDouble());
-
-            final bbox = [xMin, yMin, xMax, yMax];
-
-            final classLogits = detection.sublist(5, 5 + _yoloLabels.length);
-            final classProbabilities = softmax(classLogits);
-            final labelIndex = classProbabilities.indexWhere(
-                (val) => val == classProbabilities.reduce(math.max));
-
-            final confidence = objectness * classProbabilities[labelIndex];
-
-            if (confidence > maxConfidence) {
-              maxConfidence = confidence;
-              bestDetection = {
-                'label': _yoloLabels[labelIndex],
-                'confidence': confidence * 100,
-                'bbox': bbox,
-              };
-            }
-
-            log("✅ Detection - Label: ${_yoloLabels[labelIndex]}, Confidence: ${confidence * 100}%");
-            log("✅ Bounding Box: $bbox");
-          }
-        }
-        return bestDetection;
-      } catch (e) {
-        log("⚠️ Error during YOLO inference: $e");
+      if (detections.isEmpty) {
+        log("⚠️ No objects detected.");
         return null;
       }
-    });
-  }
 
-  /// **Classify Freshness Using EfficientNetB7**
-  Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
-    return await Isolate.run(() {
-      try {
-        final inputShape = _efficientNetInterpreter.getInputTensor(0).shape;
-        final outputShape = _efficientNetInterpreter.getOutputTensor(0).shape;
+      // 🔥 Find the best detection (highest confidence)
+      var bestDetection = detections.reduce((a, b) {
+        double confidenceA = (a["box"] as List).last ?? 0.0;
+        double confidenceB = (b["box"] as List).last ?? 0.0;
+        return confidenceA > confidenceB ? a : b;
+      });
 
-        final input = preprocessImage(croppedImage, 224, 224);
-        final output = List.filled(outputShape.reduce((a, b) => a * b), 0.0)
-            .reshape([1, outputShape[1]]);
+      List bbox = bestDetection['box'];
 
-        _efficientNetInterpreter.run(input, output);
-        final predictions = List<double>.from(output[0]);
-        final softmaxScores = softmax(predictions);
-        final predictedIndex = softmaxScores
-            .indexWhere((val) => val == softmaxScores.reduce(math.max));
+      // 🔥 Extract confidence from the correct position in the "box" list
+      double confidence = (bbox.last as double) * 100;
 
-        return {
-          'label': _efficientNetLabels[predictedIndex],
-          'confidence': softmaxScores[predictedIndex] * 100,
-        };
-      } catch (e) {
-        log("⚠️ Error during EfficientNet inference: $e");
-        return {'label': 'Unknown', 'confidence': 0.0};
+      if (bbox.length < 4) {
+        log("⚠️ Invalid bounding box data: $bbox");
+        return null;
       }
-    });
+
+      log("✅ Final Confidence Extracted: $confidence%");
+
+      return {
+        'label': bestDetection['tag'],
+        'confidence': confidence, // 🔥 Now correctly extracted!
+        'bbox': bbox.sublist(0, 4), // 🔥 Only first 4 values are bbox
+      };
+    } catch (e) {
+      log("⚠️ Error during YOLO inference: $e");
+      return null;
+    }
   }
 
+
+  /// **🔥 Runs EfficientNetB7 classification (Using TFLite)**
+  Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
+    if (!_modelsLoaded) {
+      log("⚠️ Models not loaded yet.");
+      return {'label': 'Unknown', 'confidence': 0.0};
+    }
+
+    try {
+      final input = preprocessImageForEfficientNet(croppedImage, 224, 224);
+      final outputShape = _efficientNetInterpreter.getOutputTensor(0).shape;
+      final output = List.filled(outputShape.reduce((a, b) => a * b), 0.0)
+          .reshape([1, outputShape[1]]);
+
+      _efficientNetInterpreter.run(input, output);
+      final predictions = List<double>.from(output[0]);
+      final softmaxScores = softmax(predictions);
+      final predictedIndex = softmaxScores.indexWhere(
+        (val) => val == softmaxScores.reduce(math.max),
+      );
+
+      return {
+        'label': _efficientNetLabels[predictedIndex],
+        'confidence': softmaxScores[predictedIndex] * 100,
+      };
+    } catch (e) {
+      log("⚠️ Error during EfficientNet classification: $e");
+      return {'label': 'Unknown', 'confidence': 0.0};
+    }
+  }
+
+  /// **🔥 Crop detected object correctly**
   Uint8List cropObject(Uint8List imageBytes, List bbox) {
-    final img.Image? image = img.decodeImage(imageBytes);
-    if (image == null) throw Exception("Failed to decode image.");
+    final img.Image? originalImage = img.decodeImage(imageBytes);
+    if (originalImage == null) throw Exception("Failed to decode image.");
 
-    final xMin = bbox[0].toInt();
-    final yMin = bbox[1].toInt();
-    final width = (bbox[2] - bbox[0]).toInt();
-    final height = (bbox[3] - bbox[1]).toInt();
+    double scaleX = originalImage.width / 640.0;
+    double scaleY = originalImage.height / 640.0;
 
-    final img.Image cropped = img.copyCrop(
-      image,
-      xMin,
-      yMin,
-      width,
-      height,
-    );
+    double xMin = bbox[0] * scaleX;
+    double yMin = bbox[1] * scaleY;
+    double xMax = bbox[2] * scaleX;
+    double yMax = bbox[3] * scaleY;
+
+    int cropX = xMin.round();
+    int cropY = yMin.round();
+    int cropW = (xMax - xMin).round();
+    int cropH = (yMax - yMin).round();
+
+    final img.Image cropped =
+        img.copyCrop(originalImage, cropX, cropY, cropW, cropH);
 
     return Uint8List.fromList(img.encodeJpg(cropped, quality: 85));
   }
 
-  List preprocessImage(
-      Uint8List imageBytes, int targetHeight, int targetWidth) {
+  /// **🔥 Preprocess Image for EfficientNet**
+  List<List<List<List<double>>>> preprocessImageForEfficientNet(
+      Uint8List imageBytes, int height, int width) {
     final img.Image? originalImage = img.decodeImage(imageBytes);
     if (originalImage == null) throw Exception("Failed to decode image.");
 
-    final img.Image resizedImage = img.copyResize(
-      originalImage,
-      width: targetWidth,
-      height: targetHeight,
-      interpolation: img.Interpolation.linear,
-    );
+    final img.Image resizedImage =
+        img.copyResize(originalImage, width: width, height: height);
 
-    final List<List<List<double>>> processed = List.generate(
-      targetHeight,
-      (y) => List.generate(
-        targetWidth,
-        (x) {
+    return [
+      List.generate(height, (y) {
+        return List.generate(width, (x) {
           final pixel = resizedImage.getPixel(x, y);
           return [
-            ((pixel >> 16) & 0xFF) / 255.0,
-            ((pixel >> 8) & 0xFF) / 255.0,
-            (pixel & 0xFF) / 255.0
+            ((pixel >> 16) & 0xFF) / 127.5 - 1.0,
+            ((pixel >> 8) & 0xFF) / 127.5 - 1.0,
+            (pixel & 0xFF) / 127.5 - 1.0,
           ];
-        },
-      ),
-    );
-
-    return [processed];
+        });
+      })
+    ];
   }
 
   List<double> softmax(List<double> scores) {
-    final expScores = scores.map((score) => math.exp(score)).toList();
+    final expScores = scores.map(math.exp).toList();
     final sumExpScores = expScores.reduce((a, b) => a + b);
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
   void close() {
-    _yoloInterpreter.close();
+    _flutterVision.closeYoloModel();
     _efficientNetInterpreter.close();
   }
 }

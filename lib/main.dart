@@ -49,7 +49,7 @@ class _MyAppState extends State<MyApp> {
     final localizations = AppLocalizations(languageCode);
 
     return MaterialApp(
-      title: 'Food Quality Detection',
+      title: 'FreshEval',
       theme: ThemeData(
         primarySwatch: Colors.green,
         scaffoldBackgroundColor: const Color(0xFFF3F4D3),
