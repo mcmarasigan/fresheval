@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'model_service.dart';
 import 'dart:developer';
 
@@ -19,8 +21,7 @@ class ScanResultScreen extends StatefulWidget {
 
 class _ScanResultScreenState extends State<ScanResultScreen> {
   late ModelService _modelService;
-  Map<String, dynamic>? _detectedObject;
-  Map<String, dynamic>? _classification;
+  List<Map<String, dynamic>> _detectedObjects = [];
   bool _isLoading = true;
   double _imageWidth = 640;
   double _imageHeight = 640;
@@ -40,69 +41,94 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final image = File(widget.imagePath);
       final decodedImage = await decodeImageFromList(image.readAsBytesSync());
 
-      // Get real image dimensions
       _imageWidth = decodedImage.width.toDouble();
       _imageHeight = decodedImage.height.toDouble();
 
-      // Step 1: Detect object using YOLOv8.
-      final yoloResult = await _modelService.detectObject(imageBytes);
-      if (yoloResult == null) {
-        log("No object detected.");
+      final yoloResults = await _modelService.detectObjects(imageBytes);
+      if (yoloResults.isEmpty) {
+        log("⚠️ No objects detected.");
         setState(() {
-          _detectedObject = null;
-          _classification = null;
+          _detectedObjects = [];
           _isLoading = false;
         });
         return;
       }
 
-      final detectedLabel = yoloResult['label'];
-      final detectionConfidence = yoloResult['confidence'] ?? 0.0;
-      final bbox = yoloResult['bbox']; // Bounding box in 640-space
+      List<Map<String, dynamic>> classifiedResults = [];
 
-      log("✅ YOLOv8 Detection - Label: $detectedLabel, Confidence: $detectionConfidence%");
-      log("✅ Bounding Box (640-space): $bbox");
+      for (var detected in yoloResults) {
+        final croppedImage =
+            _modelService.cropObject(imageBytes, detected['bbox']);
+        final freshnessResult =
+            await _modelService.classifyFreshness(croppedImage);
 
-      // Step 2: Crop the detected object from the original image.
-      final croppedImage = _modelService.cropObject(imageBytes, bbox);
+        log("✅ ${detected['label']} - Classified as ${freshnessResult['label']} with ${freshnessResult['confidence']}% confidence");
 
-      // Step 3: Classify freshness using EfficientNetB7.
-      final freshnessResult =
-          await _modelService.classifyFreshness(croppedImage);
-      final freshnessLabel = freshnessResult['label'];
-      final freshnessConfidence = freshnessResult['confidence'];
-
-      log("✅ EfficientNet Classification - Label: $freshnessLabel, Confidence: $freshnessConfidence%");
-
-      // 🔥 Debugging: Log confidence score before displaying
-      log("🟢 Display Confidence in UI: $detectionConfidence%");
+        classifiedResults.add({
+          'label': detected['label'],
+          'confidence': detected['confidence'],
+          'bbox': detected['bbox'],
+          'freshness': freshnessResult['label'],
+          'freshnessConfidence': freshnessResult['confidence'],
+        });
+      }
 
       setState(() {
-        _detectedObject = {
-          'label': detectedLabel,
-          'confidence': detectionConfidence,
-          'bbox': bbox,
-        };
-        _classification = freshnessResult;
+        _detectedObjects = classifiedResults;
         _isLoading = false;
       });
     } catch (e) {
       log("⚠️ Error during inference: $e");
       setState(() {
         _isLoading = false;
-        _detectedObject = null;
-        _classification = null;
+        _detectedObjects = [];
       });
     }
+  }
+
+  Future<void> _saveScanResult() async {
+    if (_detectedObjects.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final scanData = prefs.getStringList('recent_scans') ?? [];
+
+    for (var detected in _detectedObjects) {
+      final newScan = json.encode({
+        'imagePath': widget.imagePath,
+        'name': detected['label'],
+        'confidence': detected['confidence'],
+        'freshness': detected['freshness'],
+        'freshnessConfidence': detected['freshnessConfidence'],
+        'timestamp': DateTime.now().toString(),
+      });
+
+      scanData.add(newScan);
+    }
+
+    await prefs.setStringList('recent_scans', scanData);
+    _showSaveDialog();
+  }
+
+  void _showSaveDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Successful'),
+        content: const Text('Scan results have been saved successfully!'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Results'),
-        leading: const BackButton(),
-      ),
+      appBar: AppBar(title: const Text('Scan Results')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -135,102 +161,83 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                 height: double.infinity,
                               ),
                             ),
-                            if (_detectedObject != null)
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  // Get the actual UI image display size
-                                  final double displayWidth =
-                                      constraints.maxWidth;
-                                  final double displayHeight =
-                                      constraints.maxHeight;
+                            if (_detectedObjects.isNotEmpty)
+                              ..._detectedObjects.map((detected) {
+                                final bbox = detected['bbox'];
 
-                                  // Get the original image size from YOLO
-                                  final double originalWidth =
-                                      640.0; // YOLOv8 model input size
-                                  final double originalHeight =
-                                      640.0; // YOLOv8 model input size
+                                final double xMinScaled =
+                                    (bbox[0] / 640) * _imageWidth;
+                                final double yMinScaled =
+                                    (bbox[1] / 640) * _imageHeight;
+                                final double boxWidthScaled =
+                                    ((bbox[2] - bbox[0]) / 640) * _imageWidth;
+                                final double boxHeightScaled =
+                                    ((bbox[3] - bbox[1]) / 640) * _imageHeight;
 
-                                  // Scale factors based on actual image size
-                                  final double scaleX =
-                                      displayWidth / originalWidth;
-                                  final double scaleY =
-                                      displayHeight / originalHeight;
-                                  final bbox = _detectedObject!['bbox'];
+                                log("🟢 Bounding Box for ${detected['label']}: xMin=$xMinScaled, yMin=$yMinScaled, width=$boxWidthScaled, height=$boxHeightScaled");
 
-                                  // 🔥 Correcting Bounding Box Scaling
-                                  final double xMin = bbox[0] * scaleX;
-                                  final double yMin = bbox[1] * scaleY;
-                                  final double boxWidth =
-                                      (bbox[2] - bbox[0]) * scaleX;
-                                  final double boxHeight =
-                                      (bbox[3] - bbox[1]) * scaleY;
-
-                                  log("🟢 Corrected Bounding Box: xMin=$xMin, yMin=$yMin, width=$boxWidth, height=$boxHeight");
-
-                                  return Positioned(
-                                    left: xMin,
-                                    top: yMin,
-                                    width: boxWidth,
-                                    height: boxHeight,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.red,
-                                            width:
-                                                2), // ✅ Bounding box for object only
-                                      ),
-                                      child: Align(
-                                        alignment: Alignment.topLeft,
-                                        child: Container(
-                                          color: Colors.red.withOpacity(0.7),
-                                          padding: const EdgeInsets.all(2),
-                                          child: Text(
-                                            '${_detectedObject!['label']} (${_classification?['label'] ?? 'Unknown'})',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                return Positioned(
+                                  left: xMinScaled,
+                                  top: yMinScaled,
+                                  width: boxWidthScaled,
+                                  height: boxHeightScaled,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: Colors.red, width: 2),
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Container(
+                                        color: Colors.red.withOpacity(0.7),
+                                        padding: const EdgeInsets.all(2),
+                                        child: Text(
+                                          '${detected['label']} (${detected['freshness']})',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-
+                                  ),
+                                );
+                              }).toList(),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
-                    Text(
-                      _detectedObject != null
-                          ? "Object: ${_detectedObject!['label']}\n"
-                              "Detection Confidence: ${_detectedObject?['confidence'] != null ? _detectedObject!['confidence'].toStringAsFixed(2) : 'N/A'}%\n"
-                              "Freshness: ${_classification?['label'] ?? 'Unknown'}\n"
-                              "Freshness Confidence: ${(_classification?['confidence'] ?? 0.0).toStringAsFixed(2)}%"
-                          : "No object detected",
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+                    Column(
+                      children: _detectedObjects
+                          .map((detected) => Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(
+                                  "Object: ${detected['label']}\n"
+                                  "Detection Confidence: ${detected['confidence'].toStringAsFixed(2)}%\n"
+                                  "Freshness: ${detected['freshness']}\n"
+                                  "Freshness Confidence: ${detected['freshnessConfidence'].toStringAsFixed(2)}%",
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _saveScanResult,
+                      child: const Text('Save'),
+                    ),
+                    const SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Retake Scan',
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      child: const Text('Retake'),
                     ),
                   ],
                 ),

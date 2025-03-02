@@ -31,4 +31,5 @@ flutter:
     - assets/efficientnetb7_fixed.tflite
     - assets/efficientnetb7_label.txt
     - assets/yolov8_best.tflite
+    - assets/best_float16.tflite
     - assets/yolov8_label.txt

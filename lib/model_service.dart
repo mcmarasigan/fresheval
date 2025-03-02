@@ -22,7 +22,6 @@ class ModelService {
       _efficientNetLabels =
           await _loadLabels("assets/efficientnetb7_label.txt");
 
-      // Load YOLOv8 model using Flutter Vision
       await _flutterVision.loadYoloModel(
         modelPath: "assets/yolov8_best.tflite",
         labels: "assets/yolov8_label.txt",
@@ -31,7 +30,6 @@ class ModelService {
         numThreads: 2,
       );
 
-      // Load EfficientNetB7 model using TFLite
       _efficientNetInterpreter = await Interpreter.fromAsset(
         "assets/efficientnetb7_fixed.tflite",
         options: InterpreterOptions()..threads = 2,
@@ -58,10 +56,10 @@ class ModelService {
   }
 
   /// **🔥 Runs YOLOv8 object detection**
- Future<Map<String, dynamic>?> detectObject(Uint8List imageBytes) async {
+  Future<List<Map<String, dynamic>>> detectObjects(Uint8List imageBytes) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
-      return null;
+      return [];
     }
 
     try {
@@ -77,39 +75,49 @@ class ModelService {
 
       if (detections.isEmpty) {
         log("⚠️ No objects detected.");
-        return null;
+        return [];
       }
 
-      // 🔥 Find the best detection (highest confidence)
-      var bestDetection = detections.reduce((a, b) {
-        double confidenceA = (a["box"] as List).last ?? 0.0;
-        double confidenceB = (b["box"] as List).last ?? 0.0;
-        return confidenceA > confidenceB ? a : b;
-      });
+      List<Map<String, dynamic>> detectedObjects = [];
 
-      List bbox = bestDetection['box'];
+      for (var detection in detections) {
+        List bbox = detection['box'];
+        if (bbox.length < 5) continue;
 
-      // 🔥 Extract confidence from the correct position in the "box" list
-      double confidence = (bbox.last as double) * 100;
+        // Convert YOLO format [x_center, y_center, width, height] to [x_min, y_min, x_max, y_max]
+        double xCenter = bbox[0];
+        double yCenter = bbox[1];
+        double boxWidth = bbox[2];
+        double boxHeight = bbox[3];
 
-      if (bbox.length < 4) {
-        log("⚠️ Invalid bounding box data: $bbox");
-        return null;
+        double xMin = xCenter - (boxWidth / 2);
+        double yMin = yCenter - (boxHeight / 2);
+        double xMax = xCenter + (boxWidth / 2);
+        double yMax = yCenter + (boxHeight / 2);
+
+        // Ensure bounding box stays within image bounds (640x640)
+        xMin = xMin.clamp(0, 640);
+        yMin = yMin.clamp(0, 640);
+        xMax = xMax.clamp(0, 640);
+        yMax = yMax.clamp(0, 640);
+
+        double confidence = bbox[4] * 100;
+
+        log("✅ Detected ${detection['tag']} - Bounding Box: [$xMin, $yMin, $xMax, $yMax]");
+
+        detectedObjects.add({
+          'label': detection['tag'],
+          'confidence': confidence,
+          'bbox': [xMin, yMin, xMax, yMax],
+        });
       }
 
-      log("✅ Final Confidence Extracted: $confidence%");
-
-      return {
-        'label': bestDetection['tag'],
-        'confidence': confidence, // 🔥 Now correctly extracted!
-        'bbox': bbox.sublist(0, 4), // 🔥 Only first 4 values are bbox
-      };
+      return detectedObjects;
     } catch (e) {
       log("⚠️ Error during YOLO inference: $e");
-      return null;
+      return [];
     }
   }
-
 
   /// **🔥 Runs EfficientNetB7 classification (Using TFLite)**
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
@@ -141,7 +149,7 @@ class ModelService {
     }
   }
 
-  /// **🔥 Crop detected object correctly**
+  /// **🔥 Crop detected object correctly and resize for EfficientNetB7**
   Uint8List cropObject(Uint8List imageBytes, List bbox) {
     final img.Image? originalImage = img.decodeImage(imageBytes);
     if (originalImage == null) throw Exception("Failed to decode image.");
@@ -162,7 +170,11 @@ class ModelService {
     final img.Image cropped =
         img.copyCrop(originalImage, cropX, cropY, cropW, cropH);
 
-    return Uint8List.fromList(img.encodeJpg(cropped, quality: 85));
+    // 🔥 Resize cropped image for EfficientNetB7 (224x224)
+    final img.Image resizedCropped =
+        img.copyResize(cropped, width: 224, height: 224);
+
+    return Uint8List.fromList(img.encodeJpg(resizedCropped, quality: 85));
   }
 
   /// **🔥 Preprocess Image for EfficientNet**
@@ -177,11 +189,17 @@ class ModelService {
     return [
       List.generate(height, (y) {
         return List.generate(width, (x) {
-          final pixel = resizedImage.getPixel(x, y);
+          final int pixel =
+              resizedImage.getPixel(x, y); // Get the pixel integer
+
+          final int r = (pixel >> 16) & 0xFF; // Extract Red
+          final int g = (pixel >> 8) & 0xFF; // Extract Green
+          final int b = pixel & 0xFF; // Extract Blue
+
           return [
-            ((pixel >> 16) & 0xFF) / 127.5 - 1.0,
-            ((pixel >> 8) & 0xFF) / 127.5 - 1.0,
-            (pixel & 0xFF) / 127.5 - 1.0,
+            (r / 127.5) - 1.0, // Normalize R
+            (g / 127.5) - 1.0, // Normalize G
+            (b / 127.5) - 1.0, // Normalize B
           ];
         });
       })
