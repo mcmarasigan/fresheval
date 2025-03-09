@@ -1,6 +1,9 @@
+import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'package:image/image.dart' as img;
 import 'scan_result_screen.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -33,46 +36,48 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initializeCamera() async {
-  try {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) {
-      throw Exception("No cameras found.");
-    }
-    final backCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == CameraLensDirection.back,
-    );
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        throw Exception("No cameras found.");
+      }
+      final backCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.back,
+      );
 
-    _cameraController = CameraController(
-      backCamera,
-      ResolutionPreset.high,
-    );
+      _cameraController = CameraController(
+        backCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
 
-    await _cameraController?.initialize();
+      await _cameraController?.initialize();
 
-    if (mounted) {
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
+    } catch (e) {
+      print('Error initializing camera: $e');
       setState(() {
-        _isCameraInitialized = true;
+        _isCameraInitialized = false;
       });
     }
-  } catch (e) {
-    print('Error initializing camera: $e');
-    setState(() {
-      _isCameraInitialized = false;
-    });
   }
-}
-
 
   Future<void> _captureImage() async {
     if (!_isCameraInitialized || _cameraController == null) return;
 
     try {
       final image = await _cameraController!.takePicture();
+      final croppedImagePath = await _cropAndResize(image.path);
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ScanResultScreen(
-            imagePath: image.path,
+            imagePath: croppedImagePath,
             isUploadedImage: false,
           ),
         ),
@@ -80,6 +85,41 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (e) {
       print('Error capturing image: $e');
     }
+  }
+
+  /// **🔥 Crop and Resize Image to 1:1 Aspect Ratio**
+  Future<String> _cropAndResize(String imagePath) async {
+    final File imageFile = File(imagePath);
+    final img.Image? originalImage =
+        img.decodeImage(await imageFile.readAsBytes());
+
+    if (originalImage == null) return imagePath;
+
+    // Step 1: Crop to 1:1 aspect ratio (Square)
+    int size = min(originalImage.width, originalImage.height);
+    int offsetX = (originalImage.width - size) ~/ 2;
+    int offsetY = (originalImage.height - size) ~/ 2;
+
+    final img.Image cropped = img.copyCrop(
+      originalImage,
+      offsetX,
+      offsetY,
+      size,
+      size,
+    );
+
+    // Step 2: Resize to 640x640 for YOLOv8
+    final img.Image resized640 = img.copyResize(
+      cropped,
+      width: 640,
+      height: 640,
+    );
+
+    final String resizedPath =
+        '${imageFile.parent.path}/resized_640_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await File(resizedPath).writeAsBytes(img.encodeJpg(resized640));
+
+    return resizedPath;
   }
 
   @override
@@ -110,9 +150,15 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
       body: Stack(
         children: [
-          _isCameraInitialized
-              ? CameraPreview(_cameraController!)
-              : const Center(child: CircularProgressIndicator()),
+          if (_isCameraInitialized)
+            Center(
+              child: AspectRatio(
+                aspectRatio: 1, // ✅ Force square preview
+                child: CameraPreview(_cameraController!),
+              ),
+            )
+          else
+            const Center(child: CircularProgressIndicator()),
           Positioned(
             bottom: 30,
             left: 0,

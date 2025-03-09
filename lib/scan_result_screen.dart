@@ -44,21 +44,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       _imageWidth = decodedImage.width.toDouble();
       _imageHeight = decodedImage.height.toDouble();
 
-      final yoloResults = await _modelService.detectObjects(imageBytes);
-      if (yoloResults.isEmpty) {
-        log("⚠️ No objects detected.");
-        setState(() {
-          _detectedObjects = [];
-          _isLoading = false;
-        });
-        return;
-      }
+      final yoloResults = await _modelService.detectObjects(
+          imageBytes,
+          _imageWidth, // ✅ Pass actual image width
+          _imageHeight // ✅ Pass actual image height
+          );
+
 
       List<Map<String, dynamic>> classifiedResults = [];
 
       for (var detected in yoloResults) {
         final croppedImage =
-            _modelService.cropObject(imageBytes, detected['bbox']);
+           _modelService.cropObject(
+            imageBytes,
+            detected['bbox'],
+            _imageWidth, // ✅ Pass actual image width
+            _imageHeight // ✅ Pass actual image height
+            );
         final freshnessResult =
             await _modelService.classifyFreshness(croppedImage);
 
@@ -165,34 +167,38 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                               ..._detectedObjects.map((detected) {
                                 final bbox = detected['bbox'];
 
-                                final double xMinScaled =
-                                    (bbox[0] / 640) * _imageWidth;
-                                final double yMinScaled =
-                                    (bbox[1] / 640) * _imageHeight;
-                                final double boxWidthScaled =
-                                    ((bbox[2] - bbox[0]) / 640) * _imageWidth;
-                                final double boxHeightScaled =
-                                    ((bbox[3] - bbox[1]) / 640) * _imageHeight;
+                                // Extract bounding box coordinates
+                                final double xMin = bbox[0];
+                                final double yMin = bbox[1];
+                                final double boxWidth = bbox[2] - bbox[0];
+                                final double boxHeight = bbox[3] - bbox[1];
 
-                                log("🟢 Bounding Box for ${detected['label']}: xMin=$xMinScaled, yMin=$yMinScaled, width=$boxWidthScaled, height=$boxHeightScaled");
+                                // 🔥 Get bounding box color based on the detected label
+                                Color boxColor =
+                                    _getBoxColor(detected['label']);
+
+                                log("🟢 Bounding Box for ${detected['label']}: xMin=$xMin, yMin=$yMin, width=$boxWidth, height=$boxHeight");
 
                                 return Positioned(
-                                  left: xMinScaled,
-                                  top: yMinScaled,
-                                  width: boxWidthScaled,
-                                  height: boxHeightScaled,
+                                  left: xMin,
+                                  top: yMin,
                                   child: Container(
+                                    width: boxWidth,
+                                    height: boxHeight,
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                          color: Colors.red, width: 2),
+                                          color: boxColor,
+                                          width:
+                                              2), // **🔥 Set color dynamically**
                                     ),
                                     child: Align(
                                       alignment: Alignment.topLeft,
                                       child: Container(
-                                        color: Colors.red.withOpacity(0.7),
+                                        color: boxColor.withOpacity(
+                                            0.7), // **🔥 Label background matches box color**
                                         padding: const EdgeInsets.all(2),
                                         child: Text(
-                                          '${detected['label']} (${detected['freshness']})',
+                                          '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
@@ -204,6 +210,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                   ),
                                 );
                               }).toList(),
+
                           ],
                         ),
                       ),
@@ -245,4 +252,17 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ),
     );
   }
+  Color _getBoxColor(String label) {
+  switch (label.toLowerCase()) {
+    case 'tomato':
+      return Colors.red; // 🍅 Red for tomato
+    case 'eggplant':
+      return Colors.purple; // 🍆 Violet for eggplant
+    case 'potato':
+      return const Color(0xFFC4A484); // 🥔 Light brown for potato
+    default:
+      return Colors.blue; // 🔵 Default color for other objects
+  }
+}
+
 }
