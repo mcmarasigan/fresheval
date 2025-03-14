@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -138,11 +139,14 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           if (_isCameraInitialized)
             Center(
-              child: ClipRect(
+              child: ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(16), // Match scan result rounding
                 child: AspectRatio(
-                  aspectRatio: 1, // Ensure square aspect ratio
+                  aspectRatio: 1, // Ensure a square preview
                   child: FittedBox(
-                    fit: BoxFit.cover, // Avoid stretching
+                    fit: BoxFit
+                        .cover, // ✅ Ensures the preview behaves like Image.file
                     child: SizedBox(
                       width: _cameraController!.value.previewSize!.height,
                       height: _cameraController!.value.previewSize!.width,
@@ -154,6 +158,7 @@ class _CameraScreenState extends State<CameraScreen> {
             )
           else
             const Center(child: CircularProgressIndicator()),
+
           Positioned(
             bottom: 30,
             left: 0,

@@ -68,8 +68,8 @@ class ModelService {
     try {
       final detections = await _flutterVision.yoloOnImage(
         bytesList: imageBytes,
-        imageHeight: 640, // YOLOv8 expects 640x640 images
-        imageWidth: 640,
+        imageHeight: _yoloInputSize.toInt(),
+        imageWidth: _yoloInputSize.toInt(),
         iouThreshold: 0.4,
         confThreshold: 0.5,
       );
@@ -81,62 +81,33 @@ class ModelService {
         return [];
       }
 
-      List<Map<String, dynamic>> detectedObjects = [];
+      return detections
+          .map((detection) {
+            List bbox = detection['box'];
+            if (bbox.length < 5) return null;
 
-      for (var detection in detections) {
-        List bbox = detection['box'];
-        if (bbox.length < 5) continue;
+            double xMin = bbox[0];
+            double yMin = bbox[1];
+            double xMax = bbox[2];
+            double yMax = bbox[3];
 
-        double xCenter = bbox[0];
-        double yCenter = bbox[1];
-        double boxWidth = bbox[2];
-        double boxHeight = bbox[3];
+            double confidence = bbox[4] * 100;
 
-        double xMin = xCenter - (boxWidth / 2);
-        double yMin = yCenter - (boxHeight / 2);
-        double xMax = xCenter + (boxWidth / 2);
-        double yMax = yCenter + (boxHeight / 2);
-
-        // ✅ Ensure bounding box is correctly scaled
-        double scaleX = imageWidth / 640.0;
-        double scaleY = imageHeight / 640.0;
-
-        xMin *= scaleX;
-        yMin *= scaleY;
-        xMax *= scaleX;
-        yMax *= scaleY;
-
-        // ✅ Ensure bounding box stays within image boundaries
-        xMin = xMin.clamp(0, imageWidth);
-        yMin = yMin.clamp(0, imageHeight);
-        xMax = xMax.clamp(0, imageWidth);
-        yMax = yMax.clamp(0, imageHeight);
-
-        double confidence = bbox[4] * 100;
-
-        log("✅ Detected ${detection['tag']} - BBox: [$xMin, $yMin, $xMax, $yMax]");
-
-        detectedObjects.add({
-          'label': detection['tag'],
-          'confidence': confidence,
-          'bbox': [
-            xMin,
-            yMin,
-            xMax,
-            yMax
-          ], // ✅ Bounding box should be correct now
-        });
-      }
-
-      return detectedObjects;
+            return {
+              'label': detection['tag'],
+              'confidence': confidence,
+              'bbox': [xMin, yMin, xMax, yMax],
+            };
+          })
+          .whereType<Map<String, dynamic>>()
+          .toList();
     } catch (e) {
       log("⚠️ Error during YOLO inference: $e");
       return [];
     }
   }
 
-
-  /// **🔥 Runs EfficientNetB7 classification (Uses YOLOv8 Cropped Image)**
+  /// **🔥 Runs EfficientNetB7 classification**
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
@@ -166,7 +137,8 @@ class ModelService {
   }
 
   /// **🔥 Crops the detected object (Bounding Box from YOLOv8)**
-  Uint8List cropObject(Uint8List imageBytes, List bbox, double imageWidth, double imageHeight) {
+  Uint8List cropObject(
+      Uint8List imageBytes, List bbox, double imageWidth, double imageHeight) {
     final img.Image? originalImage = img.decodeImage(imageBytes);
     if (originalImage == null) throw Exception("Failed to decode image.");
 
@@ -179,13 +151,6 @@ class ModelService {
     int cropY = yMin.round();
     int cropW = (xMax - xMin).round();
     int cropH = (yMax - yMin).round();
-
-    cropX = cropX.clamp(0, originalImage.width - 1);
-    cropY = cropY.clamp(0, originalImage.height - 1);
-    cropW = cropW.clamp(1, originalImage.width - cropX);
-    cropH = cropH.clamp(1, originalImage.height - cropY);
-
-    log("🔍 Cropping Region - X: $cropX, Y: $cropY, Width: $cropW, Height: $cropH");
 
     final img.Image cropped =
         img.copyCrop(originalImage, cropX, cropY, cropW, cropH);

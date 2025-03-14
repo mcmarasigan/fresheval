@@ -11,10 +11,10 @@ class ScanResultScreen extends StatefulWidget {
   final bool isUploadedImage;
 
   const ScanResultScreen({
-    super.key,
+    Key? key,
     required this.imagePath,
     required this.isUploadedImage,
-  });
+  }) : super(key: key);
 
   @override
   _ScanResultScreenState createState() => _ScanResultScreenState();
@@ -153,8 +153,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                               child: Image.file(
                                 File(widget.imagePath),
                                 fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
+                                width: 640,
+                                height: 640,
                               ),
                             ),
                             if (_detectedObjects.isNotEmpty)
@@ -204,7 +204,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                     ),
                                   ),
                                 );
-                              }),
+                              }).toList(),
                           ],
                         ),
                       ),
