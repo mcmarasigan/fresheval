@@ -85,8 +85,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(widget.localizations.getTranslation('scan history') +
-            ' ${widget.localizations.getTranslation('deleted')}'),
+        content: Text('${widget.localizations.getTranslation('scan history')} ${widget.localizations.getTranslation('deleted')}'),
       ),
     );
   }

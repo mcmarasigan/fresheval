@@ -40,3 +40,9 @@ android {
 flutter {
     source = "../.."
 }
+dependencies {
+    implementation project(':flutter_vision') 
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
+    implementation 'androidx.core:core-ktx:1.9.0'
+}

@@ -51,8 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _localization.getTranslation('language_set_to') +
-              ' ${language == 'en' ? _localization.getTranslation('english') : _localization.getTranslation('tagalog')}',
+          '${_localization.getTranslation('language_set_to')} ${language == 'en' ? _localization.getTranslation('english') : _localization.getTranslation('tagalog')}',
         ),
       ),
     );
@@ -94,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.remove('recent_scans');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_localization.getTranslation('scan history') + ' cleared.'),
+        content: Text('${_localization.getTranslation('scan history')} cleared.'),
       ),
     );
   }
@@ -105,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.clear();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_localization.getTranslation('cache') + ' cleared.'),
+        content: Text('${_localization.getTranslation('cache')} cleared.'),
       ),
     );
   }

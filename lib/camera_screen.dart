@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -71,13 +70,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
     try {
       final image = await _cameraController!.takePicture();
-      final croppedImagePath = await _cropAndResize(image.path);
+      final resizedImagePath = await _resizeTo640(image.path);
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ScanResultScreen(
-            imagePath: croppedImagePath,
+            imagePath: resizedImagePath,
             isUploadedImage: false,
           ),
         ),
@@ -87,37 +86,24 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  /// **🔥 Crop and Resize Image to 1:1 Aspect Ratio**
-  Future<String> _cropAndResize(String imagePath) async {
+  /// **🔥 Resize Image to 640x640**
+  Future<String> _resizeTo640(String imagePath) async {
     final File imageFile = File(imagePath);
     final img.Image? originalImage =
         img.decodeImage(await imageFile.readAsBytes());
 
     if (originalImage == null) return imagePath;
 
-    // Step 1: Crop to 1:1 aspect ratio (Square)
-    int size = min(originalImage.width, originalImage.height);
-    int offsetX = (originalImage.width - size) ~/ 2;
-    int offsetY = (originalImage.height - size) ~/ 2;
-
-    final img.Image cropped = img.copyCrop(
+    // ✅ Resize the image to 640x640
+    final img.Image resizedImage = img.copyResize(
       originalImage,
-      offsetX,
-      offsetY,
-      size,
-      size,
-    );
-
-    // Step 2: Resize to 640x640 for YOLOv8
-    final img.Image resized640 = img.copyResize(
-      cropped,
       width: 640,
       height: 640,
     );
 
     final String resizedPath =
         '${imageFile.parent.path}/resized_640_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    await File(resizedPath).writeAsBytes(img.encodeJpg(resized640));
+    await File(resizedPath).writeAsBytes(img.encodeJpg(resizedImage));
 
     return resizedPath;
   }
@@ -152,9 +138,18 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           if (_isCameraInitialized)
             Center(
-              child: AspectRatio(
-                aspectRatio: 1, // ✅ Force square preview
-                child: CameraPreview(_cameraController!),
+              child: ClipRect(
+                child: AspectRatio(
+                  aspectRatio: 1, // Ensure square aspect ratio
+                  child: FittedBox(
+                    fit: BoxFit.cover, // Avoid stretching
+                    child: SizedBox(
+                      width: _cameraController!.value.previewSize!.height,
+                      height: _cameraController!.value.previewSize!.width,
+                      child: CameraPreview(_cameraController!),
+                    ),
+                  ),
+                ),
               ),
             )
           else

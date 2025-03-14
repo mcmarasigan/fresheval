@@ -1,19 +1,20 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'model_service.dart';
-import 'dart:developer';
 
 class ScanResultScreen extends StatefulWidget {
   final String imagePath;
   final bool isUploadedImage;
 
   const ScanResultScreen({
-    Key? key,
+    super.key,
     required this.imagePath,
     required this.isUploadedImage,
-  }) : super(key: key);
+  });
 
   @override
   _ScanResultScreenState createState() => _ScanResultScreenState();
@@ -23,8 +24,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   late ModelService _modelService;
   List<Map<String, dynamic>> _detectedObjects = [];
   bool _isLoading = true;
-  double _imageWidth = 640;
-  double _imageHeight = 640;
+  final double _imageSize = 640; // Force 1:1 aspect ratio for YOLOv8
 
   @override
   void initState() {
@@ -35,32 +35,26 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   Future<void> _runInference() async {
     try {
+      log("🟢 Starting model inference...");
+
       await _modelService.loadModels();
       final imageBytes = await File(widget.imagePath).readAsBytes();
 
-      final image = File(widget.imagePath);
-      final decodedImage = await decodeImageFromList(image.readAsBytesSync());
+      log("📸 Image successfully loaded: ${widget.imagePath}");
 
-      _imageWidth = decodedImage.width.toDouble();
-      _imageHeight = decodedImage.height.toDouble();
+      final yoloResults =
+          await _modelService.detectObjects(imageBytes, _imageSize, _imageSize);
 
-      final yoloResults = await _modelService.detectObjects(
-          imageBytes,
-          _imageWidth, // ✅ Pass actual image width
-          _imageHeight // ✅ Pass actual image height
-          );
-
+      log("🟡 YOLO Detection Results: $yoloResults");
 
       List<Map<String, dynamic>> classifiedResults = [];
 
       for (var detected in yoloResults) {
-        final croppedImage =
-           _modelService.cropObject(
-            imageBytes,
-            detected['bbox'],
-            _imageWidth, // ✅ Pass actual image width
-            _imageHeight // ✅ Pass actual image height
-            );
+        log("🟢 Detected: ${detected['label']} - Confidence: ${detected['confidence']}");
+
+        final croppedImage = _modelService.cropObject(
+            imageBytes, detected['bbox'], _imageSize, _imageSize);
+
         final freshnessResult =
             await _modelService.classifyFreshness(croppedImage);
 
@@ -139,7 +133,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 child: Column(
                   children: [
                     AspectRatio(
-                      aspectRatio: _imageWidth / _imageHeight,
+                      aspectRatio: 1,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
@@ -167,13 +161,17 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                               ..._detectedObjects.map((detected) {
                                 final bbox = detected['bbox'];
 
-                                // Extract bounding box coordinates
-                                final double xMin = bbox[0];
-                                final double yMin = bbox[1];
-                                final double boxWidth = bbox[2] - bbox[0];
-                                final double boxHeight = bbox[3] - bbox[1];
+                                final double scaleFactor =
+                                    MediaQuery.of(context).size.width /
+                                        _imageSize;
 
-                                // 🔥 Get bounding box color based on the detected label
+                                final double xMin = bbox[0] * scaleFactor;
+                                final double yMin = bbox[1] * scaleFactor;
+                                final double boxWidth =
+                                    (bbox[2] - bbox[0]) * scaleFactor;
+                                final double boxHeight =
+                                    (bbox[3] - bbox[1]) * scaleFactor;
+
                                 Color boxColor =
                                     _getBoxColor(detected['label']);
 
@@ -186,16 +184,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                     width: boxWidth,
                                     height: boxHeight,
                                     decoration: BoxDecoration(
-                                      border: Border.all(
-                                          color: boxColor,
-                                          width:
-                                              2), // **🔥 Set color dynamically**
+                                      border:
+                                          Border.all(color: boxColor, width: 2),
                                     ),
                                     child: Align(
                                       alignment: Alignment.topLeft,
                                       child: Container(
-                                        color: boxColor.withOpacity(
-                                            0.7), // **🔥 Label background matches box color**
+                                        color: boxColor.withOpacity(0.7),
                                         padding: const EdgeInsets.all(2),
                                         child: Text(
                                           '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
@@ -209,8 +204,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                     ),
                                   ),
                                 );
-                              }).toList(),
-
+                              }),
                           ],
                         ),
                       ),
@@ -252,17 +246,17 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ),
     );
   }
-  Color _getBoxColor(String label) {
-  switch (label.toLowerCase()) {
-    case 'tomato':
-      return Colors.red; // 🍅 Red for tomato
-    case 'eggplant':
-      return Colors.purple; // 🍆 Violet for eggplant
-    case 'potato':
-      return const Color(0xFFC4A484); // 🥔 Light brown for potato
-    default:
-      return Colors.blue; // 🔵 Default color for other objects
-  }
-}
 
+  Color _getBoxColor(String label) {
+    switch (label.toLowerCase()) {
+      case 'tomato':
+        return Colors.red;
+      case 'eggplant':
+        return Colors.purple;
+      case 'potato':
+        return const Color(0xFFC4A484);
+      default:
+        return Colors.blue;
+    }
+  }
 }

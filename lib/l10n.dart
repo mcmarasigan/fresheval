@@ -66,10 +66,8 @@ class AppLocalizations {
       'faq3_description': 'Yes, previous scans are saved in the "Scan History" section.',
       'faq4_title': '4. How can I delete my scan history?',
       'faq4_description': 'Go to the Settings page and tap "Clear Scan History."',
-      'faq5_title': '5. Can the app work offline?',
-      'faq5_description': 'Some features require an internet connection for cloud-based analysis.',
       'faq6_title': '6. What types of food items can the app analyze?',
-      'faq6_description': 'It supports top vegetables in the Philippines: eggplant, tomato, and potato.',
+      'faq6_description': 'It supports following vegetables: eggplant, tomato, and potato.',
     },
     'tl': {
       // General
@@ -133,10 +131,8 @@ class AppLocalizations {
       'faq3_description': 'Oo, nakasave ang mga nakaraang scan sa seksyong "Kasaysayan ng Scan."',
       'faq4_title': '4. Paano ko mabubura ang kasaysayan ng scan?',
       'faq4_description': 'Pumunta sa Mga Setting at pindutin ang "Burahin ang Kasaysayan ng Scan."',
-      'faq5_title': '5. Puwede bang gumana ang app offline?',
-      'faq5_description': 'Kailangan ng koneksyon sa internet para sa ibang mga tampok tulad ng cloud analysis.',
       'faq6_title': '6. Anong mga uri ng pagkain ang kayang suriin ng app?',
-      'faq6_description': 'Sumusuporta ito sa mga pangunahing gulay sa Pilipinas: talong, kamatis, at patatas.',
+      'faq6_description': 'Sumusuporta ito sa mga gulay: talong, kamatis, at patatas.',
     },
   };
 

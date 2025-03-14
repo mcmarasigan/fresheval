@@ -31,9 +31,12 @@ class _HomePageState extends State<HomePage> {
     final savedScans = prefs.getStringList('recent_scans') ?? [];
 
     setState(() {
-      recentScans = savedScans
-          .map((scan) => Map<String, String>.from(json.decode(scan)))
-          .toList();
+      recentScans = savedScans.map((scan) {
+        final decoded = json.decode(scan) as Map<String, dynamic>;
+        return decoded.map((key, value) =>
+            MapEntry(key, value.toString())); // ✅ Converts everything to String
+      }).toList();
+
     });
   }
 

@@ -182,11 +182,6 @@ class FAQsScreen extends StatelessWidget {
             ),
             const Divider(),
             ListTile(
-              title: Text(localizations.getTranslation('faq5_title')),
-              subtitle: Text(localizations.getTranslation('faq5_description')),
-            ),
-            const Divider(),
-            ListTile(
               title: Text(localizations.getTranslation('faq6_title')),
               subtitle: Text(localizations.getTranslation('faq6_description')),
             ),
