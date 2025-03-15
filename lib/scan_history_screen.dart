@@ -1,7 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'l10n.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
@@ -14,17 +14,20 @@ class ScanHistoryScreen extends StatefulWidget {
 }
 
 class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
-  List<Map<String, String>> scanHistory = [];
-  List<Map<String, String>> filteredScanHistory = [];
+  List<Map<String, dynamic>> scanHistory = [];
+  List<Map<String, dynamic>> filteredScanHistory = [];
   List<bool> selectedItems = [];
   String searchQuery = '';
-  int _currentIndex = 1;
-  bool showDeleteMode = false; // Flag to toggle delete mode
+  bool showDeleteMode = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadScanHistory();
+    _searchController.addListener(() {
+      _filterScanHistory(_searchController.text);
+    });
   }
 
   Future<void> _loadScanHistory() async {
@@ -32,65 +35,53 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     final scanData = prefs.getStringList('recent_scans') ?? [];
 
     setState(() {
-      scanHistory = scanData
-          .map((scan) => Map<String, String>.from(json.decode(scan)))
-          .toList();
-      filteredScanHistory = List.from(scanHistory);
-      selectedItems = List.generate(scanHistory.length, (_) => false);
+      scanHistory = scanData.map((scan) {
+        final decoded = json.decode(scan) as Map<String, dynamic>;
+
+        return {
+          'imagePath': decoded['imagePath'].toString(),
+          'objects':
+              decoded.containsKey('objects') && decoded['objects'] != null
+                  ? List<Map<String, dynamic>>.from(decoded['objects'])
+                  : [], // ✅ Ensure objects is always a valid list
+          'date': decoded.containsKey('date')
+              ? decoded['date'].toString()
+              : "Unknown",
+          'time': decoded.containsKey('time')
+              ? decoded['time'].toString()
+              : "Unknown",
+        };
+      }).toList();
+
+      _filterScanHistory('');
     });
   }
 
   void _filterScanHistory(String query) {
+    query = query.toLowerCase();
+
     setState(() {
       searchQuery = query;
-      filteredScanHistory = scanHistory
-          .where((scan) =>
-              scan['name']!.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      filteredScanHistory = scanHistory.where((scan) {
+        final date = scan['date'].toLowerCase();
+        final time = scan['time'].toLowerCase();
+
+        // Search inside detected objects
+        final objectLabels = scan['objects']
+            .map<String>((obj) => obj['label'].toString().toLowerCase())
+            .join(" ");
+
+        return date.contains(query) ||
+            time.contains(query) ||
+            objectLabels.contains(query);
+      }).toList();
+
       selectedItems = List.generate(filteredScanHistory.length, (_) => false);
     });
   }
 
-  void _clearSearch() {
-    setState(() {
-      searchQuery = '';
-      filteredScanHistory = List.from(scanHistory);
-      selectedItems = List.generate(scanHistory.length, (_) => false);
-    });
-  }
 
-  Future<void> _deleteSelectedScans() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Remove selected items from scanHistory
-    final scansToKeep = <Map<String, String>>[];
-    for (int i = 0; i < filteredScanHistory.length; i++) {
-      if (!selectedItems[i]) {
-        scansToKeep.add(filteredScanHistory[i]);
-      }
-    }
-
-    setState(() {
-      scanHistory = scansToKeep;
-      filteredScanHistory = List.from(scanHistory);
-      selectedItems = List.generate(filteredScanHistory.length, (_) => false);
-      showDeleteMode = false; // Exit delete mode after deletion
-    });
-
-    // Save updated scan history
-    final updatedScans = scanHistory
-        .map((scan) => json.encode(scan))
-        .toList(); // Convert maps back to JSON strings
-    await prefs.setStringList('recent_scans', updatedScans);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${widget.localizations.getTranslation('scan history')} ${widget.localizations.getTranslation('deleted')}'),
-      ),
-    );
-  }
-
-  Future<void> _showConfirmationDialog() async {
+  void _confirmDelete() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -116,73 +107,81 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     );
   }
 
-  void _onItemTapped(int index) {
+  void _deleteSelectedScans() async {
+    final prefs = await SharedPreferences.getInstance();
+    final scansToKeep = <Map<String, dynamic>>[];
+
+    for (int i = 0; i < filteredScanHistory.length; i++) {
+      if (!selectedItems[i]) {
+        scansToKeep.add(filteredScanHistory[i]);
+      }
+    }
+
     setState(() {
-      _currentIndex = index;
+      scanHistory = scansToKeep;
+      _filterScanHistory('');
+      showDeleteMode = false;
     });
 
-    if (index == 0) {
-      Navigator.pushNamed(context, '/home');
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/history');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/settings');
-    } else if (index == 3) {
-      Navigator.pushNamed(context, '/help');
-    }
-  }
+    await prefs.setStringList(
+        'recent_scans', scanHistory.map((scan) => json.encode(scan)).toList());
 
-  void _navigateToDetails(Map<String, String> scan) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ScanDetailsScreen(
-          imagePath: scan['imagePath']!,
-          name: scan['name']!,
-          timestamp: scan['timestamp']!,
-        ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            '${widget.localizations.getTranslation('scan history')} ${widget.localizations.getTranslation('deleted')}'),
       ),
     );
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildDrawer(),
       appBar: AppBar(
         title: Text(widget.localizations.getTranslation('scan history')),
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.green,
+        actions: [
+          if (scanHistory.isNotEmpty)
+            IconButton(
+              icon: Icon(showDeleteMode ? Icons.cancel : Icons.delete,
+                  color: Colors.white),
+              onPressed: () {
+                setState(() {
+                  showDeleteMode = !showDeleteMode;
+                  selectedItems =
+                      List.generate(filteredScanHistory.length, (_) => false);
+                });
+              },
+            ),
+          if (showDeleteMode)
+            IconButton(
+              icon: const Icon(Icons.check, color: Colors.white),
+              onPressed: selectedItems.contains(true) ? _confirmDelete : null,
+            ),
+        ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    onChanged: _filterScanHistory,
-                    controller: TextEditingController(text: searchQuery),
-                    decoration: InputDecoration(
-                      labelText: widget.localizations.getTranslation('search'),
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                  ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: widget.localizations.getTranslation('search'),
+                hintText:
+                    widget.localizations.getTranslation('Search by Date and Time'),
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {
-                    setState(() {
-                      showDeleteMode = !showDeleteMode; // Toggle delete mode
-                      selectedItems = List.generate(
-                          filteredScanHistory.length, (_) => false);
-                    });
-                  },
-                ),
-              ],
+              ),
             ),
           ),
           Expanded(
@@ -195,16 +194,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                     itemCount: filteredScanHistory.length,
                     itemBuilder: (context, index) {
                       final scan = filteredScanHistory[index];
+                      final objectCount = scan['objects']
+                          .length; // ✅ Ensure it counts objects properly
+
                       return ListTile(
-                        onTap: () {
-                          if (showDeleteMode) {
-                            setState(() {
-                              selectedItems[index] = !selectedItems[index];
-                            });
-                          } else {
-                            _navigateToDetails(scan);
-                          }
-                        },
                         leading: showDeleteMode
                             ? Checkbox(
                                 value: selectedItems[index],
@@ -215,51 +208,74 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                                 },
                               )
                             : null,
-                        title: Text(scan['name']!),
-                        subtitle: Text(scan['timestamp']!),
-                        trailing: Image.file(
-                          File(scan['imagePath']!),
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
+                        title: Text(
+                          "$objectCount Objects Detected",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
+                        subtitle: Text(
+                            "Date: ${scan['date']}  Time: ${scan['time']}"),
+                        trailing: Image.file(File(scan['imagePath']!),
+                            width: 50, height: 50, fit: BoxFit.cover),
+                        onTap: () {
+                          if (showDeleteMode) {
+                            setState(() {
+                              selectedItems[index] = !selectedItems[index];
+                            });
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ScanDetailScreen(scan: scan),
+                              ),
+                            );
+                          }
+                        },
                       );
                     },
                   ),
           ),
-          if (showDeleteMode && filteredScanHistory.isNotEmpty)
-            ElevatedButton.icon(
-              onPressed: selectedItems.contains(true)
-                  ? _showConfirmationDialog
-                  : null,
-              icon: const Icon(Icons.delete),
-              label: Text(widget.localizations.getTranslation('delete scans')),
-            ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFDCDE9F),
-        selectedItemColor: const Color(0xFF446129),
-        unselectedItemColor: const Color(0xFF92A65F),
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: widget.localizations.getTranslation('home'),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: const Text("FreshEval"),
+            accountEmail: const Text("Scan and evaluate freshness"),
+            decoration: const BoxDecoration(color: Colors.green),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.history),
-            label: widget.localizations.getTranslation('scan history'),
+          ListTile(
+            leading: const Icon(Icons.camera),
+            title: const Text("Camera"),
+            onTap: () {
+              Navigator.pushNamed(context, '/');
+            },
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings),
-            label: widget.localizations.getTranslation('settings'),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text("Scan History"),
+            onTap: () {
+              Navigator.pop(context);
+            },
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.help),
-            label: widget.localizations.getTranslation('help'),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text("Settings"),
+            onTap: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text("Help"),
+            onTap: () {
+              Navigator.pushNamed(context, '/help');
+            },
           ),
         ],
       ),
@@ -267,48 +283,103 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   }
 }
 
-// Add the ScanDetailsScreen class at the bottom of this file.
-class ScanDetailsScreen extends StatelessWidget {
-  final String imagePath;
-  final String name;
-  final String timestamp;
+/// **Full View Screen**
+class ScanDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> scan;
 
-  const ScanDetailsScreen({
-    super.key,
-    required this.imagePath,
-    required this.name,
-    required this.timestamp,
-  });
+  const ScanDetailScreen({super.key, required this.scan});
 
   @override
   Widget build(BuildContext context) {
+    final List<dynamic> objects = scan['objects'] ?? []; // Ensure it's a list
+    final double imageSize = 640; // Image size reference
+    final double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(name),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Image.file(
-                File(imagePath),
-                fit: BoxFit.contain,
+      appBar: AppBar(title: Text("Detected Objects")),
+      body: Column(
+        children: [
+          // ✅ Image with Bounding Boxes
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: AspectRatio(
+              aspectRatio: 1, // Keep Square Aspect Ratio
+              child: Stack(
+                children: [
+                  Image.file(
+                    File(scan['imagePath']!),
+                    fit: BoxFit.cover,
+                    width: imageSize,
+                    height: imageSize,
+                  ),
+                  // ✅ Overlay Bounding Boxes if they exist
+                  ...objects
+                      .where((obj) =>
+                          obj.containsKey('bbox') && obj['bbox'] != null)
+                      .map((obj) {
+                    final bbox = obj['bbox']; // Ensure bbox exists
+
+                    if (bbox.length != 4)
+                      return const SizedBox(); // Skip invalid bbox
+
+                    final double scaleFactor = screenWidth / imageSize;
+                    final double xMin = bbox[0] * scaleFactor;
+                    final double yMin = bbox[1] * scaleFactor;
+                    final double boxWidth = (bbox[2] - bbox[0]) * scaleFactor;
+                    final double boxHeight = (bbox[3] - bbox[1]) * scaleFactor;
+
+                    return Positioned(
+                      left: xMin,
+                      top: yMin,
+                      child: Container(
+                        width: boxWidth,
+                        height: boxHeight,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.red, width: 2),
+                        ),
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Container(
+                            color: Colors.red.withOpacity(0.7),
+                            padding: const EdgeInsets.all(2),
+                            child: Text(
+                              "${obj['label']} (${double.parse(obj['confidence']).toStringAsFixed(2)}%)",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Name: $name',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          // ✅ Detected Object List
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: objects.length,
+              itemBuilder: (context, index) {
+                final obj = objects[index];
+                return Card(
+                  child: ListTile(
+                    title: Text("${obj['label']}"),
+                   subtitle: Text(
+                      "Confidence: ${double.tryParse(obj['confidence'].toString())?.toStringAsFixed(2) ?? 'N/A'}%\n"
+                      "Freshness: ${obj['freshness']} (${double.tryParse(obj['freshnessConfidence'].toString())?.toStringAsFixed(2) ?? 'N/A'}%)",
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Timestamp: $timestamp',
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

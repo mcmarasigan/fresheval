@@ -9,10 +9,10 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildDrawer(context), // ✅ Match Camera Screen
       appBar: AppBar(
         title: Text(localizations.getTranslation('help')),
-        backgroundColor: const Color(0xFFDCDE9F),
-        elevation: 0,
+        backgroundColor: Colors.green,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -58,33 +58,46 @@ class HelpScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFDCDE9F),
-        selectedItemColor: const Color(0xFF446129),
-        unselectedItemColor: const Color(0xFF92A65F),
-        currentIndex: 3,
-        onTap: (index) {
-          if (index == 0) Navigator.pushNamed(context, '/home');
-          if (index == 1) Navigator.pushNamed(context, '/history');
-          if (index == 2) Navigator.pushNamed(context, '/settings');
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: localizations.getTranslation('home'),
+    );
+  }
+
+  /// **📌 Navigation Drawer (Same as Camera Screen)**
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: const Text("FreshEval"),
+            accountEmail: const Text("Scan and evaluate freshness"),
+            decoration: const BoxDecoration(color: Colors.green),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.history),
-            label: localizations.getTranslation('scan history'),
+          ListTile(
+            leading: const Icon(Icons.camera),
+            title: const Text("Camera"),
+            onTap: () {
+              Navigator.pushNamed(context, '/');
+            },
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings),
-            label: localizations.getTranslation('settings'),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text("Scan History"),
+            onTap: () {
+              Navigator.pushNamed(context, '/history');
+            },
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.help),
-            label: localizations.getTranslation('help'),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text("Settings"),
+            onTap: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text("Help"),
+            onTap: () {
+              Navigator.pop(context); // Stay on this page
+            },
           ),
         ],
       ),
@@ -102,8 +115,7 @@ class HowToUseScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.getTranslation('how_to_use')),
-        backgroundColor: const Color(0xFFDCDE9F),
-        elevation: 0,
+        backgroundColor: Colors.green,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -117,8 +129,8 @@ class HowToUseScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.image, color: Colors.blue),
               title: Text(localizations.getTranslation('upload image')),
-              subtitle:
-                  Text(localizations.getTranslation('upload_image_description')),
+              subtitle: Text(
+                  localizations.getTranslation('upload_image_description')),
             ),
             ListTile(
               leading: const Icon(Icons.history, color: Colors.orange),
@@ -154,8 +166,7 @@ class FAQsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.getTranslation('faqs')),
-        backgroundColor: const Color(0xFFDCDE9F),
-        elevation: 0,
+        backgroundColor: Colors.green,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

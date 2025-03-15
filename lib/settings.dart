@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fresheval/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final Function(String) onLanguageChanged; // Callback to notify language change
+  final Function(String)
+      onLanguageChanged; // Callback to notify language change
   final AppLocalizations localizations;
 
   const SettingsScreen({
@@ -18,7 +20,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedLanguage; // Allow null until the language is loaded
-  int _currentIndex = 2; // Current tab index
   late AppLocalizations _localization; // Dynamic localization instance
 
   @override
@@ -32,7 +33,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _selectedLanguage = prefs.getString('language') ?? 'en'; // Default to English
+      _selectedLanguage =
+          prefs.getString('language') ?? 'en'; // Default to English
     });
   }
 
@@ -45,8 +47,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _localization = AppLocalizations(language); // Update localization
     });
 
-    // Notify the app of the language change
+    // ✅ Notify the entire app of the language change
     widget.onLanguageChanged(language);
+    MyApp.of(context)?.updateLanguage(language);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -93,7 +96,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.remove('recent_scans');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_localization.getTranslation('scan history')} cleared.'),
+        content:
+            Text('${_localization.getTranslation('scan history')} cleared.'),
       ),
     );
   }
@@ -107,23 +111,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Text('${_localization.getTranslation('cache')} cleared.'),
       ),
     );
-  }
-
-  // Handle bottom navigation
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
-    if (index == 0) {
-      Navigator.pushNamed(context, '/home');
-    } else if (index == 1) {
-      Navigator.pushNamed(context, '/history');
-    } else if (index == 2) {
-      Navigator.pushNamed(context, '/settings');
-    } else if (index == 3) {
-      Navigator.pushNamed(context, '/help');
-    }
   }
 
   @override
@@ -157,9 +144,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
+      drawer: _buildDrawer(), // ✅ Match Camera Screen
       appBar: AppBar(
         title: Text(_localization.getTranslation('settings')),
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.green,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -188,7 +176,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () {
                 _showConfirmationDialog(
                   title: _localization.getTranslation('clear scan history'),
-                  content: _localization.getTranslation('confirm_clear_history'),
+                  content:
+                      _localization.getTranslation('confirm_clear_history'),
                   onConfirmed: _clearScanHistory,
                 );
               },
@@ -209,29 +198,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFDCDE9F),
-        selectedItemColor: const Color(0xFF446129),
-        unselectedItemColor: const Color(0xFF92A65F),
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: _localization.getTranslation('home'),
+    );
+  }
+
+  /// **📌 Navigation Drawer (Same as Camera Screen)**
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: const Text("FreshEval"),
+            accountEmail: const Text("Scan and evaluate freshness"),
+            decoration: const BoxDecoration(color: Colors.green),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.history),
-            label: _localization.getTranslation('scan history'),
+          ListTile(
+            leading: const Icon(Icons.camera),
+            title: const Text("Camera"),
+            onTap: () {
+              Navigator.pushNamed(context, '/');
+            },
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings),
-            label: _localization.getTranslation('settings'),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text("Scan History"),
+            onTap: () {
+              Navigator.pushNamed(context, '/history');
+            },
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.help),
-            label: _localization.getTranslation('help'),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text("Settings"),
+            onTap: () {
+              Navigator.pop(context); // Stay on this page
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text("Help"),
+            onTap: () {
+              Navigator.pushNamed(context, '/help');
+            },
           ),
         ],
       ),

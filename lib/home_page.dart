@@ -82,17 +82,16 @@ class _HomePageState extends State<HomePage> {
       final pickedImage = await picker.pickImage(source: ImageSource.gallery);
 
       if (pickedImage != null) {
-        await _saveScan(
-          imagePath: pickedImage.path,
-          name: widget.localizations.getTranslation('uploaded_image'),
-        );
-
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ScanResultScreen(
               imagePath: pickedImage.path,
               isUploadedImage: true,
+              onSave: (imagePath, name) async {
+                await _saveScan(imagePath: imagePath, name: name);
+                _loadRecentScans(); // Refresh home screen
+              },
             ),
           ),
         );
@@ -101,11 +100,14 @@ class _HomePageState extends State<HomePage> {
       print('Error picking image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.localizations.getTranslation('failed_to_pick_image')),
+          content:
+              Text(widget.localizations.getTranslation('failed_to_pick_image')),
         ),
       );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {

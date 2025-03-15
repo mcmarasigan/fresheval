@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'model_service.dart';
@@ -9,12 +10,15 @@ import 'model_service.dart';
 class ScanResultScreen extends StatefulWidget {
   final String imagePath;
   final bool isUploadedImage;
+  final Function(String imagePath, String name)? onSave; // ✅ Proper callback
 
   const ScanResultScreen({
     Key? key,
     required this.imagePath,
     required this.isUploadedImage,
+    this.onSave, // ✅ Make it optional
   }) : super(key: key);
+
 
   @override
   _ScanResultScreenState createState() => _ScanResultScreenState();
@@ -82,28 +86,44 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     }
   }
 
-  Future<void> _saveScanResult() async {
+Future<void> _saveScanResult() async {
     if (_detectedObjects.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
     final scanData = prefs.getStringList('recent_scans') ?? [];
 
-    for (var detected in _detectedObjects) {
-      final newScan = json.encode({
-        'imagePath': widget.imagePath,
-        'name': detected['label'],
-        'confidence': detected['confidence'],
-        'freshness': detected['freshness'],
-        'freshnessConfidence': detected['freshnessConfidence'],
-        'timestamp': DateTime.now().toString(),
-      });
+    DateTime now = DateTime.now();
+    String formattedDate = DateFormat('yyyy-MM-dd').format(now);
+    String formattedTime = DateFormat.jm().format(now);
 
-      scanData.add(newScan);
-    }
+    // ✅ Store all objects in a single entry
+    final newScan = json.encode({
+      'imagePath': widget.imagePath,
+      'objects': _detectedObjects
+          .map((obj) => {
+                'label': obj['label'],
+                'confidence': obj['confidence'].toStringAsFixed(2),
+                'freshness': obj['freshness'],
+                'freshnessConfidence':
+                    obj['freshnessConfidence'].toStringAsFixed(2),
+              })
+          .toList(),
+      'date': formattedDate,
+      'time': formattedTime,
+    });
 
+    // ✅ Prevent duplicates: Remove old entry if exists
+    scanData.removeWhere((scan) {
+      final decoded = json.decode(scan);
+      return decoded['imagePath'] == widget.imagePath;
+    });
+
+    scanData.add(newScan);
     await prefs.setStringList('recent_scans', scanData);
+
     _showSaveDialog();
   }
+
 
   void _showSaveDialog() {
     showDialog(

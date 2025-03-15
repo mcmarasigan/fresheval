@@ -1,10 +1,14 @@
-import 'dart:math';
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:fresheval/l10n.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
 import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 import 'scan_result_screen.dart';
+import 'scan_history_screen.dart';
+import 'settings.dart';
+import 'help_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -38,9 +42,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _initializeCamera() async {
     try {
       final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        throw Exception("No cameras found.");
-      }
+      if (cameras.isEmpty) throw Exception("No cameras found.");
       final backCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.back,
       );
@@ -87,7 +89,6 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  /// **🔥 Resize Image to 640x640**
   Future<String> _resizeTo640(String imagePath) async {
     final File imageFile = File(imagePath);
     final img.Image? originalImage =
@@ -95,7 +96,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (originalImage == null) return imagePath;
 
-    // ✅ Resize the image to 640x640
     final img.Image resizedImage = img.copyResize(
       originalImage,
       width: 640,
@@ -109,6 +109,29 @@ class _CameraScreenState extends State<CameraScreen> {
     return resizedPath;
   }
 
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final pickedImage = await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedImage != null) {
+        final resizedImagePath = await _resizeTo640(pickedImage.path);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ScanResultScreen(
+              imagePath: resizedImagePath,
+              isUploadedImage: true,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+  }
+
   @override
   void dispose() {
     _cameraController?.dispose();
@@ -118,9 +141,10 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildDrawer(),
       appBar: AppBar(
-        leading: const BackButton(),
-        title: const Text('Camera Screen'),
+        title: const Text('FreshEval Camera'),
+        backgroundColor: Colors.green,
         actions: [
           IconButton(
             icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
@@ -139,49 +163,152 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           if (_isCameraInitialized)
             Center(
-              child: ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(16), // Match scan result rounding
-                child: AspectRatio(
-                  aspectRatio: 1, // Ensure a square preview
-                  child: FittedBox(
-                    fit: BoxFit
-                        .cover, // ✅ Ensures the preview behaves like Image.file
-                    child: SizedBox(
-                      width: _cameraController!.value.previewSize!.height,
-                      height: _cameraController!.value.previewSize!.width,
-                      child: CameraPreview(_cameraController!),
-                    ),
-                  ),
-                ),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: CameraPreview(_cameraController!),
               ),
             )
           else
             const Center(child: CircularProgressIndicator()),
 
-          Positioned(
-            bottom: 30,
+          // 📸 Capture & Upload Buttons (Positioned Correctly)
+         Positioned(
+            bottom: 30, // Places the buttons near the bottom
             left: 0,
-            right: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: _captureImage,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 4),
-                  ),
-                  child: const Icon(
-                    Icons.camera,
-                    color: Colors.white,
-                    size: 40,
+            right: 0, // Ensures full width usage for centering
+            child: Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Centering the capture button
+              children: [
+                // 📤 Upload Button (Lower Left)
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.only(left: 30), // Adjust left padding
+                    child: GestureDetector(
+                      onTap: _pickImageFromGallery,
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.image,
+                          color: Colors.green,
+                          size: 35,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+
+                const Spacer(), // Pushes the capture button to the center
+
+                // 📸 Capture Button (Lower Center)
+                GestureDetector(
+                  onTap: _captureImage,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black38,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.black, width: 2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const Spacer(), // Balances layout
+
+                // **(Optional) Empty space for symmetry**
+                SizedBox(width: 60),
+              ],
             ),
+          ),
+
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            accountName: const Text("FreshEval"),
+            accountEmail: const Text("Scan and evaluate freshness"),
+            decoration: const BoxDecoration(color: Colors.green),
+          ),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text("Scan History"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ScanHistoryScreen(
+                    localizations: AppLocalizations('en'),
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text("Settings"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(
+                    localizations: AppLocalizations('en'),
+                    onLanguageChanged: (newLang) {},
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text("Help"),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HelpScreen(
+                    localizations: AppLocalizations('en'),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

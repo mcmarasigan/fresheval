@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n.dart';
-import 'home_page.dart';
+import 'camera_screen.dart';
 import 'scan_history_screen.dart';
 import 'settings.dart';
 import 'help_screen.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final languageCode = prefs.getString('language') ?? 'en'; // Default to English
+  final languageCode =
+      prefs.getString('language') ?? 'en'; // Default to English
   runApp(MyApp(initialLocale: languageCode));
 }
 
@@ -60,10 +62,10 @@ class _MyAppState extends State<MyApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      initialRoute: '/home',
+      home: const CameraScreen(),
       routes: {
-        '/home': (context) => HomePage(localizations: localizations),
-        '/history': (context) => ScanHistoryScreen(localizations: localizations),
+        '/history': (context) =>
+            ScanHistoryScreen(localizations: localizations),
         '/settings': (context) => SettingsScreen(
               localizations: localizations,
               onLanguageChanged: updateLanguage,
