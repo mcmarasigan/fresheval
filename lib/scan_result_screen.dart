@@ -10,15 +10,14 @@ import 'model_service.dart';
 class ScanResultScreen extends StatefulWidget {
   final String imagePath;
   final bool isUploadedImage;
-  final Function(String imagePath, String name)? onSave; // ✅ Proper callback
+  final Function(String imagePath, String name)? onSave;
 
   const ScanResultScreen({
-    Key? key,
+    super.key,
     required this.imagePath,
     required this.isUploadedImage,
-    this.onSave, // ✅ Make it optional
-  }) : super(key: key);
-
+    this.onSave,
+  });
 
   @override
   _ScanResultScreenState createState() => _ScanResultScreenState();
@@ -28,7 +27,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   late ModelService _modelService;
   List<Map<String, dynamic>> _detectedObjects = [];
   bool _isLoading = true;
-  final double _imageSize = 640; // Force 1:1 aspect ratio for YOLOv8
+  final double _imageSize = 640; // YOLOv8 input size
 
   @override
   void initState() {
@@ -70,6 +69,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           'bbox': detected['bbox'],
           'freshness': freshnessResult['label'],
           'freshnessConfidence': freshnessResult['confidence'],
+          'originalWidth': detected['originalWidth'],
+          'originalHeight': detected['originalHeight'],
         });
       }
 
@@ -86,7 +87,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     }
   }
 
-Future<void> _saveScanResult() async {
+  Future<void> _saveScanResult() async {
     if (_detectedObjects.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -96,7 +97,6 @@ Future<void> _saveScanResult() async {
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
     String formattedTime = DateFormat.jm().format(now);
 
-    // ✅ Store all objects in a single entry
     final newScan = json.encode({
       'imagePath': widget.imagePath,
       'objects': _detectedObjects
@@ -112,7 +112,6 @@ Future<void> _saveScanResult() async {
       'time': formattedTime,
     });
 
-    // ✅ Prevent duplicates: Remove old entry if exists
     scanData.removeWhere((scan) {
       final decoded = json.decode(scan);
       return decoded['imagePath'] == widget.imagePath;
@@ -123,7 +122,6 @@ Future<void> _saveScanResult() async {
 
     _showSaveDialog();
   }
-
 
   void _showSaveDialog() {
     showDialog(
@@ -154,79 +152,101 @@ Future<void> _saveScanResult() async {
                   children: [
                     AspectRatio(
                       aspectRatio: 1,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final double displaySize = constraints.maxWidth;
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
                               borderRadius: BorderRadius.circular(16),
-                              child: Image.file(
-                                File(widget.imagePath),
-                                fit: BoxFit.cover,
-                                width: 640,
-                                height: 640,
-                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            if (_detectedObjects.isNotEmpty)
-                              ..._detectedObjects.map((detected) {
-                                final bbox = detected['bbox'];
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.file(
+                                    File(widget.imagePath),
+                                    fit: BoxFit.cover,
+                                    width: displaySize,
+                                    height: displaySize,
+                                  ),
+                                ),
+                                if (_detectedObjects.isNotEmpty)
+                                  ..._detectedObjects.map((detected) {
+                                    final bbox = detected['bbox'];
+                                    final originalWidth =
+                                        detected['originalWidth'] as double;
+                                    final originalHeight =
+                                        detected['originalHeight'] as double;
 
-                                final double scaleFactor =
-                                    MediaQuery.of(context).size.width /
-                                        _imageSize;
+                                    // Scale from YOLOv8 640x640 to original dimensions
+                                    double scaleX = _imageSize / originalWidth;
+                                    double scaleY = _imageSize / originalHeight;
+                                    double scale =
+                                        scaleX < scaleY ? scaleX : scaleY;
+                                    double offsetX =
+                                        (_imageSize - originalWidth * scale) /
+                                            2;
+                                    double offsetY =
+                                        (_imageSize - originalHeight * scale) /
+                                            2;
 
-                                final double xMin = bbox[0] * scaleFactor;
-                                final double yMin = bbox[1] * scaleFactor;
-                                final double boxWidth =
-                                    (bbox[2] - bbox[0]) * scaleFactor;
-                                final double boxHeight =
-                                    (bbox[3] - bbox[1]) * scaleFactor;
+                                    final double xMin = (bbox[0] - offsetX) *
+                                        (displaySize / (originalWidth * scale));
+                                    final double yMin = (bbox[1] - offsetY) *
+                                        (displaySize /
+                                            (originalHeight * scale));
+                                    final double boxWidth = (bbox[2] -
+                                            bbox[0]) *
+                                        (displaySize / (originalWidth * scale));
+                                    final double boxHeight =
+                                        (bbox[3] - bbox[1]) *
+                                            (displaySize /
+                                                (originalHeight * scale));
 
-                                Color boxColor =
-                                    _getBoxColor(detected['label']);
+                                    Color boxColor =
+                                        _getBoxColor(detected['label']);
+                                    log("🟢 Adjusted BBox for ${detected['label']}: xMin=$xMin, yMin=$yMin, width=$boxWidth, height=$boxHeight, displaySize=$displaySize");
 
-                                log("🟢 Bounding Box for ${detected['label']}: xMin=$xMin, yMin=$yMin, width=$boxWidth, height=$boxHeight");
-
-                                return Positioned(
-                                  left: xMin,
-                                  top: yMin,
-                                  child: Container(
-                                    width: boxWidth,
-                                    height: boxHeight,
-                                    decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: boxColor, width: 2),
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.topLeft,
+                                    return Positioned(
+                                      left: xMin,
+                                      top: yMin,
                                       child: Container(
-                                        color: boxColor.withOpacity(0.7),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Text(
-                                          '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
+                                        width: boxWidth,
+                                        height: boxHeight,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: boxColor, width: 2),
+                                        ),
+                                        child: Align(
+                                          alignment: Alignment.topLeft,
+                                          child: Container(
+                                            color: boxColor.withOpacity(0.7),
+                                            padding: const EdgeInsets.all(2),
+                                            child: Text(
+                                              '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                          ],
-                        ),
+                                    );
+                                  }),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 20),

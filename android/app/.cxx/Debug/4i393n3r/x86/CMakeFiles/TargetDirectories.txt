@@ -1,0 +1,2 @@
+D:/ThesisApp/fresheval/android/app/.cxx/Debug/4i393n3r/x86/CMakeFiles/edit_cache.dir
+D:/ThesisApp/fresheval/android/app/.cxx/Debug/4i393n3r/x86/CMakeFiles/rebuild_cache.dir

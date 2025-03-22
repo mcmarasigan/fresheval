@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.fresheval"  // ✅ FIXED: "=" instead of space
+    namespace "com.example.fresheval" // ✅ FIXED: "=" instead of space
     compileSdkVersion 34  // ✅ FIXED: Use explicit SDK version
 
     defaultConfig {

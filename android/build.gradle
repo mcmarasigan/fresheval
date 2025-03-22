@@ -10,9 +10,9 @@ buildscript {
     }
     dependencies {
         // Gradle plugin for Kotlin.
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20"
         // If needed, you can also add the Android Gradle plugin here:
-        // classpath 'com.android.tools.build:gradle:7.0.4'
+        classpath 'com.android.tools.build:gradle:8.2.0'  
     }
 }
 

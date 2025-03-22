@@ -7,7 +7,6 @@ import 'scan_history_screen.dart';
 import 'settings.dart';
 import 'help_screen.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();

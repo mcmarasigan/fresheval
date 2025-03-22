@@ -13,8 +13,8 @@ class ModelService {
   late List<String> _efficientNetLabels;
   bool _modelsLoaded = false;
 
-  final double _yoloInputSize = 640; // ✅ YOLOv8 input size
-  final double _efficientNetInputSize = 224; // ✅ EfficientNet input size
+  final double _yoloInputSize = 640; // YOLOv8 input size
+  final double _efficientNetInputSize = 224; // EfficientNet input size
 
   Future<void> loadModels() async {
     try {
@@ -57,7 +57,6 @@ class ModelService {
     }
   }
 
-  /// **🔥 Runs YOLOv8 object detection (Provides Bounding Box)**
   Future<List<Map<String, dynamic>>> detectObjects(
       Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
@@ -66,6 +65,11 @@ class ModelService {
     }
 
     try {
+      final img.Image? originalImage = img.decodeImage(imageBytes);
+      final originalWidth = originalImage?.width.toDouble() ?? imageWidth;
+      final originalHeight = originalImage?.height.toDouble() ?? imageHeight;
+      log("📏 Original Image Dimensions: ${originalWidth}x${originalHeight}");
+
       final detections = await _flutterVision.yoloOnImage(
         bytesList: imageBytes,
         imageHeight: _yoloInputSize.toInt(),
@@ -90,13 +94,16 @@ class ModelService {
             double yMin = bbox[1];
             double xMax = bbox[2];
             double yMax = bbox[3];
-
             double confidence = bbox[4] * 100;
+
+            log("📍 Raw BBox for ${detection['tag']}: [$xMin, $yMin, $xMax, $yMax]");
 
             return {
               'label': detection['tag'],
               'confidence': confidence,
               'bbox': [xMin, yMin, xMax, yMax],
+              'originalWidth': originalWidth,
+              'originalHeight': originalHeight,
             };
           })
           .whereType<Map<String, dynamic>>()
@@ -107,7 +114,6 @@ class ModelService {
     }
   }
 
-  /// **🔥 Runs EfficientNetB7 classification**
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
@@ -136,7 +142,6 @@ class ModelService {
     }
   }
 
-  /// **🔥 Crops the detected object (Bounding Box from YOLOv8)**
   Uint8List cropObject(
       Uint8List imageBytes, List bbox, double imageWidth, double imageHeight) {
     final img.Image? originalImage = img.decodeImage(imageBytes);
@@ -161,7 +166,6 @@ class ModelService {
     return Uint8List.fromList(img.encodeJpg(resizedCropped, quality: 85));
   }
 
-  /// **🔥 Preprocess Image for EfficientNet**
   List<List<List<List<double>>>> _preprocessImageForEfficientNet(
       Uint8List imageBytes) {
     final img.Image? originalImage = img.decodeImage(imageBytes);
@@ -174,7 +178,7 @@ class ModelService {
     return [
       List.generate(_efficientNetInputSize.toInt(), (y) {
         return List.generate(_efficientNetInputSize.toInt(), (x) {
-          final int pixel = resizedImage.getPixel(x, y);
+          final int pixel = resizedImage.getPixel(x, y) as int;
           return [
             ((pixel >> 16) & 0xFF) / 127.5 - 1.0,
             ((pixel >> 8) & 0xFF) / 127.5 - 1.0,
@@ -185,7 +189,6 @@ class ModelService {
     ];
   }
 
-  /// **🔥 Softmax Function**
   List<double> _softmax(List<double> scores) {
     final expScores = scores.map(math.exp).toList();
     final sumExpScores = expScores.reduce((a, b) => a + b);

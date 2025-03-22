@@ -191,10 +191,10 @@ class _CameraScreenState extends State<CameraScreen> {
                       child: Container(
                         width: 60,
                         height: 60,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: const [
+                          boxShadow: [
                             BoxShadow(
                               color: Colors.black26,
                               blurRadius: 6,
@@ -248,7 +248,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 const Spacer(), // Balances layout
 
                 // **(Optional) Empty space for symmetry**
-                SizedBox(width: 60),
+                const SizedBox(width: 60),
               ],
             ),
           ),
@@ -262,10 +262,10 @@ class _CameraScreenState extends State<CameraScreen> {
     return Drawer(
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            accountName: const Text("FreshEval"),
-            accountEmail: const Text("Scan and evaluate freshness"),
-            decoration: const BoxDecoration(color: Colors.green),
+          const UserAccountsDrawerHeader(
+            accountName: Text("FreshEval"),
+            accountEmail: Text("Scan and evaluate freshness"),
+            decoration: BoxDecoration(color: Colors.green),
           ),
           ListTile(
             leading: const Icon(Icons.history),

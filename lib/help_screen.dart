@@ -66,10 +66,10 @@ class HelpScreen extends StatelessWidget {
     return Drawer(
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            accountName: const Text("FreshEval"),
-            accountEmail: const Text("Scan and evaluate freshness"),
-            decoration: const BoxDecoration(color: Colors.green),
+          const UserAccountsDrawerHeader(
+            accountName: Text("FreshEval"),
+            accountEmail: Text("Scan and evaluate freshness"),
+            decoration: BoxDecoration(color: Colors.green),
           ),
           ListTile(
             leading: const Icon(Icons.camera),

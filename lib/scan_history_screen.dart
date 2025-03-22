@@ -244,10 +244,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     return Drawer(
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            accountName: const Text("FreshEval"),
-            accountEmail: const Text("Scan and evaluate freshness"),
-            decoration: const BoxDecoration(color: Colors.green),
+          const UserAccountsDrawerHeader(
+            accountName: Text("FreshEval"),
+            accountEmail: Text("Scan and evaluate freshness"),
+            decoration: BoxDecoration(color: Colors.green),
           ),
           ListTile(
             leading: const Icon(Icons.camera),
@@ -292,11 +292,11 @@ class ScanDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<dynamic> objects = scan['objects'] ?? []; // Ensure it's a list
-    final double imageSize = 640; // Image size reference
+    const double imageSize = 640; // Image size reference
     final double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(title: Text("Detected Objects")),
+      appBar: AppBar(title: const Text("Detected Objects")),
       body: Column(
         children: [
           // ✅ Image with Bounding Boxes
@@ -319,8 +319,9 @@ class ScanDetailScreen extends StatelessWidget {
                       .map((obj) {
                     final bbox = obj['bbox']; // Ensure bbox exists
 
-                    if (bbox.length != 4)
+                    if (bbox.length != 4) {
                       return const SizedBox(); // Skip invalid bbox
+                    }
 
                     final double scaleFactor = screenWidth / imageSize;
                     final double xMin = bbox[0] * scaleFactor;
@@ -354,7 +355,7 @@ class ScanDetailScreen extends StatelessWidget {
                         ),
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),
