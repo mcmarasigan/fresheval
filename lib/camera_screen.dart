@@ -72,14 +72,15 @@ class _CameraScreenState extends State<CameraScreen> {
     if (!_isCameraInitialized || _cameraController == null) return;
 
     try {
-      final image = await _cameraController!.takePicture();
-      final resizedImagePath = await _resizeTo640(image.path);
+     final image = await _cameraController!.takePicture();
+      final originalPath = image.path;
+      final resizedPath = await _resizeTo640(originalPath);
 
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ScanResultScreen(
-            imagePath: resizedImagePath,
+            imagePath: resizedPath, // Show square cropped image
             isUploadedImage: false,
           ),
         ),
@@ -96,18 +97,18 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (originalImage == null) return imagePath;
 
-    final img.Image resizedImage = img.copyResize(
-      originalImage,
-      width: 640,
-      height: 640,
-    );
+    // Center crop to square
+    final img.Image squareCropped =
+        img.copyResizeCropSquare(originalImage, 640);
 
     final String resizedPath =
         '${imageFile.parent.path}/resized_640_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    await File(resizedPath).writeAsBytes(img.encodeJpg(resizedImage));
+
+    await File(resizedPath).writeAsBytes(img.encodeJpg(squareCropped));
 
     return resizedPath;
   }
+
 
   Future<void> _pickImageFromGallery() async {
     try {
@@ -161,11 +162,23 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
       body: Stack(
         children: [
-          if (_isCameraInitialized)
-            Center(
+         if (_isCameraInitialized && _cameraController != null)
+           Center(
               child: AspectRatio(
-                aspectRatio: 1,
-                child: CameraPreview(_cameraController!),
+                aspectRatio: 1, // 1:1 ratio
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _cameraController!.value.previewSize!.height,
+                        height: _cameraController!.value.previewSize!.width,
+                        child: CameraPreview(_cameraController!),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             )
           else

@@ -139,153 +139,54 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Scan Results')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    AspectRatio(
-                      aspectRatio: 1,
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final double displaySize = constraints.maxWidth;
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Image.file(
-                                    File(widget.imagePath),
-                                    fit: BoxFit.cover,
-                                    width: displaySize,
-                                    height: displaySize,
-                                  ),
-                                ),
-                                if (_detectedObjects.isNotEmpty)
-                                  ..._detectedObjects.map((detected) {
-                                    final bbox = detected['bbox'];
-                                    final originalWidth =
-                                        detected['originalWidth'] as double;
-                                    final originalHeight =
-                                        detected['originalHeight'] as double;
+  Future<Size> _getImageSize(File imageFile) async {
+    final decoded = await decodeImageFromList(imageFile.readAsBytesSync());
+    return Size(decoded.width.toDouble(), decoded.height.toDouble());
+  }
 
-                                    // Scale from YOLOv8 640x640 to original dimensions
-                                    double scaleX = _imageSize / originalWidth;
-                                    double scaleY = _imageSize / originalHeight;
-                                    double scale =
-                                        scaleX < scaleY ? scaleX : scaleY;
-                                    double offsetX =
-                                        (_imageSize - originalWidth * scale) /
-                                            2;
-                                    double offsetY =
-                                        (_imageSize - originalHeight * scale) /
-                                            2;
+  List<Widget> _buildBoundingBoxes(double displayWidth, double displayHeight) {
+    return _detectedObjects.map((detected) {
+      final bbox = detected['bbox']; // [xMin, yMin, xMax, yMax]
 
-                                    final double xMin = (bbox[0] - offsetX) *
-                                        (displaySize / (originalWidth * scale));
-                                    final double yMin = (bbox[1] - offsetY) *
-                                        (displaySize /
-                                            (originalHeight * scale));
-                                    final double boxWidth = (bbox[2] -
-                                            bbox[0]) *
-                                        (displaySize / (originalWidth * scale));
-                                    final double boxHeight =
-                                        (bbox[3] - bbox[1]) *
-                                            (displaySize /
-                                                (originalHeight * scale));
+      final double scaleX = displayWidth / _imageSize;
+      final double scaleY = displayHeight / _imageSize;
 
-                                    Color boxColor =
-                                        _getBoxColor(detected['label']);
-                                    log("🟢 Adjusted BBox for ${detected['label']}: xMin=$xMin, yMin=$yMin, width=$boxWidth, height=$boxHeight, displaySize=$displaySize");
+      final double xMin = bbox[0] * scaleX;
+      final double yMin = bbox[1] * scaleY;
+      final double boxWidth = (bbox[2] - bbox[0]) * scaleX;
+      final double boxHeight = (bbox[3] - bbox[1]) * scaleY;
 
-                                    return Positioned(
-                                      left: xMin,
-                                      top: yMin,
-                                      child: Container(
-                                        width: boxWidth,
-                                        height: boxHeight,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: boxColor, width: 2),
-                                        ),
-                                        child: Align(
-                                          alignment: Alignment.topLeft,
-                                          child: Container(
-                                            color: boxColor.withOpacity(0.7),
-                                            padding: const EdgeInsets.all(2),
-                                            child: Text(
-                                              '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Column(
-                      children: _detectedObjects
-                          .map((detected) => Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                child: Text(
-                                  "Object: ${detected['label']}\n"
-                                  "Detection Confidence: ${detected['confidence'].toStringAsFixed(2)}%\n"
-                                  "Freshness: ${detected['freshness']}\n"
-                                  "Freshness Confidence: ${detected['freshnessConfidence'].toStringAsFixed(2)}%",
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _saveScanResult,
-                      child: const Text('Save'),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Retake'),
-                    ),
-                  ],
+      final Color boxColor = _getBoxColor(detected['label']);
+
+      return Positioned(
+        left: xMin,
+        top: yMin,
+        child: Container(
+          width: boxWidth,
+          height: boxHeight,
+          decoration: BoxDecoration(
+            border: Border.all(color: boxColor, width: 2),
+          ),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              color: boxColor.withOpacity(0.7),
+              padding: const EdgeInsets.all(2),
+              child: Text(
+                '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-    );
+          ),
+        ),
+      );
+    }).toList();
   }
+
 
   Color _getBoxColor(String label) {
     switch (label.toLowerCase()) {
@@ -299,4 +200,150 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         return Colors.blue;
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan Results'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            tooltip: 'Save',
+            onPressed: _saveScanResult,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Retake',
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final imageFile = File(widget.imagePath);
+                        final double containerWidth = constraints.maxWidth;
+
+                        return FutureBuilder<Size>(
+                          future: _getImageSize(imageFile),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }
+
+                            final imageSize = snapshot.data!;
+                            final double aspectRatio =
+                                imageSize.width / imageSize.height;
+                        
+                            return AspectRatio(
+                              aspectRatio:
+                                  aspectRatio, // Maintain original image aspect ratio
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: LayoutBuilder(
+                                    builder: (context, boxConstraints) {
+                                      final displayWidth =
+                                          boxConstraints.maxWidth;
+                                      final displayHeight =
+                                          boxConstraints.maxHeight;
+
+                                      return Stack(
+                                        children: [
+                                          Image.file(
+                                            imageFile,
+                                            width: displayWidth,
+                                            height: displayHeight,
+                                            fit: BoxFit
+                                                .fill, // Because aspect ratio is already preserved
+                                          ),
+                                          if (_detectedObjects.isNotEmpty)
+                                            ..._buildBoundingBoxes(
+                                                displayWidth, displayHeight),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            );
+
+                          },
+                        );
+                      },
+                    ),
+
+
+
+                    const SizedBox(height: 20),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _detectedObjects.length,
+                      itemBuilder: (context, index) {
+                        final detected = _detectedObjects[index];
+                        return Card(
+                          child: ExpansionTile(
+                            title: Text(
+                              "${detected['label']} - ${detected['freshness']}",
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            children: [
+                              ListTile(
+                                title: Text(
+                                    "Detection Confidence: ${detected['confidence'].toStringAsFixed(2)}%"),
+                                subtitle: Text(
+                                    "Freshness Confidence: ${detected['freshnessConfidence'].toStringAsFixed(2)}%"),
+                              )
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
 }
+
+
+  Color _getBoxColor(String label) {
+    switch (label.toLowerCase()) {
+      case 'tomato':
+        return Colors.red;
+      case 'eggplant':
+        return Colors.purple;
+      case 'potato':
+        return const Color(0xFFC4A484);
+      default:
+        return Colors.blue;
+    }
+  }
+
