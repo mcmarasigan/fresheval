@@ -34,3 +34,5 @@ flutter:
     - assets/yolov8_best.tflite
     - assets/best_float16.tflite
     - assets/yolov8_label.txt
+    - assets/null.tflite
+    - assets/null_label.txt

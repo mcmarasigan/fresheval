@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/services.dart';
 import 'model_service.dart';
 
 class ScanResultScreen extends StatefulWidget {
@@ -45,37 +44,32 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
       log("📸 Image successfully loaded: ${widget.imagePath}");
 
-      final yoloResults =
-          await _modelService.detectObjects(imageBytes, _imageSize, _imageSize);
+      final classifiedResults = await _modelService.detectAndClassify(
+        imageBytes,
+        _imageSize,
+        _imageSize,
+      );
 
-      log("🟡 YOLO Detection Results: $yoloResults");
-
-      List<Map<String, dynamic>> classifiedResults = [];
-
-      for (var detected in yoloResults) {
-        log("🟢 Detected: ${detected['label']} - Confidence: ${detected['confidence']}");
-
-        final croppedImage = _modelService.cropObject(
-            imageBytes, detected['bbox'], _imageSize, _imageSize);
-
-        final freshnessResult =
-            await _modelService.classifyFreshness(croppedImage);
-
-        log("✅ ${detected['label']} - Classified as ${freshnessResult['label']} with ${freshnessResult['confidence']}% confidence");
-
-        classifiedResults.add({
-          'label': detected['label'],
-          'confidence': detected['confidence'],
-          'bbox': detected['bbox'],
-          'freshness': freshnessResult['label'],
-          'freshnessConfidence': freshnessResult['confidence'],
-          'originalWidth': detected['originalWidth'],
-          'originalHeight': detected['originalHeight'],
-        });
+      for (var result in classifiedResults) {
+        log("🟢 Detected: ${result['object']} - BBox: ${result['bbox']}");
+        log("✅ ${result['object']} - Classified as ${result['freshness']} "
+            "with ${result['freshnessConfidence'].toStringAsFixed(2)}% confidence");
       }
 
       setState(() {
-        _detectedObjects = classifiedResults;
+        _detectedObjects = classifiedResults
+            .map((res) => {
+                  'label': res['object'],
+                  'confidence': res['confidence'],
+                  'bbox': res['bbox'],
+                  'freshness': res['freshness'],
+                  'freshnessConfidence': res['freshnessConfidence'],
+                  'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
+                  'explanation': res['explanation'] ?? 'No explanation available.',
+                  'originalWidth': res['originalWidth'] ?? _imageSize,
+                  'originalHeight': res['originalHeight'] ?? _imageSize,
+                })
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -87,7 +81,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     }
   }
 
-  Future<void> _saveScanResult() async {
+
+ Future<void> _saveScanResult() async {
     if (_detectedObjects.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -102,16 +97,20 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       'objects': _detectedObjects
           .map((obj) => {
                 'label': obj['label'],
-                'confidence': obj['confidence'].toStringAsFixed(2),
+                'confidence': obj['confidence'],
                 'freshness': obj['freshness'],
-                'freshnessConfidence':
-                    obj['freshnessConfidence'].toStringAsFixed(2),
+                'freshnessConfidence': obj['freshnessConfidence'],
+                // Ensure the bbox is a list of doubles
+                'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
+                'originalWidth': obj['originalWidth'],
+                'originalHeight': obj['originalHeight'],
               })
           .toList(),
       'date': formattedDate,
       'time': formattedTime,
     });
 
+    // Remove any previous entry with the same imagePath
     scanData.removeWhere((scan) {
       final decoded = json.decode(scan);
       return decoded['imagePath'] == widget.imagePath;
@@ -122,6 +121,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
     _showSaveDialog();
   }
+
 
   void _showSaveDialog() {
     showDialog(
@@ -147,6 +147,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   List<Widget> _buildBoundingBoxes(double displayWidth, double displayHeight) {
     return _detectedObjects.map((detected) {
       final bbox = detected['bbox']; // [xMin, yMin, xMax, yMax]
+if (bbox == null || bbox.isEmpty || bbox.length < 4)
+        return const SizedBox();
 
       final double scaleX = displayWidth / _imageSize;
       final double scaleY = displayHeight / _imageSize;
@@ -297,31 +299,40 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
 
                     const SizedBox(height: 20),
-                    ListView.builder(
+                   ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _detectedObjects.length,
                       itemBuilder: (context, index) {
                         final detected = _detectedObjects[index];
+
                         return Card(
                           child: ExpansionTile(
                             title: Text(
-                              "${detected['label']} - ${detected['freshness']}",
+                              "${detected['label'] ?? 'Unknown'} - ${detected['freshnessStatus'] ?? detected['freshness'] ?? 'N/A'}",
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             children: [
                               ListTile(
                                 title: Text(
-                                    "Detection Confidence: ${detected['confidence'].toStringAsFixed(2)}%"),
+                                  "Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                  "Freshness: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
+                                  "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
+                                ),
                                 subtitle: Text(
-                                    "Freshness Confidence: ${detected['freshnessConfidence'].toStringAsFixed(2)}%"),
-                              )
+                                  detected['explanation'] ??
+                                      'No explanation available.',
+                                  style: const TextStyle(
+                                      fontStyle: FontStyle.italic),
+                                ),
+                              ),
                             ],
                           ),
                         );
                       },
                     ),
+
 
                     const SizedBox(height: 20),
 

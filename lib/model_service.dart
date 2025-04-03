@@ -11,6 +11,8 @@ class ModelService {
   late Interpreter _efficientNetInterpreter;
   late List<String> _yoloLabels;
   late List<String> _efficientNetLabels;
+  late Interpreter _nullInterpreter;
+  late List<String> _nullLabels;
   bool _modelsLoaded = false;
 
   final double _yoloInputSize = 640; // YOLOv8 input size
@@ -30,6 +32,12 @@ class ModelService {
         modelVersion: "yolov8",
         quantization: false,
         numThreads: 2,
+      );
+      _nullLabels = await _loadLabels("assets/null_label.txt");
+
+      _nullInterpreter = await Interpreter.fromAsset(
+        "assets/null.tflite",
+        options: InterpreterOptions()..threads = 2,
       );
 
       _efficientNetInterpreter = await Interpreter.fromAsset(
@@ -57,6 +65,120 @@ class ModelService {
     }
   }
 
+  Future<Map<String, dynamic>> classifyInvalid(Uint8List croppedImage) async {
+    if (!_modelsLoaded) {
+      log("⚠️ Models not loaded yet.");
+      return {'label': 'Unknown', 'confidence': 0.0};
+    }
+
+    try {
+      final input = _preprocessImageForEfficientNet(croppedImage);
+      final outputShape = _nullInterpreter.getOutputTensor(0).shape;
+      final output = List.filled(outputShape.reduce((a, b) => a * b), 0.0)
+          .reshape([1, outputShape[1]]);
+
+      _nullInterpreter.run(input, output);
+      final predictions = List<double>.from(output[0]);
+      final softmaxScores = _softmax(predictions);
+      final predictedIndex = softmaxScores
+          .indexWhere((val) => val == softmaxScores.reduce(math.max));
+
+      return {
+        'label': _nullLabels[predictedIndex],
+        'confidence': softmaxScores[predictedIndex] * 100,
+      };
+    } catch (e) {
+      log("⚠️ Error during Invalid model classification: $e");
+      return {'label': 'Unknown', 'confidence': 0.0};
+    }
+  }
+
+ Future<List<Map<String, dynamic>>> detectAndClassify(
+      Uint8List imageBytes, double imageWidth, double imageHeight) async {
+    final detections = await detectObjects(imageBytes, imageWidth, imageHeight);
+
+    if (detections.isEmpty) {
+      log("❌ No objects detected in the image.");
+      return [
+        {
+          'object': 'None',
+          'confidence': 0.0,
+          'freshness': 'N/A',
+          'freshnessConfidence': 0.0,
+          'freshnessStatus': 'No Detection',
+          'explanation': 'No objects were detected in the image.',
+          'bbox': [],
+          'originalWidth': imageWidth,
+          'originalHeight': imageHeight,
+        }
+      ];
+
+    }
+
+    List<Map<String, dynamic>> results = [];
+
+    for (final detection in detections) {
+      final cropped = cropObject(
+        imageBytes,
+        detection['bbox'],
+        detection['originalWidth'],
+        detection['originalHeight'],
+      );
+
+      final invalidCheck = await classifyInvalid(cropped);
+      log("🧪 Invalid Check: ${invalidCheck['label']} @ ${invalidCheck['confidence'].toStringAsFixed(1)}%");
+
+      if (invalidCheck['label'] == 'invalid' &&
+          invalidCheck['confidence'] > 80.0) {
+        log("🚫 Skipped invalid detection: ${detection['label']}");
+        continue;
+      }
+
+      final freshness = await classifyFreshness(cropped);
+      final interpretation = interpretFreshness(
+        freshness['confidence'],
+        freshness['label'].toLowerCase(), 
+      );
+      final explanation = getPredictionExplanation(
+        freshness['label'].toLowerCase(),
+        freshness['confidence'],
+      );
+
+      results.add({
+        'object': detection['label'],
+        'bbox': detection['bbox'],
+        'confidence': detection['confidence'],
+        'freshness': freshness['label'],
+        'freshnessConfidence': freshness['confidence'],
+        'freshnessStatus': interpretation,
+        'explanation': explanation,
+        'originalWidth': detection['originalWidth'],
+        'originalHeight': detection['originalHeight'],
+      });
+    }
+
+    // Final fallback in case all detections were skipped
+    if (results.isEmpty) {
+      log("⚠️ All detections were filtered out (invalid objects).");
+      return [
+        {
+          'object': 'None',
+          'confidence': 0.0,
+          'freshness': 'N/A',
+          'freshnessConfidence': 0.0,
+          'freshnessStatus': 'All Skipped',
+          'explanation': 'All detected objects were filtered out as invalid.',
+          'bbox': [],
+          'originalWidth': imageWidth,
+          'originalHeight': imageHeight,
+        }
+      ];
+    }
+
+    return results;
+  }
+
+
   Future<List<Map<String, dynamic>>> detectObjects(
       Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
@@ -68,7 +190,7 @@ class ModelService {
       final img.Image? originalImage = img.decodeImage(imageBytes);
       final originalWidth = originalImage?.width.toDouble() ?? imageWidth;
       final originalHeight = originalImage?.height.toDouble() ?? imageHeight;
-      log("📏 Original Image Dimensions: ${originalWidth}x${originalHeight}");
+      log("📏 Original Image Dimensions: ${originalWidth}x$originalHeight");
 
       final detections = await _flutterVision.yoloOnImage(
         bytesList: imageBytes,
@@ -178,7 +300,7 @@ class ModelService {
     return [
       List.generate(_efficientNetInputSize.toInt(), (y) {
         return List.generate(_efficientNetInputSize.toInt(), (x) {
-          final int pixel = resizedImage.getPixel(x, y) as int;
+          final int pixel = resizedImage.getPixel(x, y);
           return [
             ((pixel >> 16) & 0xFF) / 127.5 - 1.0,
             ((pixel >> 8) & 0xFF) / 127.5 - 1.0,
@@ -195,8 +317,42 @@ class ModelService {
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
+  String interpretFreshness(double confidence, String label) {
+    if (label == "fresh") {
+      if (confidence >= 80.0) return "Fresh (High Confidence)";
+      if (confidence >= 40.0) return "Fresh (Low Confidence)";
+      return "Fresh (Uncertain)";
+    } else {
+      if (confidence >= 80.0) return "Rotten (High Confidence)";
+      if (confidence >= 40.0) return "Rotten (Low Confidence)";
+      return "Rotten (Uncertain)";
+    }
+  }
+
+  String getPredictionExplanation(String label, double confidence) {
+    if (label == "fresh") {
+      if (confidence >= 80.0) {
+        return "The produce looks visually healthy with firm skin and vibrant color.";
+      } else if (confidence >= 40.0) {
+        return "Some ripeness or dulling is visible. It may be overripe or slightly soft.";
+      } else {
+        return "Low confidence: visual cues suggest early spoilage despite being labeled fresh.";
+      }
+    } else {
+      if (confidence >= 80.0) {
+        return "Signs of spoilage like mold, wrinkles, or discoloration are clearly visible.";
+      } else if (confidence >= 40.0) {
+        return "Potential spoilage indicators like bruises, soft areas, or early mold.";
+      } else {
+        return "Low confidence: spoilage signs not obvious, but model suspects degradation.";
+      }
+    }
+  }
+
+
   void close() {
     _flutterVision.closeYoloModel();
     _efficientNetInterpreter.close();
+    _nullInterpreter.close();
   }
 }
