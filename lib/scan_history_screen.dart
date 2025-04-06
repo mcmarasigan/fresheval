@@ -284,103 +284,194 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
 }
 
 /// **Full View Screen**
+
 class ScanDetailScreen extends StatelessWidget {
   final Map<String, dynamic> scan;
 
   const ScanDetailScreen({super.key, required this.scan});
 
+  Color _getBoxColor(String label) {
+    switch (label.toLowerCase()) {
+      case 'tomato':
+        return Colors.red;
+      case 'eggplant':
+        return Colors.purple;
+      case 'potato':
+        return const Color(0xFFC4A484);
+      default:
+        return Colors.blue;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<dynamic> objects = scan['objects'] ?? []; // Ensure it's a list
-    const double imageSize = 640; // Image size reference
-    final double screenWidth = MediaQuery.of(context).size.width;
+    final List<dynamic> objects = scan['objects'] ?? [];
+    const double fallbackSize = 640;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Detected Objects")),
-      body: Column(
-        children: [
-          // ✅ Image with Bounding Boxes
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: AspectRatio(
-              aspectRatio: 1, // Keep Square Aspect Ratio
-              child: Stack(
-                children: [
-                  Image.file(
-                    File(scan['imagePath']!),
-                    fit: BoxFit.cover,
-                    width: imageSize,
-                    height: imageSize,
-                  ),
-                  // ✅ Overlay Bounding Boxes if they exist
-                  ...objects
-                      .where((obj) =>
-                          obj.containsKey('bbox') && obj['bbox'] != null)
-                      .map((obj) {
-                    final bbox = obj['bbox']; // Ensure bbox exists
+      appBar: AppBar(title: const Text("Scan Details")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // 🖼 Image with bounding boxes
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final displayWidth = constraints.maxWidth;
+                    final displayHeight = constraints.maxHeight;
 
-                    if (bbox.length != 4) {
-                      return const SizedBox(); // Skip invalid bbox
-                    }
-
-                    final double scaleFactor = screenWidth / imageSize;
-                    final double xMin = bbox[0] * scaleFactor;
-                    final double yMin = bbox[1] * scaleFactor;
-                    final double boxWidth = (bbox[2] - bbox[0]) * scaleFactor;
-                    final double boxHeight = (bbox[3] - bbox[1]) * scaleFactor;
-
-                    return Positioned(
-                      left: xMin,
-                      top: yMin,
-                      child: Container(
-                        width: boxWidth,
-                        height: boxHeight,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.red, width: 2),
+                    return Stack(
+                      children: [
+                        Image.file(
+                          File(scan['imagePath']),
+                          fit: BoxFit.cover,
+                          width: displayWidth,
+                          height: displayHeight,
                         ),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Container(
-                            color: Colors.red.withOpacity(0.7),
-                            padding: const EdgeInsets.all(2),
+                        ...objects.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final obj = entry.value;
+                          final bbox = obj['bbox'];
+                          if (bbox == null || bbox.length != 4)
+                            return const SizedBox();
+
+                          final originalWidth =
+                              (obj['originalWidth'] as num?)?.toDouble() ??
+                                  fallbackSize;
+                          final originalHeight =
+                              (obj['originalHeight'] as num?)?.toDouble() ??
+                                  fallbackSize;
+
+                          final scaleX = displayWidth / originalWidth;
+                          final scaleY = displayHeight / originalHeight;
+
+                          final xMin = bbox[0] * scaleX;
+                          final yMin = bbox[1] * scaleY;
+                          final boxWidth = (bbox[2] - bbox[0]) * scaleX;
+                          final boxHeight = (bbox[3] - bbox[1]) * scaleY;
+
+                          final color = _getBoxColor(obj['label'] ?? 'unknown');
+
+                          return Positioned(
+                            left: xMin,
+                            top: yMin,
+                            child: Container(
+                              width: boxWidth,
+                              height: boxHeight,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: color, width: 2),
+                              ),
+                              child: Align(
+                                alignment: Alignment.topLeft,
+                                child: Container(
+                                  color: color.withOpacity(0.7),
+                                  padding: const EdgeInsets.all(2),
+                                  child: Text(
+                                    "${index + 1}. ${obj['label']} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 🧾 Object list with number + color
+            Expanded(
+              child: ListView.builder(
+                itemCount: objects.length,
+                itemBuilder: (context, index) {
+                  final obj = objects[index];
+                  final boxColor = _getBoxColor(obj['label'] ?? 'unknown');
+
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: boxColor, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Circle number
+                          Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: boxColor,
+                            ),
                             child: Text(
-                              "${obj['label']} (${double.parse(obj['confidence']).toStringAsFixed(2)}%)",
+                              '${index + 1}',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 12,
                               ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+
+                          // Object details
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${obj['label']} - ${obj['freshness'] ?? 'Unknown'}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Confidence: ${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                  "Freshness Confidence: ${(obj['freshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                  "Interpretation: ${obj['freshnessStatus'] ?? 'N/A'}",
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  obj['explanation'] ??
+                                      'No explanation available.',
+                                  style: const TextStyle(
+                                      fontStyle: FontStyle.italic),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                    "📆 Shelf Life: ${obj['shelfLife'] ?? 'N/A'}"),
+                                Text(
+                                    "📌 Recommendation: ${obj['recommendation'] ?? 'N/A'}"),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  }),
-                ],
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-
-          // ✅ Detected Object List
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: objects.length,
-              itemBuilder: (context, index) {
-                final obj = objects[index];
-                return Card(
-                  child: ListTile(
-                    title: Text("${obj['label']}"),
-                   subtitle: Text(
-                      "Confidence: ${double.tryParse(obj['confidence'].toString())?.toStringAsFixed(2) ?? 'N/A'}%\n"
-                      "Freshness: ${obj['freshness']} (${double.tryParse(obj['freshnessConfidence'].toString())?.toStringAsFixed(2) ?? 'N/A'}%)",
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

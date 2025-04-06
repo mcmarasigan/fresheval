@@ -163,7 +163,10 @@ class _CameraScreenState extends State<CameraScreen> {
       body: Stack(
         children: [
          if (_isCameraInitialized && _cameraController != null)
-           Center(
+         Positioned(
+          top: 60, // Adjust this value as needed to move it higher
+          left: 0,
+          right: 0,
               child: AspectRatio(
                 aspectRatio: 1, // 1:1 ratio
                 child: ClipRect(

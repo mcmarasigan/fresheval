@@ -348,6 +348,76 @@ class ModelService {
       }
     }
   }
+Map<String, String> getShelfLifeAndRecommendation(
+      String label, String interpretation) {
+    final lowerLabel = label.toLowerCase();
+
+    String shelfLife = '';
+    String recommendation = '';
+
+    switch (lowerLabel) {
+      case 'tomato':
+        if (interpretation.contains('Fresh (High')) {
+          shelfLife = '4–7 days at room temp, up to 2 weeks in the fridge';
+          recommendation =
+              'Store at room temperature to ripen. Refrigerate once ripe. Best for salads and sauces.';
+        } else if (interpretation.contains('Fresh (Low')) {
+          shelfLife = '1–3 days (likely overripe)';
+          recommendation =
+              'Use soon. Check for softness or bruising before eating.';
+        } else if (interpretation.contains('Rotten (Low')) {
+          shelfLife = 'Likely already spoiled';
+          recommendation =
+              'Check manually. If soft, leaking, or smells, discard.';
+        } else {
+          shelfLife = '0 days';
+          recommendation = 'Discard immediately. Likely unsafe to eat.';
+        }
+        break;
+
+      case 'eggplant':
+        if (interpretation.contains('Fresh (High')) {
+          shelfLife = '3–5 days in the fridge';
+          recommendation = 'Store in crisper drawer. Don’t wash until use.';
+        } else if (interpretation.contains('Fresh (Low')) {
+          shelfLife = '1–2 days max';
+          recommendation = 'Use quickly. May already be soft.';
+        } else if (interpretation.contains('Rotten (Low')) {
+          shelfLife = 'Likely spoiled';
+          recommendation = 'Inspect manually for browning or softness.';
+        } else {
+          shelfLife = '0 days';
+          recommendation = 'Spoiled. Not safe to eat.';
+        }
+        break;
+
+      case 'potato':
+        if (interpretation.contains('Fresh (High')) {
+          shelfLife = '1–2 months (cool, dark place)';
+          recommendation = 'Store in a paper bag. Don’t refrigerate.';
+        } else if (interpretation.contains('Fresh (Low')) {
+          shelfLife = '1–2 weeks max';
+          recommendation = 'Use soon. Check for sprouting or soft spots.';
+        } else if (interpretation.contains('Rotten (Low')) {
+          shelfLife = 'Likely spoiled';
+          recommendation = 'Inspect manually for greening or odor.';
+        } else {
+          shelfLife = '0 days';
+          recommendation =
+              'Toxic signs possible (green skin/sprouting). Discard.';
+        }
+        break;
+
+      default:
+        shelfLife = 'Unknown';
+        recommendation = 'No data available.';
+    }
+
+    return {
+      'shelfLife': shelfLife,
+      'recommendation': recommendation,
+    };
+  }
 
 
   void close() {

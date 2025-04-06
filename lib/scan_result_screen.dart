@@ -92,20 +92,30 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
     String formattedTime = DateFormat.jm().format(now);
 
+    // 👉 Add shelf life & recommendation per object
     final newScan = json.encode({
       'imagePath': widget.imagePath,
-      'objects': _detectedObjects
-          .map((obj) => {
-                'label': obj['label'],
-                'confidence': obj['confidence'],
-                'freshness': obj['freshness'],
-                'freshnessConfidence': obj['freshnessConfidence'],
-                // Ensure the bbox is a list of doubles
-                'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
-                'originalWidth': obj['originalWidth'],
-                'originalHeight': obj['originalHeight'],
-              })
-          .toList(),
+      'objects': _detectedObjects.map((obj) {
+        final modelService = ModelService();
+        final shelfInfo = modelService.getShelfLifeAndRecommendation(
+          obj['label'],
+          obj['freshnessStatus'],
+        );
+
+        return {
+          'label': obj['label'],
+          'confidence': obj['confidence'],
+          'freshness': obj['freshness'],
+          'freshnessConfidence': obj['freshnessConfidence'],
+          'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
+          'originalWidth': obj['originalWidth'],
+          'originalHeight': obj['originalHeight'],
+          'freshnessStatus': obj['freshnessStatus'],
+          'explanation': obj['explanation'],
+          'shelfLife': shelfInfo['shelfLife'],
+          'recommendation': shelfInfo['recommendation'],
+        };
+      }).toList(),
       'date': formattedDate,
       'time': formattedTime,
     });
@@ -121,6 +131,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
     _showSaveDialog();
   }
+
 
 
   void _showSaveDialog() {
@@ -145,10 +156,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   List<Widget> _buildBoundingBoxes(double displayWidth, double displayHeight) {
-    return _detectedObjects.map((detected) {
+    return _detectedObjects.asMap().entries.map((entry) {
+      final int index = entry.key;
+      final detected = entry.value;
       final bbox = detected['bbox']; // [xMin, yMin, xMax, yMax]
-if (bbox == null || bbox.isEmpty || bbox.length < 4)
+
+      if (bbox == null || bbox.isEmpty || bbox.length < 4) {
         return const SizedBox();
+      }
 
       final double scaleX = displayWidth / _imageSize;
       final double scaleY = displayHeight / _imageSize;
@@ -175,7 +190,7 @@ if (bbox == null || bbox.isEmpty || bbox.length < 4)
               color: boxColor.withOpacity(0.7),
               padding: const EdgeInsets.all(2),
               child: Text(
-                '${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
+                '${index + 1}. ${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -188,6 +203,7 @@ if (bbox == null || bbox.isEmpty || bbox.length < 4)
       );
     }).toList();
   }
+
 
 
   Color _getBoxColor(String label) {
@@ -305,13 +321,60 @@ if (bbox == null || bbox.isEmpty || bbox.length < 4)
                       itemCount: _detectedObjects.length,
                       itemBuilder: (context, index) {
                         final detected = _detectedObjects[index];
+                        final boxColor = _getBoxColor(detected['label']);
+
+                        // 👇 Get shelf life & recommendation
+                        final modelService =
+                            ModelService(); // or use existing instance
+                        final extras =
+                            modelService.getShelfLifeAndRecommendation(
+                          detected['label'],
+                          detected['freshnessStatus'],
+                        );
+
+                        final shelfLife = extras['shelfLife'];
+                        final recommendation = extras['recommendation'];
 
                         return Card(
+                          shape: RoundedRectangleBorder(
+                            side: BorderSide(color: boxColor, width: 2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 3,
+                          margin: const EdgeInsets.symmetric(vertical: 6),
                           child: ExpansionTile(
-                            title: Text(
-                              "${detected['label'] ?? 'Unknown'} - ${detected['freshnessStatus'] ?? detected['freshness'] ?? 'N/A'}",
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                            tilePadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            title: Row(
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: boxColor,
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "${detected['label'] ?? 'Unknown'} - ${detected['freshnessStatus'] ?? detected['freshness'] ?? 'N/A'}",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             children: [
                               ListTile(
@@ -320,11 +383,19 @@ if (bbox == null || bbox.isEmpty || bbox.length < 4)
                                   "Freshness: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
                                   "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
                                 ),
-                                subtitle: Text(
-                                  detected['explanation'] ??
-                                      'No explanation available.',
-                                  style: const TextStyle(
-                                      fontStyle: FontStyle.italic),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      detected['explanation'] ??
+                                          'No explanation available.',
+                                      style: const TextStyle(
+                                          fontStyle: FontStyle.italic),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text("📆 Shelf Life: $shelfLife"),
+                                    Text("📌 Recommendation: $recommendation"),
+                                  ],
                                 ),
                               ),
                             ],
@@ -332,6 +403,7 @@ if (bbox == null || bbox.isEmpty || bbox.length < 4)
                         );
                       },
                     ),
+
 
 
                     const SizedBox(height: 20),
