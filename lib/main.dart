@@ -9,18 +9,26 @@ import 'settings.dart';
 import 'help_screen.dart';
 import 'developers_page.dart';
 import 'loading_screen.dart';
+import 'onboarding_screen.dart'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final languageCode = prefs.getString('language') ?? 'en';
-  runApp(MyApp(initialLocale: languageCode));
+  final isFirstTime =
+      prefs.getBool('isFirstTime') ?? true; // Check if first time
+  runApp(MyApp(initialLocale: languageCode, isFirstTime: isFirstTime));
 }
 
 class MyApp extends StatefulWidget {
   final String initialLocale;
+  final bool isFirstTime; // Add this parameter
 
-  const MyApp({super.key, required this.initialLocale});
+  const MyApp({
+    super.key,
+    required this.initialLocale,
+    required this.isFirstTime,
+  });
 
   @override
   _MyAppState createState() => _MyAppState();
@@ -101,8 +109,11 @@ class _MyAppState extends State<MyApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      initialRoute: '/loading', // Start with loading screen
+      initialRoute: widget.isFirstTime
+          ? '/onboarding'
+          : '/loading', // Conditional initial route
       routes: {
+        '/onboarding': (context) => const OnboardingScreen(), // Add this route
         '/loading': (context) => const LoadingScreen(),
         '/camera': (context) => const CameraScreen(),
         '/history': (context) =>

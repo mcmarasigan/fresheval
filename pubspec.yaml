@@ -41,5 +41,10 @@ flutter:
     - assets/img/Agbayani.jpg
     - assets/img/Belen.jpg
     - assets/img/Limson.jpg
+    - assets/img/clean_cam.png
+    - assets/img/good_lighting.png
+    - assets/img/steady_clear.png
+    - assets/img/full_view.png
+    - assets/img/logo.png
 
 
