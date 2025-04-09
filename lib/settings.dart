@@ -144,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      drawer: _buildDrawer(), // ✅ Match Camera Screen
+      drawer: _buildDrawer(context), // ✅ Match Camera Screen
       appBar: AppBar(
         title: Text(_localization.getTranslation('settings')),
         backgroundColor: Colors.green,
@@ -202,7 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// **📌 Navigation Drawer (Same as Camera Screen)**
-  Widget _buildDrawer() {
+ Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: Column(
         children: [
@@ -215,32 +215,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.camera),
             title: const Text("Camera"),
             onTap: () {
-              Navigator.pushNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/camera');
             },
           ),
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text("Scan History"),
             onTap: () {
-              Navigator.pushNamed(context, '/history');
+              Navigator.pushReplacementNamed(context, '/history');
             },
           ),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text("Settings"),
             onTap: () {
-              Navigator.pop(context); // Stay on this page
+              Navigator.pushReplacementNamed(context, '/settings');
             },
           ),
           ListTile(
             leading: const Icon(Icons.help),
             title: const Text("Help"),
             onTap: () {
-              Navigator.pushNamed(context, '/help');
+              Navigator.pushReplacementNamed(context, '/help');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text("Developers"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/developers');
             },
           ),
         ],
       ),
     );
   }
+
 }

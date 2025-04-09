@@ -75,34 +75,42 @@ class HelpScreen extends StatelessWidget {
             leading: const Icon(Icons.camera),
             title: const Text("Camera"),
             onTap: () {
-              Navigator.pushNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/camera');
             },
           ),
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text("Scan History"),
             onTap: () {
-              Navigator.pushNamed(context, '/history');
+              Navigator.pushReplacementNamed(context, '/history');
             },
           ),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text("Settings"),
             onTap: () {
-              Navigator.pushNamed(context, '/settings');
+              Navigator.pushReplacementNamed(context, '/settings');
             },
           ),
           ListTile(
             leading: const Icon(Icons.help),
             title: const Text("Help"),
             onTap: () {
-              Navigator.pop(context); // Stay on this page
+              Navigator.pushReplacementNamed(context, '/help');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text("Developers"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/developers');
             },
           ),
         ],
       ),
     );
   }
+
 }
 
 class HowToUseScreen extends StatelessWidget {

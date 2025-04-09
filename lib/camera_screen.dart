@@ -141,7 +141,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildDrawer(),
+      drawer: _buildDrawer(context),
       appBar: AppBar(
         title: const Text('FreshEval Camera'),
         backgroundColor: Colors.green,
@@ -255,7 +255,7 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Widget _buildDrawer() {
+  Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: Column(
         children: [
@@ -265,50 +265,43 @@ class _CameraScreenState extends State<CameraScreen> {
             decoration: BoxDecoration(color: Colors.green),
           ),
           ListTile(
+            leading: const Icon(Icons.camera),
+            title: const Text("Camera"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/camera');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.history),
             title: const Text("Scan History"),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ScanHistoryScreen(
-                    localizations: AppLocalizations('en'),
-                  ),
-                ),
-              );
+              Navigator.pushReplacementNamed(context, '/history');
             },
           ),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text("Settings"),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsScreen(
-                    localizations: AppLocalizations('en'),
-                    onLanguageChanged: (newLang) {},
-                  ),
-                ),
-              );
+              Navigator.pushReplacementNamed(context, '/settings');
             },
           ),
           ListTile(
             leading: const Icon(Icons.help),
             title: const Text("Help"),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => HelpScreen(
-                    localizations: AppLocalizations('en'),
-                  ),
-                ),
-              );
+              Navigator.pushReplacementNamed(context, '/help');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text("Developers"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/developers');
             },
           ),
         ],
       ),
     );
   }
+
 }

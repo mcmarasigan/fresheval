@@ -147,7 +147,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildDrawer(),
+      drawer: _buildDrawer(context),
       appBar: AppBar(
         title: Text(widget.localizations.getTranslation('scan history')),
         backgroundColor: Colors.green,
@@ -247,7 +247,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
     );
   }
 
-  Widget _buildDrawer() {
+ Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: Column(
         children: [
@@ -260,34 +260,43 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
             leading: const Icon(Icons.camera),
             title: const Text("Camera"),
             onTap: () {
-              Navigator.pushNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/camera');
             },
           ),
           ListTile(
             leading: const Icon(Icons.history),
             title: const Text("Scan History"),
             onTap: () {
-              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/history');
             },
           ),
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text("Settings"),
             onTap: () {
-              Navigator.pushNamed(context, '/settings');
+              Navigator.pushReplacementNamed(context, '/settings');
             },
           ),
           ListTile(
             leading: const Icon(Icons.help),
             title: const Text("Help"),
             onTap: () {
-              Navigator.pushNamed(context, '/help');
+              Navigator.pushReplacementNamed(context, '/help');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text("Developers"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/developers');
             },
           ),
         ],
       ),
     );
   }
+
+
 }
 
 /// **Full View Screen**

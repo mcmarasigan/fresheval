@@ -17,6 +17,7 @@ class DevelopersPage extends StatelessWidget {
         backgroundColor: const Color(0xFF00BFA6),
         elevation: 0,
       ),
+      drawer: _buildDrawer(context), 
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -167,4 +168,54 @@ class DevelopersPage extends StatelessWidget {
       ),
     );
   }
+
+   Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      child: Column(
+        children: [
+          const UserAccountsDrawerHeader(
+            accountName: Text("FreshEval"),
+            accountEmail: Text("Scan and evaluate freshness"),
+            decoration: BoxDecoration(color: Colors.green),
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera),
+            title: const Text("Camera"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/camera');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text("Scan History"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/history');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text("Settings"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/settings');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text("Help"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/help');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: const Text("Developers"),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/developers');
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
+
