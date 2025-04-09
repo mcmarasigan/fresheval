@@ -37,3 +37,9 @@ flutter:
     - assets/yolov8_label.txt
     - assets/null.tflite
     - assets/null_label.txt
+    - assets/img/Marasigan.jpg
+    - assets/img/Agbayani.jpg
+    - assets/img/Belen.jpg
+    - assets/img/Limson.jpg
+
+

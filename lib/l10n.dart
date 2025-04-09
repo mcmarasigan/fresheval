@@ -1,3 +1,4 @@
+// l10n.dart
 class AppLocalizations {
   final String languageCode;
 
@@ -5,7 +6,7 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> localizedStrings = {
     'en': {
-      // General
+      // General (existing keys remain unchanged)
       'settings': 'Settings',
       'language': 'Language',
       'clear scan history': 'Clear Scan History',
@@ -29,29 +30,35 @@ class AppLocalizations {
       'scan_saved_successfully': 'Scan saved successfully!',
       'failed_to_save_scan': 'Failed to save scan.',
       'camera_permission_denied': 'Camera permission denied.',
-      'search': 'Search', // New translation
-      'delete scans': 'Delete Scans', // New translation
-      'confirm_delete_selected_scans': 'Are you sure you want to delete the selected scans?', // New translation
-      'deleted': 'deleted', // New translation
+      'search': 'Search',
+      'delete scans': 'Delete Scans',
+      'confirm_delete_selected_scans':
+          'Are you sure you want to delete the selected scans?',
+      'deleted': 'deleted',
 
       // Confirmation Dialogs
-      'confirm_clear_history': 'Are you sure you want to clear the scan history?',
+      'confirm_clear_history':
+          'Are you sure you want to clear the scan history?',
       'confirm_clear_cache': 'Are you sure you want to clear the cache?',
       'cancel': 'Cancel',
       'confirm': 'Confirm',
 
       // Settings Page
-      'settings_description': 'Go to the Settings page to change the app’s language or clear history.',
+      'settings_description':
+          'Go to the Settings page to change the app’s language or clear history.',
       'language_set_to': 'Language set to',
       'english': 'English',
       'tagalog': 'Tagalog',
 
       // How to Use
       'how_to_use': 'How to Use the App',
-      'scan_description': 'Use the "Scan Now" button to capture a photo of the food item for freshness analysis.',
-      'upload_image_description': 'Tap the "Upload Image" button to choose an image from your gallery.',
+      'scan_description':
+          'Use the "Scan Now" button to capture a photo of the food item for freshness analysis.',
+      'upload_image_description':
+          'Tap the "Upload Image" button to choose an image from your gallery.',
       'view_scan_history': 'View Scan History',
-      'history_description': 'Access your previous scans in the "Scan History" tab.',
+      'history_description':
+          'Access your previous scans in the "Scan History" tab.',
 
       // Help
       'help_description': 'Visit the Help section for guidance and FAQs.',
@@ -59,18 +66,47 @@ class AppLocalizations {
       // FAQs
       'faqs': 'FAQs',
       'faq1_title': '1. What is this app for?',
-      'faq1_description': 'This app helps detect the freshness of vegetables such as eggplant, tomato, and potato.',
+      'faq1_description':
+          'This app helps detect the freshness of vegetables such as eggplant, tomato, and potato.',
       'faq2_title': '2. How does the app detect freshness?',
-      'faq2_description': 'The app uses YOLOv8 and EfficientNetB7 models to analyze food freshness.',
+      'faq2_description':
+          'The app uses YOLOv8 and EfficientNetB7 models to analyze food freshness.',
       'faq3_title': '3. Can I view my previous scans?',
-      'faq3_description': 'Yes, previous scans are saved in the "Scan History" section.',
+      'faq3_description':
+          'Yes, previous scans are saved in the "Scan History" section.',
       'faq4_title': '4. How can I delete my scan history?',
-      'faq4_description': 'Go to the Settings page and tap "Clear Scan History."',
+      'faq4_description':
+          'Go to the Settings page and tap "Clear Scan History."',
       'faq6_title': '6. What types of food items can the app analyze?',
-      'faq6_description': 'It supports following vegetables: eggplant, tomato, and potato.',
+      'faq6_description':
+          'It supports following vegetables: eggplant, tomato, and potato.',
+
+      // Developers Page (new keys)
+      'developers_title': 'Developers',
+      'about_developers': 'About the Developers',
+      'developers_description':
+          'Meet the team behind FreshEval, dedicated to bringing you the best in vegetable freshness detection.',
+      'team_members': 'Team Members',
+      'member1_name': 'Ma. Clarissa Marasigan',
+      'member1_role': 'Main Programmer',
+      'member2_name': 'Vhon Joshua Agbayani',
+      'member2_role': 'AI Specialist',
+      'member3_name': 'Krysteen Clare Belen',
+      'member3_role': 'FrontEnd Developer',
+      'member4_name': 'Clark Czedrick Limson',
+      'member4_role': 'UI/UX Designer',
+      'contact_us': 'Contact Us',
+      'website_label': 'Website',
+
+      // Developer Detail Page (new keys)
+      'developer_details': 'Developer Details',
+      'name_label': 'Name',
+      'role_label': 'Role',
+      'about_label': 'About',
+      'email_label': 'Email:',
     },
     'tl': {
-      // General
+      // General (existing keys remain unchanged)
       'settings': 'Mga Setting',
       'language': 'Wika',
       'clear scan history': 'Burahin ang Kasaysayan ng Scan',
@@ -94,29 +130,35 @@ class AppLocalizations {
       'scan_saved_successfully': 'Matagumpay na nai-save ang scan!',
       'failed_to_save_scan': 'Hindi nai-save ang scan.',
       'camera_permission_denied': 'Hindi pinayagan ang permiso ng camera.',
-      'search': 'Maghanap', // New translation
-      'delete scans': 'Burahin ang Mga Scan', // New translation
-      'confirm_delete_selected_scans': 'Sigurado ka bang nais mong burahin ang mga napiling scan?', // New translation
-      'deleted': 'nabura', // New translation
+      'search': 'Maghanap',
+      'delete scans': 'Burahin ang Mga Scan',
+      'confirm_delete_selected_scans':
+          'Sigurado ka bang nais mong burahin ang mga napiling scan?',
+      'deleted': 'nabura',
 
       // Confirmation Dialogs
-      'confirm_clear_history': 'Sigurado ka bang nais mong burahin ang kasaysayan ng scan?',
+      'confirm_clear_history':
+          'Sigurado ka bang nais mong burahin ang kasaysayan ng scan?',
       'confirm_clear_cache': 'Sigurado ka bang nais mong burahin ang cache?',
       'cancel': 'Kanselahin',
       'confirm': 'Kumpirmahin',
 
       // Settings Page
-      'settings_description': 'Puntahan ang Mga Setting upang baguhin ang wika o burahin ang kasaysayan.',
+      'settings_description':
+          'Puntahan ang Mga Setting upang baguhin ang wika o burahin ang kasaysayan.',
       'language_set_to': 'Itinakda ang wika sa',
       'english': 'Ingles',
       'tagalog': 'Tagalog',
 
       // How to Use
       'how_to_use': 'Paano Gamitin ang App',
-      'scan_description': 'Gamitin ang "I-scan Ngayon" upang kumuha ng larawan ng gulay at suriin ang pagiging sariwa.',
-      'upload_image_description': 'Pindutin ang "Mag-upload ng Larawan" upang pumili ng larawan mula sa gallery.',
+      'scan_description':
+          'Gamitin ang "I-scan Ngayon" upang kumuha ng larawan ng gulay at suriin ang pagiging sariwa.',
+      'upload_image_description':
+          'Pindutin ang "Mag-upload ng Larawan" upang pumili ng larawan mula sa gallery.',
       'view_scan_history': 'Tingnan ang Kasaysayan ng Scan',
-      'history_description': 'Puntahan ang tab na "Kasaysayan ng Scan" para sa mga nakaraang scan.',
+      'history_description':
+          'Puntahan ang tab na "Kasaysayan ng Scan" para sa mga nakaraang scan.',
 
       // Help
       'help_description': 'Puntahan ang seksyong Tulong para sa gabay at FAQs.',
@@ -124,15 +166,44 @@ class AppLocalizations {
       // FAQs
       'faqs': 'Mga Madalas Itanong',
       'faq1_title': '1. Para saan ang app na ito?',
-      'faq1_description': 'Tumutulong ang app na ito upang matukoy ang pagiging sariwa ng mga gulay tulad ng talong, kamatis, at patatas.',
+      'faq1_description':
+          'Tumutulong ang app na ito upang matukoy ang pagiging sariwa ng mga gulay tulad ng talong, kamatis, at patatas.',
       'faq2_title': '2. Paano natutukoy ng app ang pagiging sariwa?',
-      'faq2_description': 'Ginagamit ng app ang mga modelo ng YOLOv8 at EfficientNetB7 upang suriin ang pagiging sariwa.',
+      'faq2_description':
+          'Ginagamit ng app ang mga modelo ng YOLOv8 at EfficientNetB7 upang suriin ang pagiging sariwa.',
       'faq3_title': '3. Makikita ko ba ang mga nakaraang scan?',
-      'faq3_description': 'Oo, nakasave ang mga nakaraang scan sa seksyong "Kasaysayan ng Scan."',
+      'faq3_description':
+          'Oo, nakasave ang mga nakaraang scan sa seksyong "Kasaysayan ng Scan."',
       'faq4_title': '4. Paano ko mabubura ang kasaysayan ng scan?',
-      'faq4_description': 'Pumunta sa Mga Setting at pindutin ang "Burahin ang Kasaysayan ng Scan."',
+      'faq4_description':
+          'Pumunta sa Mga Setting at pindutin ang "Burahin ang Kasaysayan ng Scan."',
       'faq6_title': '6. Anong mga uri ng pagkain ang kayang suriin ng app?',
-      'faq6_description': 'Sumusuporta ito sa mga gulay: talong, kamatis, at patatas.',
+      'faq6_description':
+          'Sumusuporta ito sa mga gulay: talong, kamatis, at patatas.',
+
+      // Developers Page (new keys)
+      'developers_title': 'Mga Developer',
+      'about_developers': 'Tungkol sa Mga Developer',
+      'developers_description':
+          'Kilalanin ang koponan sa likod ng FreshEval, na nakatuon sa pagbibigay ng pinakamahusay na pagtukoy sa pagiging sariwa ng gulay.',
+      'team_members': 'Mga Miyembro ng Koponan',
+      'member1_name': 'Ma. Clarissa Marasigan',
+      'member1_role': 'Main Programmer',
+      'member2_name': 'Vhon Joshua Agbayani',
+      'member2_role': 'AI Specialist',
+      'member3_name': 'Krysteen Clare Belen',
+      'member3_role': 'FrontEnd Developer',
+      'member4_name': 'Clark Czedrick Limson',
+      'member4_role': 'UI/UX Designer',
+      'contact_us': 'Contact Us',
+      'website_label': 'Website',
+
+      // Developer Detail Page (new keys)
+      'developer_details': 'Mga Detalye ng Developer',
+      'name_label': 'Pangalan',
+      'role_label': 'Tungkulin',
+      'about_label': 'Tungkol Sa',
+      'email_label': 'Email:',
     },
   };
 

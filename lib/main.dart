@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'l10n.dart';
 import 'camera_screen.dart';
 import 'scan_history_screen.dart';
 import 'settings.dart';
 import 'help_screen.dart';
+import 'developers_page.dart';
+import 'loading_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,8 +101,10 @@ class _MyAppState extends State<MyApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      home: const CameraScreen(),
+      initialRoute: '/loading', // Start with loading screen
       routes: {
+        '/loading': (context) => const LoadingScreen(),
+        '/camera': (context) => const CameraScreen(),
         '/history': (context) =>
             ScanHistoryScreen(localizations: localizations),
         '/settings': (context) => SettingsScreen(
@@ -109,6 +112,8 @@ class _MyAppState extends State<MyApp> {
               onLanguageChanged: updateLanguage,
             ),
         '/help': (context) => HelpScreen(localizations: localizations),
+        '/developers': (context) =>
+            DevelopersPage(localizations: localizations),
       },
     );
   }
