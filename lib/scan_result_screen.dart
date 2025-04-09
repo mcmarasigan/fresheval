@@ -26,7 +26,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   late ModelService _modelService;
   List<Map<String, dynamic>> _detectedObjects = [];
   bool _isLoading = true;
-  final double _imageSize = 640; // YOLOv8 input size
+double _originalWidth = 640;
+  double _originalHeight = 640;
+
 
   @override
   void initState() {
@@ -44,11 +46,16 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
       log("📸 Image successfully loaded: ${widget.imagePath}");
 
+      final decoded = await decodeImageFromList(imageBytes);
+      _originalWidth = decoded.width.toDouble();
+      _originalHeight = decoded.height.toDouble();
+
       final classifiedResults = await _modelService.detectAndClassify(
         imageBytes,
-        _imageSize,
-        _imageSize,
+        _originalWidth,
+        _originalHeight,
       );
+
 
       for (var result in classifiedResults) {
         log("🟢 Detected: ${result['object']} - BBox: ${result['bbox']}");
@@ -57,21 +64,30 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       }
 
       setState(() {
-        _detectedObjects = classifiedResults
-            .map((res) => {
-                  'label': res['object'],
-                  'confidence': res['confidence'],
-                  'bbox': res['bbox'],
-                  'freshness': res['freshness'],
-                  'freshnessConfidence': res['freshnessConfidence'],
-                  'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
-                  'explanation': res['explanation'] ?? 'No explanation available.',
-                  'originalWidth': res['originalWidth'] ?? _imageSize,
-                  'originalHeight': res['originalHeight'] ?? _imageSize,
-                })
-            .toList();
+        _detectedObjects = classifiedResults.map((res) {
+          final shelfInfo = _modelService.getShelfLifeAndRecommendation(
+            res['object'],
+            res['freshnessStatus'] ?? '',
+          );
+
+          return {
+            'label': res['object'],
+            'confidence': res['confidence'],
+            'bbox': res['bbox'],
+            'freshness': res['freshness'],
+            'freshnessConfidence': res['freshnessConfidence'],
+            'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
+            'explanation': res['explanation'] ?? 'No explanation available.',
+            'originalWidth': res['originalWidth'] ?? _originalWidth,
+            'originalHeight': res['originalHeight'] ?? _originalHeight,
+            'shelfLife': shelfInfo['shelfLife'],
+            'recommendation': shelfInfo['recommendation'],
+          };
+        }).toList();
+
         _isLoading = false;
       });
+
     } catch (e) {
       log("⚠️ Error during inference: $e");
       setState(() {
@@ -92,30 +108,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
     String formattedTime = DateFormat.jm().format(now);
 
-    // 👉 Add shelf life & recommendation per object
     final newScan = json.encode({
       'imagePath': widget.imagePath,
-      'objects': _detectedObjects.map((obj) {
-        final modelService = ModelService();
-        final shelfInfo = modelService.getShelfLifeAndRecommendation(
-          obj['label'],
-          obj['freshnessStatus'],
-        );
-
-        return {
-          'label': obj['label'],
-          'confidence': obj['confidence'],
-          'freshness': obj['freshness'],
-          'freshnessConfidence': obj['freshnessConfidence'],
-          'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
-          'originalWidth': obj['originalWidth'],
-          'originalHeight': obj['originalHeight'],
-          'freshnessStatus': obj['freshnessStatus'],
-          'explanation': obj['explanation'],
-          'shelfLife': shelfInfo['shelfLife'],
-          'recommendation': shelfInfo['recommendation'],
-        };
-      }).toList(),
+      'objects': _detectedObjects
+          .map((obj) => {
+                'label': obj['label'],
+                'confidence': obj['confidence'],
+                'freshness': obj['freshness'],
+                'freshnessConfidence': obj['freshnessConfidence'],
+                'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
+                'originalWidth': obj['originalWidth'],
+                'originalHeight': obj['originalHeight'],
+                'freshnessStatus': obj['freshnessStatus'],
+                'explanation': obj['explanation'],
+                'shelfLife': obj['shelfLife'],
+                'recommendation': obj['recommendation'],
+              })
+          .toList(),
       'date': formattedDate,
       'time': formattedTime,
     });
@@ -165,8 +174,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         return const SizedBox();
       }
 
-      final double scaleX = displayWidth / _imageSize;
-      final double scaleY = displayHeight / _imageSize;
+      final double scaleX = displayWidth / _originalWidth;
+      final double scaleY = displayHeight / _originalHeight;
+  
 
       final double xMin = bbox[0] * scaleX;
       final double yMin = bbox[1] * scaleY;
@@ -264,48 +274,55 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                             final double aspectRatio =
                                 imageSize.width / imageSize.height;
                         
-                            return AspectRatio(
-                              aspectRatio:
-                                  aspectRatio, // Maintain original image aspect ratio
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 6,
-                                      offset: Offset(0, 2),
+                            return Center(
+                              child: SizedBox(
+                                width: containerWidth *
+                                    0.85, // 85% of screen width
+                                child: AspectRatio(
+                                  aspectRatio:
+                                      aspectRatio, // 👈 preserves original shape
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 6,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: LayoutBuilder(
-                                    builder: (context, boxConstraints) {
-                                      final displayWidth =
-                                          boxConstraints.maxWidth;
-                                      final displayHeight =
-                                          boxConstraints.maxHeight;
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: LayoutBuilder(
+                                        builder: (context, boxConstraints) {
+                                          final displayWidth =
+                                              boxConstraints.maxWidth;
+                                          final displayHeight =
+                                              boxConstraints.maxHeight;
 
-                                      return Stack(
-                                        children: [
-                                          Image.file(
-                                            imageFile,
-                                            width: displayWidth,
-                                            height: displayHeight,
-                                            fit: BoxFit
-                                                .fill, // Because aspect ratio is already preserved
-                                          ),
-                                          if (_detectedObjects.isNotEmpty)
-                                            ..._buildBoundingBoxes(
-                                                displayWidth, displayHeight),
-                                        ],
-                                      );
-                                    },
+                                          return Stack(
+                                            children: [
+                                              Image.file(
+                                                imageFile,
+                                                width: displayWidth,
+                                                height: displayHeight,
+                                                fit: BoxFit.cover,
+                                              ),
+                                              if (_detectedObjects.isNotEmpty)
+                                                ..._buildBoundingBoxes(
+                                                    displayWidth,
+                                                    displayHeight),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             );
+
 
                           },
                         );
@@ -380,7 +397,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                               ListTile(
                                 title: Text(
                                   "Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                  "Freshness: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
+                                  "Condition: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
                                   "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
                                 ),
                                 subtitle: Column(

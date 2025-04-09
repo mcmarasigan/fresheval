@@ -74,7 +74,7 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
      final image = await _cameraController!.takePicture();
       final originalPath = image.path;
-      final resizedPath = await _resizeTo640(originalPath);
+      final resizedPath = await _resizeToFit(originalPath);
 
       Navigator.push(
         context,
@@ -90,24 +90,23 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<String> _resizeTo640(String imagePath) async {
+ Future<String> _resizeToFit(String imagePath) async {
     final File imageFile = File(imagePath);
     final img.Image? originalImage =
         img.decodeImage(await imageFile.readAsBytes());
 
     if (originalImage == null) return imagePath;
 
-    // Center crop to square
-    final img.Image squareCropped =
-        img.copyResizeCropSquare(originalImage, 640);
+    final img.Image resized = img.copyResize(originalImage, width: 640);
 
     final String resizedPath =
-        '${imageFile.parent.path}/resized_640_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        '${imageFile.parent.path}/resized_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-    await File(resizedPath).writeAsBytes(img.encodeJpg(squareCropped));
+    await File(resizedPath).writeAsBytes(img.encodeJpg(resized));
 
     return resizedPath;
   }
+
 
 
   Future<void> _pickImageFromGallery() async {
@@ -116,7 +115,7 @@ class _CameraScreenState extends State<CameraScreen> {
       final pickedImage = await picker.pickImage(source: ImageSource.gallery);
 
       if (pickedImage != null) {
-        final resizedImagePath = await _resizeTo640(pickedImage.path);
+        final resizedImagePath = await _resizeToFit(pickedImage.path);
 
         Navigator.push(
           context,
@@ -163,26 +162,8 @@ class _CameraScreenState extends State<CameraScreen> {
       body: Stack(
         children: [
          if (_isCameraInitialized && _cameraController != null)
-         Positioned(
-          top: 60, // Adjust this value as needed to move it higher
-          left: 0,
-          right: 0,
-              child: AspectRatio(
-                aspectRatio: 1, // 1:1 ratio
-                child: ClipRect(
-                  child: OverflowBox(
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _cameraController!.value.previewSize!.height,
-                        height: _cameraController!.value.previewSize!.width,
-                        child: CameraPreview(_cameraController!),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+         Positioned.fill(
+              child: CameraPreview(_cameraController!),
             )
           else
             const Center(child: CircularProgressIndicator()),

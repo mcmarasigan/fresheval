@@ -33,12 +33,6 @@ class ModelService {
         quantization: false,
         numThreads: 2,
       );
-      _nullLabels = await _loadLabels("assets/null_label.txt");
-
-      _nullInterpreter = await Interpreter.fromAsset(
-        "assets/null.tflite",
-        options: InterpreterOptions()..threads = 2,
-      );
 
       _efficientNetInterpreter = await Interpreter.fromAsset(
         "assets/efficientnetb7_fixed.tflite",
@@ -51,6 +45,7 @@ class ModelService {
       log("⚠️ Error loading models: $e");
     }
   }
+
 
   Future<List<String>> _loadLabels(String assetPath) async {
     try {
@@ -93,8 +88,11 @@ class ModelService {
     }
   }
 
- Future<List<Map<String, dynamic>>> detectAndClassify(
-      Uint8List imageBytes, double imageWidth, double imageHeight) async {
+Future<List<Map<String, dynamic>>> detectAndClassify(
+    Uint8List imageBytes,
+    double imageWidth,
+    double imageHeight,
+  ) async {
     final detections = await detectObjects(imageBytes, imageWidth, imageHeight);
 
     if (detections.isEmpty) {
@@ -112,7 +110,6 @@ class ModelService {
           'originalHeight': imageHeight,
         }
       ];
-
     }
 
     List<Map<String, dynamic>> results = [];
@@ -125,19 +122,10 @@ class ModelService {
         detection['originalHeight'],
       );
 
-      final invalidCheck = await classifyInvalid(cropped);
-      log("🧪 Invalid Check: ${invalidCheck['label']} @ ${invalidCheck['confidence'].toStringAsFixed(1)}%");
-
-      if (invalidCheck['label'] == 'invalid' &&
-          invalidCheck['confidence'] > 80.0) {
-        log("🚫 Skipped invalid detection: ${detection['label']}");
-        continue;
-      }
-
       final freshness = await classifyFreshness(cropped);
       final interpretation = interpretFreshness(
         freshness['confidence'],
-        freshness['label'].toLowerCase(), 
+        freshness['label'].toLowerCase(),
       );
       final explanation = getPredictionExplanation(
         freshness['label'].toLowerCase(),
@@ -155,24 +143,6 @@ class ModelService {
         'originalWidth': detection['originalWidth'],
         'originalHeight': detection['originalHeight'],
       });
-    }
-
-    // Final fallback in case all detections were skipped
-    if (results.isEmpty) {
-      log("⚠️ All detections were filtered out (invalid objects).");
-      return [
-        {
-          'object': 'None',
-          'confidence': 0.0,
-          'freshness': 'N/A',
-          'freshnessConfidence': 0.0,
-          'freshnessStatus': 'All Skipped',
-          'explanation': 'All detected objects were filtered out as invalid.',
-          'bbox': [],
-          'originalWidth': imageWidth,
-          'originalHeight': imageHeight,
-        }
-      ];
     }
 
     return results;
@@ -318,36 +288,41 @@ class ModelService {
   }
 
   String interpretFreshness(double confidence, String label) {
-    if (label == "fresh") {
-      if (confidence >= 80.0) return "Fresh (High Confidence)";
-      if (confidence >= 40.0) return "Fresh (Low Confidence)";
-      return "Fresh (Uncertain)";
+    final isFresh = label.toLowerCase() == "fresh";
+
+    if (isFresh) {
+      if (confidence >= 80.0) return "Still Fresh";
+      if (confidence >= 40.0) return "Fresh but Near Spoiling";
+      return "May Be Spoiling Soon";
     } else {
-      if (confidence >= 80.0) return "Rotten (High Confidence)";
-      if (confidence >= 40.0) return "Rotten (Low Confidence)";
-      return "Rotten (Uncertain)";
+      if (confidence >= 80.0) return "Definitely Rotten";
+      if (confidence >= 40.0) return "Likely Rotten";
+      return "Possibly Rotten";
     }
   }
 
-  String getPredictionExplanation(String label, double confidence) {
-    if (label == "fresh") {
+ String getPredictionExplanation(String label, double confidence) {
+    final isFresh = label.toLowerCase() == "fresh";
+
+    if (isFresh) {
       if (confidence >= 80.0) {
-        return "The produce looks visually healthy with firm skin and vibrant color.";
+        return "The produce appears vibrant and firm, indicating it's still in great condition.";
       } else if (confidence >= 40.0) {
-        return "Some ripeness or dulling is visible. It may be overripe or slightly soft.";
+        return "Some softness or dullness is visible. Consume soon before it starts to spoil.";
       } else {
-        return "Low confidence: visual cues suggest early spoilage despite being labeled fresh.";
+        return "There are early signs of spoilage despite being categorized as fresh. Use caution.";
       }
     } else {
       if (confidence >= 80.0) {
-        return "Signs of spoilage like mold, wrinkles, or discoloration are clearly visible.";
+        return "Strong visual cues like mold, wrinkles, or decay suggest it's spoiled.";
       } else if (confidence >= 40.0) {
-        return "Potential spoilage indicators like bruises, soft areas, or early mold.";
+        return "Possible spoilage signs like soft areas, bruises, or slight discoloration.";
       } else {
-        return "Low confidence: spoilage signs not obvious, but model suspects degradation.";
+        return "Minor hints of spoilage detected. It may still be usable, but check manually.";
       }
     }
   }
+
 Map<String, String> getShelfLifeAndRecommendation(
       String label, String interpretation) {
     final lowerLabel = label.toLowerCase();
@@ -357,54 +332,51 @@ Map<String, String> getShelfLifeAndRecommendation(
 
     switch (lowerLabel) {
       case 'tomato':
-        if (interpretation.contains('Fresh (High')) {
+        if (interpretation.contains('Still Fresh')) {
           shelfLife = '4–7 days at room temp, up to 2 weeks in the fridge';
           recommendation =
-              'Store at room temperature to ripen. Refrigerate once ripe. Best for salads and sauces.';
-        } else if (interpretation.contains('Fresh (Low')) {
-          shelfLife = '1–3 days (likely overripe)';
-          recommendation =
-              'Use soon. Check for softness or bruising before eating.';
-        } else if (interpretation.contains('Rotten (Low')) {
-          shelfLife = 'Likely already spoiled';
-          recommendation =
-              'Check manually. If soft, leaking, or smells, discard.';
+              'Store at room temperature to ripen. Refrigerate once ripe. Great for salads or sauces.';
+        } else if (interpretation.contains('Fresh but Near')) {
+          shelfLife = '1–3 days (approaching spoilage)';
+          recommendation = 'Use soon. Check for soft spots or dullness.';
+        } else if (interpretation.contains('Likely Rotten')) {
+          shelfLife = 'Possibly spoiled';
+          recommendation = 'Inspect for softness or smell before use.';
         } else {
           shelfLife = '0 days';
-          recommendation = 'Discard immediately. Likely unsafe to eat.';
+          recommendation = 'Discard. Likely spoiled or unsafe to eat.';
         }
         break;
 
       case 'eggplant':
-        if (interpretation.contains('Fresh (High')) {
+        if (interpretation.contains('Still Fresh')) {
           shelfLife = '3–5 days in the fridge';
-          recommendation = 'Store in crisper drawer. Don’t wash until use.';
-        } else if (interpretation.contains('Fresh (Low')) {
-          shelfLife = '1–2 days max';
-          recommendation = 'Use quickly. May already be soft.';
-        } else if (interpretation.contains('Rotten (Low')) {
-          shelfLife = 'Likely spoiled';
-          recommendation = 'Inspect manually for browning or softness.';
+          recommendation = 'Keep in crisper. Avoid washing until use.';
+        } else if (interpretation.contains('Fresh but Near')) {
+          shelfLife = '1–2 days';
+          recommendation = 'Use quickly. Softness may be starting.';
+        } else if (interpretation.contains('Likely Rotten')) {
+          shelfLife = 'Possibly spoiled';
+          recommendation = 'Check for wrinkles, softness, or spots.';
         } else {
           shelfLife = '0 days';
-          recommendation = 'Spoiled. Not safe to eat.';
+          recommendation = 'Not safe to eat. Discard.';
         }
         break;
 
       case 'potato':
-        if (interpretation.contains('Fresh (High')) {
+        if (interpretation.contains('Still Fresh')) {
           shelfLife = '1–2 months (cool, dark place)';
-          recommendation = 'Store in a paper bag. Don’t refrigerate.';
-        } else if (interpretation.contains('Fresh (Low')) {
-          shelfLife = '1–2 weeks max';
-          recommendation = 'Use soon. Check for sprouting or soft spots.';
-        } else if (interpretation.contains('Rotten (Low')) {
+          recommendation = 'Store in a paper bag. Avoid refrigeration.';
+        } else if (interpretation.contains('Fresh but Near')) {
+          shelfLife = '1–2 weeks';
+          recommendation = 'Use soon. Watch for sprouting or softness.';
+        } else if (interpretation.contains('Likely Rotten')) {
           shelfLife = 'Likely spoiled';
-          recommendation = 'Inspect manually for greening or odor.';
+          recommendation = 'Discard if green, soft, or with foul smell.';
         } else {
           shelfLife = '0 days';
-          recommendation =
-              'Toxic signs possible (green skin/sprouting). Discard.';
+          recommendation = 'Toxic risk (green or sprouted). Discard.';
         }
         break;
 
@@ -419,10 +391,8 @@ Map<String, String> getShelfLifeAndRecommendation(
     };
   }
 
-
-  void close() {
+ void close() {
     _flutterVision.closeYoloModel();
     _efficientNetInterpreter.close();
-    _nullInterpreter.close();
   }
 }
