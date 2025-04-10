@@ -11,12 +11,10 @@ class ModelService {
   late Interpreter _efficientNetInterpreter;
   late List<String> _yoloLabels;
   late List<String> _efficientNetLabels;
-  late Interpreter _nullInterpreter;
-  late List<String> _nullLabels;
   bool _modelsLoaded = false;
 
-  final double _yoloInputSize = 640; // YOLOv8 input size
-  final double _efficientNetInputSize = 224; // EfficientNet input size
+  final double _yoloInputSize = 640;
+  final double _efficientNetInputSize = 224;
 
   Future<void> loadModels() async {
     try {
@@ -46,7 +44,6 @@ class ModelService {
     }
   }
 
-
   Future<List<String>> _loadLabels(String assetPath) async {
     try {
       String labelsString = await rootBundle.loadString(assetPath);
@@ -68,18 +65,18 @@ class ModelService {
 
     try {
       final input = _preprocessImageForEfficientNet(croppedImage);
-      final outputShape = _nullInterpreter.getOutputTensor(0).shape;
+      final outputShape = _efficientNetInterpreter.getOutputTensor(0).shape;
       final output = List.filled(outputShape.reduce((a, b) => a * b), 0.0)
           .reshape([1, outputShape[1]]);
 
-      _nullInterpreter.run(input, output);
+      _efficientNetInterpreter.run(input, output);
       final predictions = List<double>.from(output[0]);
       final softmaxScores = _softmax(predictions);
       final predictedIndex = softmaxScores
           .indexWhere((val) => val == softmaxScores.reduce(math.max));
 
       return {
-        'label': _nullLabels[predictedIndex],
+        'label': _efficientNetLabels[predictedIndex],
         'confidence': softmaxScores[predictedIndex] * 100,
       };
     } catch (e) {
@@ -88,11 +85,75 @@ class ModelService {
     }
   }
 
-Future<List<Map<String, dynamic>>> detectAndClassify(
+  Future<List<Map<String, dynamic>>> detectAndClassify(
     Uint8List imageBytes,
     double imageWidth,
     double imageHeight,
   ) async {
+    // Check image brightness
+    final avgBrightness = _calculateAverageBrightness(imageBytes);
+    const double darkThreshold = 50.0;
+    const double brightThreshold = 200.0;
+
+    if (avgBrightness < darkThreshold) {
+      log("🌑 Image too dark (Brightness: $avgBrightness).");
+      return [
+        {
+          'object': 'None',
+          'confidence': 0.0,
+          'freshness': 'N/A',
+          'freshnessConfidence': 0.0,
+          'freshnessStatus': 'Image Too Dark',
+          'explanation':
+              'The image is too dark for accurate detection. Try turning on the flash, increasing lighting, or cleaning the camera lens.',
+          'bbox': [],
+          'originalWidth': imageWidth,
+          'originalHeight': imageHeight,
+        }
+      ];
+    } else if (avgBrightness > brightThreshold) {
+      log("☀️ Image too bright (Brightness: $avgBrightness).");
+      return [
+        {
+          'object': 'None',
+          'confidence': 0.0,
+          'freshness': 'N/A',
+          'freshnessConfidence': 0.0,
+          'freshnessStatus': 'Image Too Bright',
+          'explanation':
+              'The image is too bright for accurate detection. Please reduce lighting or clean the camera lens.',
+          'bbox': [],
+          'originalWidth': imageWidth,
+          'originalHeight': imageHeight,
+        }
+      ];
+    }
+
+    // Check image blurriness
+    final blurScore = _calculateBlurVariance(imageBytes);
+    const double blurThreshold = 5.0; // Lowered threshold for testing
+
+    if (blurScore < blurThreshold) {
+      log("🌫️ Image too blurry (Gradient Score: $blurScore < $blurThreshold).");
+      return [
+        {
+          'object': 'None',
+          'confidence': 0.0,
+          'freshness': 'N/A',
+          'freshnessConfidence': 0.0,
+          'freshnessStatus': 'Image Too Blurry',
+          'explanation':
+              'The image is too blurry for accurate detection. Please hold the camera steady or clean the lens.',
+          'bbox': [],
+          'originalWidth': imageWidth,
+          'originalHeight': imageHeight,
+        }
+      ];
+    } else {
+      log("✅ Image sharpness acceptable (Gradient Score: $blurScore >= $blurThreshold).");
+    }
+
+    // Proceed with detection if brightness and blur are acceptable
     final detections = await detectObjects(imageBytes, imageWidth, imageHeight);
 
     if (detections.isEmpty) {
@@ -147,7 +208,6 @@ Future<List<Map<String, dynamic>>> detectAndClassify(
 
     return results;
   }
-
 
   Future<List<Map<String, dynamic>>> detectObjects(
       Uint8List imageBytes, double imageWidth, double imageHeight) async {
@@ -301,7 +361,7 @@ Future<List<Map<String, dynamic>>> detectAndClassify(
     }
   }
 
- String getPredictionExplanation(String label, double confidence) {
+  String getPredictionExplanation(String label, double confidence) {
     final isFresh = label.toLowerCase() == "fresh";
 
     if (isFresh) {
@@ -323,7 +383,7 @@ Future<List<Map<String, dynamic>>> detectAndClassify(
     }
   }
 
-Map<String, String> getShelfLifeAndRecommendation(
+  Map<String, String> getShelfLifeAndRecommendation(
       String label, String interpretation) {
     final lowerLabel = label.toLowerCase();
 
@@ -391,7 +451,70 @@ Map<String, String> getShelfLifeAndRecommendation(
     };
   }
 
- void close() {
+  double _calculateAverageBrightness(Uint8List imageBytes) {
+    final img.Image? image = img.decodeImage(imageBytes);
+    if (image == null) {
+      log("⚠️ Failed to decode image for brightness check.");
+      return 128.0;
+    }
+
+    double totalLuminance = 0.0;
+    int pixelCount = 0;
+
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final pixel = image.getPixel(x, y);
+        final r = (pixel >> 16) & 0xFF;
+        final g = (pixel >> 8) & 0xFF;
+        final b = pixel & 0xFF;
+        final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        totalLuminance += luminance;
+        pixelCount++;
+      }
+    }
+
+    final averageBrightness = totalLuminance / pixelCount;
+    log("💡 Average Brightness: $averageBrightness");
+    return averageBrightness;
+  }
+
+  double _calculateBlurVariance(Uint8List imageBytes) {
+    final img.Image? image = img.decodeImage(imageBytes);
+    if (image == null) {
+      log("⚠️ Failed to decode image for blur check.");
+      return 1000.0; // Default high value (not blurry) if decoding fails
+    }
+
+    // Resize to a smaller size for consistency and speed
+    final resized = img.copyResize(image, width: 320, height: 320);
+    final grayscale = img.grayscale(resized);
+
+    // Calculate gradient magnitude with more detailed logging
+    double totalGradient = 0.0;
+    double maxGradient = 0.0;
+    int count = 0;
+
+    for (int y = 1; y < grayscale.height - 1; y++) {
+      for (int x = 1; x < grayscale.width - 1; x++) {
+        final center = (grayscale.getPixel(x, y) & 0xFF).toDouble();
+        final right = (grayscale.getPixel(x + 1, y) & 0xFF).toDouble();
+        final bottom = (grayscale.getPixel(x, y + 1) & 0xFF).toDouble();
+        final gradientX = (right - center).abs();
+        final gradientY = (bottom - center).abs();
+        final magnitude =
+            math.sqrt(gradientX * gradientX + gradientY * gradientY);
+        totalGradient += magnitude;
+        maxGradient = math.max(maxGradient, magnitude);
+        count++;
+      }
+    }
+
+    final avgGradient = count > 0 ? totalGradient / count : 0.0;
+    log("🌫️ Blur Check - Avg Gradient: $avgGradient, Max Gradient: $maxGradient, Pixels Processed: $count");
+    return avgGradient;
+  }
+
+  void close() {
     _flutterVision.closeYoloModel();
     _efficientNetInterpreter.close();
   }

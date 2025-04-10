@@ -26,9 +26,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   late ModelService _modelService;
   List<Map<String, dynamic>> _detectedObjects = [];
   bool _isLoading = true;
-double _originalWidth = 640;
+  double _originalWidth = 640;
   double _originalHeight = 640;
-
 
   @override
   void initState() {
@@ -55,7 +54,6 @@ double _originalWidth = 640;
         _originalWidth,
         _originalHeight,
       );
-
 
       for (var result in classifiedResults) {
         log("🟢 Detected: ${result['object']} - BBox: ${result['bbox']}");
@@ -87,7 +85,6 @@ double _originalWidth = 640;
 
         _isLoading = false;
       });
-
     } catch (e) {
       log("⚠️ Error during inference: $e");
       setState(() {
@@ -97,8 +94,7 @@ double _originalWidth = 640;
     }
   }
 
-
- Future<void> _saveScanResult() async {
+  Future<void> _saveScanResult() async {
     if (_detectedObjects.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
@@ -129,7 +125,6 @@ double _originalWidth = 640;
       'time': formattedTime,
     });
 
-    // Remove any previous entry with the same imagePath
     scanData.removeWhere((scan) {
       final decoded = json.decode(scan);
       return decoded['imagePath'] == widget.imagePath;
@@ -140,8 +135,6 @@ double _originalWidth = 640;
 
     _showSaveDialog();
   }
-
-
 
   void _showSaveDialog() {
     showDialog(
@@ -168,7 +161,7 @@ double _originalWidth = 640;
     return _detectedObjects.asMap().entries.map((entry) {
       final int index = entry.key;
       final detected = entry.value;
-      final bbox = detected['bbox']; // [xMin, yMin, xMax, yMax]
+      final bbox = detected['bbox'];
 
       if (bbox == null || bbox.isEmpty || bbox.length < 4) {
         return const SizedBox();
@@ -176,7 +169,6 @@ double _originalWidth = 640;
 
       final double scaleX = displayWidth / _originalWidth;
       final double scaleY = displayHeight / _originalHeight;
-  
 
       final double xMin = bbox[0] * scaleX;
       final double yMin = bbox[1] * scaleY;
@@ -214,8 +206,6 @@ double _originalWidth = 640;
     }).toList();
   }
 
-
-
   Color _getBoxColor(String label) {
     switch (label.toLowerCase()) {
       case 'tomato':
@@ -249,14 +239,15 @@ double _originalWidth = 640;
           ),
         ],
       ),
-
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Image Display
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final imageFile = File(widget.imagePath);
@@ -273,14 +264,12 @@ double _originalWidth = 640;
                             final imageSize = snapshot.data!;
                             final double aspectRatio =
                                 imageSize.width / imageSize.height;
-                        
+
                             return Center(
                               child: SizedBox(
-                                width: containerWidth *
-                                    0.85, // 85% of screen width
+                                width: containerWidth * 0.85,
                                 child: AspectRatio(
-                                  aspectRatio:
-                                      aspectRatio, // 👈 preserves original shape
+                                  aspectRatio: aspectRatio,
                                   child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
@@ -309,7 +298,10 @@ double _originalWidth = 640;
                                                 height: displayHeight,
                                                 fit: BoxFit.cover,
                                               ),
-                                              if (_detectedObjects.isNotEmpty)
+                                              if (_detectedObjects.isNotEmpty &&
+                                                  _detectedObjects[0]
+                                                          ['label'] !=
+                                                      'None')
                                                 ..._buildBoundingBoxes(
                                                     displayWidth,
                                                     displayHeight),
@@ -322,109 +314,177 @@ double _originalWidth = 640;
                                 ),
                               ),
                             );
-
-
                           },
                         );
                       },
                     ),
 
-
-
                     const SizedBox(height: 20),
-                   ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _detectedObjects.length,
-                      itemBuilder: (context, index) {
-                        final detected = _detectedObjects[index];
-                        final boxColor = _getBoxColor(detected['label']);
 
-                        // 👇 Get shelf life & recommendation
-                        final modelService =
-                            ModelService(); // or use existing instance
-                        final extras =
-                            modelService.getShelfLifeAndRecommendation(
-                          detected['label'],
-                          detected['freshnessStatus'],
-                        );
-
-                        final shelfLife = extras['shelfLife'];
-                        final recommendation = extras['recommendation'];
-
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(color: boxColor, width: 2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 3,
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          child: ExpansionTile(
-                            tilePadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            title: Row(
-                              children: [
-                                Container(
-                                  width: 20,
-                                  height: 20,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: boxColor,
-                                  ),
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                    // Results or Quality Warnings
+                    if (_detectedObjects.isNotEmpty &&
+                        _detectedObjects[0]['freshnessStatus'] ==
+                            'Image Too Dark')
+                      Card(
+                        color: Colors.red[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Image Too Dark',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red[900],
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "${detected['label'] ?? 'Unknown'} - ${detected['freshnessStatus'] ?? detected['freshness'] ?? 'N/A'}",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _detectedObjects[0]['explanation'],
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_detectedObjects.isNotEmpty &&
+                        _detectedObjects[0]['freshnessStatus'] ==
+                            'Image Too Bright')
+                      Card(
+                        color: Colors.yellow[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Image Too Bright',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[900],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _detectedObjects[0]['explanation'],
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_detectedObjects.isNotEmpty &&
+                        _detectedObjects[0]['freshnessStatus'] ==
+                            'Image Too Blurry')
+                      Card(
+                        color: Colors.blue[50],
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Image Too Blurry',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[900],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _detectedObjects[0]['explanation'],
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _detectedObjects.length,
+                        itemBuilder: (context, index) {
+                          final detected = _detectedObjects[index];
+                          final boxColor = _getBoxColor(detected['label']);
+
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide(color: boxColor, width: 2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 3,
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            child: ExpansionTile(
+                              tilePadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              title: Row(
+                                children: [
+                                  Container(
+                                    width: 20,
+                                    height: 20,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: boxColor,
                                     ),
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "${detected['label'] ?? 'Unknown'} - ${detected['freshnessStatus'] ?? detected['freshness'] ?? 'N/A'}",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              children: [
+                                ListTile(
+                                  title: Text(
+                                    "Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                    "Condition: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
+                                    "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        detected['explanation'] ??
+                                            'No explanation available.',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                          "📆 Shelf Life: ${detected['shelfLife']}"),
+                                      Text(
+                                          "📌 Recommendation: ${detected['recommendation']}"),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                            children: [
-                              ListTile(
-                                title: Text(
-                                  "Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                  "Condition: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
-                                  "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      detected['explanation'] ??
-                                          'No explanation available.',
-                                      style: const TextStyle(
-                                          fontStyle: FontStyle.italic),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text("📆 Shelf Life: $shelfLife"),
-                                    Text("📌 Recommendation: $recommendation"),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-
-
+                          );
+                        },
+                      ),
 
                     const SizedBox(height: 20),
-
                   ],
                 ),
               ),
@@ -432,18 +492,3 @@ double _originalWidth = 640;
     );
   }
 }
-
-
-  Color _getBoxColor(String label) {
-    switch (label.toLowerCase()) {
-      case 'tomato':
-        return Colors.red;
-      case 'eggplant':
-        return Colors.purple;
-      case 'potato':
-        return const Color(0xFFC4A484);
-      default:
-        return Colors.blue;
-    }
-  }
-
