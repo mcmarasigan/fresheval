@@ -401,41 +401,43 @@ class ModelService {
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
- String interpretFreshness(double confidence, String label) {
+String interpretFreshness(double confidence, String label) {
     final isFresh = label.toLowerCase() == "fresh";
 
     if (isFresh) {
-      if (confidence > 80.0) return "Fresh (High confidence)";
-      if (confidence >= 35.0) return "Fresh (Low confidence)";
-      return "Fresh (Uncertain)";
+      if (confidence > 80.0) return "Healthy and vibrant";
+      if (confidence >= 35.0) return "Showing signs of dullness or ripping";
+      return "May be entering early spoilage";
     } else {
-      if (confidence > 80.0) return "Rotten (High confidence)";
-      if (confidence > 40.0) return "Rotten (Low confidence)";
-      return "Rotten (Uncertain)";
+      if (confidence > 80.0) return "Shriveled or moldy";
+      if (confidence > 40.0) return "Bruised or soft, early mold possible";
+      return "Degradation suspected";
     }
   }
+
 
   String getPredictionExplanation(String label, double confidence) {
     final isFresh = label.toLowerCase() == "fresh";
 
     if (isFresh) {
       if (confidence > 80.0) {
-        return "Produce appears vibrant and firm, indicating it's fresh.";
+        return "The item is healthy, with firm skin and vibrant color.";
       } else if (confidence >= 35.0) {
-        return "Slight shriveling or dullness observed. Use soon before spoilage.";
+        return "Dullness or minor ripping observed. Quality may be declining.";
       } else {
-        return "Moderate shriveling or dullness, freshness uncertain.";
+        return "Early spoilage signs are visible. Use with caution.";
       }
     } else {
       if (confidence > 80.0) {
-        return "Severe spoilage detected: mold, shriveling, or disease signs.";
+        return "Clear signs of spoilage: shriveling, mold, or discoloration.";
       } else if (confidence > 40.0) {
-        return "Visible signs of spoilage like softness, bruising, or odor.";
+        return "Bruising or softness observed. Early mold might be forming.";
       } else {
-        return "Rotten indicators uncertain. May be early stage spoilage.";
+        return "Slight issues noted. Degradation might be starting.";
       }
     }
   }
+
 
   Map<String, String> getShelfLifeAndRecommendation(
       String label, String interpretation) {
@@ -445,44 +447,47 @@ class ModelService {
 
     switch (lowerLabel) {
       case 'eggplant':
-        if (interpretation.contains('High')) {
+        if (interpretation.contains('Healthy')) {
           shelfLife = '3–5 days in the fridge';
-          recommendation = 'Store in crisper. Avoid washing until use.';
-        } else if (interpretation.contains('Low')) {
+          recommendation = 'Store in a crisper drawer. Don’t wash until use.';
+        } else if (interpretation.contains('dullness') ||
+            interpretation.contains('ripping')) {
           shelfLife = '1–2 days max';
-          recommendation = 'Use quickly. Watch for shriveling or dullness.';
+          recommendation = 'Use quickly. May already be soft or less shiny.';
         } else {
           shelfLife = '0 days';
-          recommendation =
-              'Likely spoiled. Discard if brown, soft, or spotted.';
+          recommendation = 'Spoiled or risky to eat. Discard if soft or brown.';
         }
         break;
 
       case 'tomato':
-        if (interpretation.contains('High')) {
+        if (interpretation.contains('Healthy')) {
           shelfLife = '4–7 days at room temp, up to 2 weeks in the fridge';
-          recommendation = 'Store at room temperature. Refrigerate when ripe.';
-        } else if (interpretation.contains('Low')) {
-          shelfLife = '1–3 days max';
           recommendation =
-              'Use quickly. May show signs of softness or loss of shine.';
+              'Store at room temp to ripen. Refrigerate when ripe.';
+        } else if (interpretation.contains('dullness') ||
+            interpretation.contains('ripping')) {
+          shelfLife = '1–3 days (likely overripe)';
+          recommendation = 'Use soon. Check for softness or bruising.';
         } else {
           shelfLife = '0 days';
           recommendation =
-              'Uncertain quality. Discard if soft, smelly, or leaking.';
+              'Likely spoiled. Discard if soft, leaking, or smelly.';
         }
         break;
 
       case 'potato':
-        if (interpretation.contains('High')) {
+        if (interpretation.contains('Healthy')) {
           shelfLife = '1–2 months (cool, dark place)';
-          recommendation = 'Keep in paper bag. Do not refrigerate.';
-        } else if (interpretation.contains('Low')) {
+          recommendation = 'Store in a paper bag. Don’t refrigerate.';
+        } else if (interpretation.contains('dullness') ||
+            interpretation.contains('ripping')) {
           shelfLife = '1–2 weeks max';
-          recommendation = 'Use soon. Check for sprouting or green skin.';
+          recommendation = 'Use soon. Check for sprouting or soft spots.';
         } else {
           shelfLife = '0 days';
-          recommendation = 'May be toxic if green or sprouted. Discard.';
+          recommendation =
+              'Toxic signs possible (green skin/sprouting). Discard.';
         }
         break;
 
@@ -496,6 +501,8 @@ class ModelService {
       'recommendation': recommendation,
     };
   }
+
+
 
 
   double _calculateAverageBrightness(Uint8List imageBytes) {

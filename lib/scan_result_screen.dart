@@ -156,6 +156,10 @@ Future<void> _runInference() async {
 
     final newScan = json.encode({
       'imagePath': widget.imagePath,
+      'frontImagePath': widget.frontImagePath,
+      'backImagePath': widget.backImagePath,
+      'isMultiAngle': widget.isMultiAngle,
+      'isUploadedImage': widget.isUploadedImage,
       'objects': _detectedObjects
           .map((obj) => {
                 'label': obj['label'],
@@ -185,6 +189,7 @@ Future<void> _runInference() async {
 
     _showSaveDialog();
   }
+
 
   void _showSaveDialog() {
     showDialog(
@@ -496,7 +501,7 @@ Future<void> _runInference() async {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "${detected['label'] ?? 'Unknown'} - ${detected['freshnessStatus'] ?? detected['freshness'] ?? 'N/A'}",
+                                      "${detected['label'] ?? 'Unknown'} - ${detected['freshness'] ?? 'N/A'}",
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,

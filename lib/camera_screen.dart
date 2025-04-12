@@ -144,28 +144,39 @@ class _CameraScreenState extends State<CameraScreen> {
 
 
 
-  Future<void> _pickImageFromGallery() async {
+ Future<void> _pickImageFromGallery() async {
     try {
       final picker = ImagePicker();
-      final pickedImage = await picker.pickImage(source: ImageSource.gallery);
+      final pickedImages = await picker.pickMultiImage();
 
-      if (pickedImage != null) {
-        final resizedImagePath = await _resizeToFit(pickedImage.path);
+      if (pickedImages.length >= 2) {
+        final resizedFront = await _resizeToFit(pickedImages[0].path);
+        final resizedBack = await _resizeToFit(pickedImages[1].path);
 
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ScanResultScreen(
-              imagePath: resizedImagePath,
-              isUploadedImage: true, isMultiAngle: true,
+              frontImagePath: resizedFront,
+              backImagePath: resizedBack,
+              isUploadedImage: true,
+              isMultiAngle: true,
             ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Please select at least two images (front and back).'),
           ),
         );
       }
     } catch (e) {
-      print('Error picking image: $e');
+      print('❌ Error picking multi images: $e');
     }
   }
+
 
   @override
   void dispose() {

@@ -39,7 +39,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
         final decoded = json.decode(scan) as Map<String, dynamic>;
 
         return {
-          'imagePath': decoded['imagePath'].toString(),
+          'imagePath': decoded['imagePath']?.toString(),
+          'frontImagePath': decoded['frontImagePath']?.toString(),
+          'backImagePath': decoded['backImagePath']?.toString(),
+          'isMultiAngle': decoded['isMultiAngle'] ?? false,
           'objects': decoded.containsKey('objects') &&
                   decoded['objects'] != null
               ? List<Map<String, dynamic>>.from(decoded['objects'])
@@ -221,8 +224,24 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                           ),
                         subtitle: Text(
                             "Date: ${scan['date']}  Time: ${scan['time']}"),
-                        trailing: Image.file(File(scan['imagePath']!),
-                            width: 50, height: 50, fit: BoxFit.cover),
+                        trailing: scan['isMultiAngle'] == true
+                            ? Image.file(
+                                File(scan['frontImagePath'] ?? ''),
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.broken_image),
+                              )
+                            : Image.file(
+                                File(scan['imagePath'] ?? ''),
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.broken_image),
+                              ),
+
                         onTap: () {
                           if (showDeleteMode) {
                             setState(() {
@@ -323,6 +342,11 @@ class ScanDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<dynamic> objects = scan['objects'] ?? [];
     const double fallbackSize = 640;
+  final imagePath = scan['isMultiAngle'] == true
+        ? (scan['frontImagePath'] ?? scan['imagePath'])
+        : scan['imagePath'];
+
+    final imageFile = imagePath != null ? File(imagePath) : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Scan Details")),
@@ -333,116 +357,119 @@ class ScanDetailScreen extends StatelessWidget {
             // 🖼 Image with bounding boxes
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: FutureBuilder<Size>(
-                future: _getImageSize(File(scan['imagePath'])),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const SizedBox(
-                      height: 200,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
+              
+child: imageFile == null
+    ? const SizedBox(
+        height: 200,
+        child: Center(child: Icon(Icons.broken_image, size: 48)),
+      )
+    : FutureBuilder<Size>(
+        future: _getImageSize(imageFile),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-                  final imageSize = snapshot.data!;
-                  final double aspectRatio = imageSize.width / imageSize.height;
+          final imageSize = snapshot.data!;
+          final double aspectRatio = imageSize.width / imageSize.height;
 
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final containerWidth = constraints.maxWidth;
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final containerWidth = constraints.maxWidth;
 
-                      return Center(
-                        child: SizedBox(
-                          width: containerWidth * 0.85,
-                          child: AspectRatio(
-                            aspectRatio: aspectRatio,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: LayoutBuilder(
-                                builder: (context, boxConstraints) {
-                                  final displayWidth = boxConstraints.maxWidth;
-                                  final displayHeight =
-                                      boxConstraints.maxHeight;
+              return Center(
+                child: SizedBox(
+                  width: containerWidth * 0.85,
+                  child: AspectRatio(
+                    aspectRatio: aspectRatio,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: LayoutBuilder(
+                        builder: (context, boxConstraints) {
+                          final displayWidth = boxConstraints.maxWidth;
+                          final displayHeight = boxConstraints.maxHeight;
 
-                                  return Stack(
-                                    children: [
-                                      Image.file(
-                                        File(scan['imagePath']),
-                                        width: displayWidth,
-                                        height: displayHeight,
-                                        fit: BoxFit.cover,
-                                      ),
-                                      ...objects.asMap().entries.map((entry) {
-                                        final index = entry.key;
-                                        final obj = entry.value;
-                                        final bbox = obj['bbox'];
-                                        if (bbox == null || bbox.length != 4)
-                                          return const SizedBox();
-
-                                        final originalWidth =
-                                            (obj['originalWidth'] as num?)
-                                                    ?.toDouble() ??
-                                                imageSize.width;
-                                        final originalHeight =
-                                            (obj['originalHeight'] as num?)
-                                                    ?.toDouble() ??
-                                                imageSize.height;
-
-                                        final scaleX =
-                                            displayWidth / originalWidth;
-                                        final scaleY =
-                                            displayHeight / originalHeight;
-
-                                        final xMin = bbox[0] * scaleX;
-                                        final yMin = bbox[1] * scaleY;
-                                        final boxWidth =
-                                            (bbox[2] - bbox[0]) * scaleX;
-                                        final boxHeight =
-                                            (bbox[3] - bbox[1]) * scaleY;
-
-                                        final color = _getBoxColor(
-                                            obj['label'] ?? 'unknown');
-
-                                        return Positioned(
-                                          left: xMin,
-                                          top: yMin,
-                                          child: Container(
-                                            width: boxWidth,
-                                            height: boxHeight,
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                  color: color, width: 2),
-                                            ),
-                                            child: Align(
-                                              alignment: Alignment.topLeft,
-                                              child: Container(
-                                                color: color.withOpacity(0.7),
-                                                padding:
-                                                    const EdgeInsets.all(2),
-                                                child: Text(
-                                                  "${index + 1}. ${obj['label']} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                    ],
-                                  );
-                                },
+                          return Stack(
+                            children: [
+                              Image.file(
+                                imageFile,
+                                width: displayWidth,
+                                height: displayHeight,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(
+                                  child: Icon(Icons.broken_image),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                              ...objects.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final obj = entry.value;
+                                final bbox = obj['bbox'];
+                                if (bbox == null || bbox.length != 4) {
+                                  return const SizedBox();
+                                }
+
+                                final originalWidth =
+                                    (obj['originalWidth'] as num?)?.toDouble() ??
+                                        imageSize.width;
+                                final originalHeight =
+                                    (obj['originalHeight'] as num?)?.toDouble() ??
+                                        imageSize.height;
+
+                                final scaleX = displayWidth / originalWidth;
+                                final scaleY = displayHeight / originalHeight;
+
+                                final xMin = bbox[0] * scaleX;
+                                final yMin = bbox[1] * scaleY;
+                                final boxWidth = (bbox[2] - bbox[0]) * scaleX;
+                                final boxHeight = (bbox[3] - bbox[1]) * scaleY;
+
+                                final color =
+                                    _getBoxColor(obj['label'] ?? 'unknown');
+
+                                return Positioned(
+                                  left: xMin,
+                                  top: yMin,
+                                  child: Container(
+                                    width: boxWidth,
+                                    height: boxHeight,
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: color, width: 2),
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Container(
+                                        color: color.withOpacity(0.7),
+                                        padding: const EdgeInsets.all(2),
+                                        child: Text(
+                                          "${index + 1}. ${obj['label']} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+
             ),
 
             const SizedBox(height: 20),
