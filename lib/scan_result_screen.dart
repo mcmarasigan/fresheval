@@ -7,16 +7,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'model_service.dart';
 
 class ScanResultScreen extends StatefulWidget {
-  final String imagePath;
+  final String? imagePath; // Keep for single image case
+  final String? frontImagePath;
+  final String? backImagePath;
+  final bool isMultiAngle;
   final bool isUploadedImage;
   final Function(String imagePath, String name)? onSave;
 
   const ScanResultScreen({
     super.key,
-    required this.imagePath,
-    required this.isUploadedImage,
-    this.onSave,
+    this.imagePath,
+    this.frontImagePath,
+    this.backImagePath,
+    required this.isMultiAngle,
+    required this.isUploadedImage, this.onSave,
   });
+
 
   @override
   _ScanResultScreenState createState() => _ScanResultScreenState();
@@ -36,55 +42,97 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     _runInference();
   }
 
-  Future<void> _runInference() async {
+Future<void> _runInference() async {
     try {
       log("🟢 Starting model inference...");
-
       await _modelService.loadModels();
-      final imageBytes = await File(widget.imagePath).readAsBytes();
 
-      log("📸 Image successfully loaded: ${widget.imagePath}");
+      if (widget.isMultiAngle) {
+        final frontBytes = await File(widget.frontImagePath!).readAsBytes();
+        final backBytes = await File(widget.backImagePath!).readAsBytes();
 
-      final decoded = await decodeImageFromList(imageBytes);
-      _originalWidth = decoded.width.toDouble();
-      _originalHeight = decoded.height.toDouble();
+        final decoded = await decodeImageFromList(frontBytes);
+        _originalWidth = decoded.width.toDouble();
+        _originalHeight = decoded.height.toDouble();
 
-      final classifiedResults = await _modelService.detectAndClassify(
-        imageBytes,
-        _originalWidth,
-        _originalHeight,
-      );
+        final combinedResults = await _modelService.analyzeMultiAngleImages(
+          frontImage: frontBytes,
+          backImage: backBytes,
+          imageWidth: _originalWidth,
+          imageHeight: _originalHeight,
+        );
 
-      for (var result in classifiedResults) {
-        log("🟢 Detected: ${result['object']} - BBox: ${result['bbox']}");
-        log("✅ ${result['object']} - Classified as ${result['freshness']} "
-            "with ${result['freshnessConfidence'].toStringAsFixed(2)}% confidence");
+        for (var res in combinedResults) {
+          log("📸 MULTI-ANGLE RESULT:");
+          log("🫲 Front: ${res['front']['freshness']} (${res['front']['freshnessConfidence']?.toStringAsFixed(2)}%)");
+          log("🫱 Back:  ${res['back']?['freshness'] ?? 'N/A'} (${res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--'}%)");
+          log("✅ Merged: ${res['mergedFreshness']} (${res['mergedConfidence'].toStringAsFixed(2)}%) => ${res['mergedStatus']}");
+        }
+
+        setState(() {
+          _detectedObjects = combinedResults.map((res) {
+            final shelfInfo = _modelService.getShelfLifeAndRecommendation(
+              res['object'],
+              res['mergedStatus'],
+            );
+            return {
+              'label': res['object'],
+              'confidence': res['mergedConfidence'],
+              'freshness': res['mergedFreshness'],
+              'freshnessConfidence': res['mergedConfidence'],
+              'freshnessStatus': res['mergedStatus'],
+              'explanation': res['front']['explanation'] ?? 'No explanation',
+              'bbox': res['front']['bbox'],
+              'originalWidth': res['front']['originalWidth'],
+              'originalHeight': res['front']['originalHeight'],
+              'shelfLife': shelfInfo['shelfLife'],
+              'recommendation': shelfInfo['recommendation'],
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      } else {
+        final imageBytes = await File(widget.imagePath!).readAsBytes();
+
+        final decoded = await decodeImageFromList(imageBytes);
+        _originalWidth = decoded.width.toDouble();
+        _originalHeight = decoded.height.toDouble();
+
+        final classifiedResults = await _modelService.detectAndClassify(
+          imageBytes,
+          _originalWidth,
+          _originalHeight,
+        );
+
+        for (var res in classifiedResults) {
+          log("📸 SINGLE IMAGE RESULT:");
+          log("✅ ${res['object']} - ${res['freshness']} (${res['freshnessConfidence'].toStringAsFixed(2)}%) => ${res['freshnessStatus']}");
+        }
+
+        setState(() {
+          _detectedObjects = classifiedResults.map((res) {
+            final shelfInfo = _modelService.getShelfLifeAndRecommendation(
+              res['object'],
+              res['freshnessStatus'] ?? '',
+            );
+
+            return {
+              'label': res['object'],
+              'confidence': res['confidence'],
+              'bbox': res['bbox'],
+              'freshness': res['freshness'],
+              'freshnessConfidence': res['freshnessConfidence'],
+              'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
+              'explanation': res['explanation'] ?? 'No explanation available.',
+              'originalWidth': res['originalWidth'] ?? _originalWidth,
+              'originalHeight': res['originalHeight'] ?? _originalHeight,
+              'shelfLife': shelfInfo['shelfLife'],
+              'recommendation': shelfInfo['recommendation'],
+            };
+          }).toList();
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _detectedObjects = classifiedResults.map((res) {
-          final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-            res['object'],
-            res['freshnessStatus'] ?? '',
-          );
-
-          return {
-            'label': res['object'],
-            'confidence': res['confidence'],
-            'bbox': res['bbox'],
-            'freshness': res['freshness'],
-            'freshnessConfidence': res['freshnessConfidence'],
-            'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
-            'explanation': res['explanation'] ?? 'No explanation available.',
-            'originalWidth': res['originalWidth'] ?? _originalWidth,
-            'originalHeight': res['originalHeight'] ?? _originalHeight,
-            'shelfLife': shelfInfo['shelfLife'],
-            'recommendation': shelfInfo['recommendation'],
-          };
-        }).toList();
-
-        _isLoading = false;
-      });
     } catch (e) {
       log("⚠️ Error during inference: $e");
       setState(() {
@@ -93,6 +141,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       });
     }
   }
+
+
 
   Future<void> _saveScanResult() async {
     if (_detectedObjects.isEmpty) return;
@@ -250,7 +300,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                     // Image Display
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final imageFile = File(widget.imagePath);
+                        final imageFile = File(widget.isMultiAngle
+                            ? widget.frontImagePath!
+                            : widget.imagePath!);
                         final double containerWidth = constraints.maxWidth;
 
                         return FutureBuilder<Size>(

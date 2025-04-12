@@ -128,6 +128,60 @@ class ModelService {
         }
       ];
     }
+    Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
+      required Uint8List frontImage,
+      required Uint8List backImage,
+      required double imageWidth,
+      required double imageHeight,
+    }) async {
+      final frontResults =
+          await detectAndClassify(frontImage, imageWidth, imageHeight);
+      final backResults =
+          await detectAndClassify(backImage, imageWidth, imageHeight);
+
+      // Optionally: Merge logic if needed (based on object label or bounding box proximity)
+      List<Map<String, dynamic>> combinedResults = [];
+
+      for (int i = 0; i < frontResults.length; i++) {
+        final front = frontResults[i];
+
+        Map<String, dynamic> matchedBack = backResults.firstWhere(
+          (back) => back['object'] == front['object'],
+          orElse: () => {},
+        );
+
+        String finalStatus = front['freshnessStatus'];
+        double finalConfidence = front['freshnessConfidence'];
+
+        if (matchedBack.isNotEmpty) {
+          final double avgConfidence = (front['freshnessConfidence'] +
+                  matchedBack['freshnessConfidence']) /
+              2;
+          final String mergedLabel =
+              front['freshness'] == matchedBack['freshness']
+                  ? front['freshness']
+                  : (avgConfidence > 50
+                      ? front['freshness']
+                      : matchedBack['freshness']);
+
+          finalStatus =
+              interpretFreshness(avgConfidence, mergedLabel.toLowerCase());
+          finalConfidence = avgConfidence;
+        }
+
+        combinedResults.add({
+          'object': front['object'],
+          'front': front,
+          'back': matchedBack.isNotEmpty ? matchedBack : null,
+          'mergedFreshness': front['freshness'],
+          'mergedConfidence': finalConfidence,
+          'mergedStatus': finalStatus,
+        });
+      }
+
+      return combinedResults;
+    }
+
 
     // Check image blurriness
     final blurScore = _calculateBlurVariance(imageBytes);
@@ -347,17 +401,17 @@ class ModelService {
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
-  String interpretFreshness(double confidence, String label) {
+ String interpretFreshness(double confidence, String label) {
     final isFresh = label.toLowerCase() == "fresh";
 
     if (isFresh) {
-      if (confidence >= 80.0) return "Still Fresh";
-      if (confidence >= 40.0) return "Fresh but Near Spoiling";
-      return "May Be Spoiling Soon";
+      if (confidence > 80.0) return "Fresh (High confidence)";
+      if (confidence >= 35.0) return "Fresh (Low confidence)";
+      return "Fresh (Uncertain)";
     } else {
-      if (confidence >= 80.0) return "Definitely Rotten";
-      if (confidence >= 40.0) return "Likely Rotten";
-      return "Possibly Rotten";
+      if (confidence > 80.0) return "Rotten (High confidence)";
+      if (confidence > 40.0) return "Rotten (Low confidence)";
+      return "Rotten (Uncertain)";
     }
   }
 
@@ -365,20 +419,20 @@ class ModelService {
     final isFresh = label.toLowerCase() == "fresh";
 
     if (isFresh) {
-      if (confidence >= 80.0) {
-        return "The produce appears vibrant and firm, indicating it's still in great condition.";
-      } else if (confidence >= 40.0) {
-        return "Some softness or dullness is visible. Consume soon before it starts to spoil.";
+      if (confidence > 80.0) {
+        return "Produce appears vibrant and firm, indicating it's fresh.";
+      } else if (confidence >= 35.0) {
+        return "Slight shriveling or dullness observed. Use soon before spoilage.";
       } else {
-        return "There are early signs of spoilage despite being categorized as fresh. Use caution.";
+        return "Moderate shriveling or dullness, freshness uncertain.";
       }
     } else {
-      if (confidence >= 80.0) {
-        return "Strong visual cues like mold, wrinkles, or decay suggest it's spoiled.";
-      } else if (confidence >= 40.0) {
-        return "Possible spoilage signs like soft areas, bruises, or slight discoloration.";
+      if (confidence > 80.0) {
+        return "Severe spoilage detected: mold, shriveling, or disease signs.";
+      } else if (confidence > 40.0) {
+        return "Visible signs of spoilage like softness, bruising, or odor.";
       } else {
-        return "Minor hints of spoilage detected. It may still be usable, but check manually.";
+        return "Rotten indicators uncertain. May be early stage spoilage.";
       }
     }
   }
@@ -386,57 +440,49 @@ class ModelService {
   Map<String, String> getShelfLifeAndRecommendation(
       String label, String interpretation) {
     final lowerLabel = label.toLowerCase();
-
     String shelfLife = '';
     String recommendation = '';
 
     switch (lowerLabel) {
-      case 'tomato':
-        if (interpretation.contains('Still Fresh')) {
-          shelfLife = '4–7 days at room temp, up to 2 weeks in the fridge';
-          recommendation =
-              'Store at room temperature to ripen. Refrigerate once ripe. Great for salads or sauces.';
-        } else if (interpretation.contains('Fresh but Near')) {
-          shelfLife = '1–3 days (approaching spoilage)';
-          recommendation = 'Use soon. Check for soft spots or dullness.';
-        } else if (interpretation.contains('Likely Rotten')) {
-          shelfLife = 'Possibly spoiled';
-          recommendation = 'Inspect for softness or smell before use.';
+      case 'eggplant':
+        if (interpretation.contains('High')) {
+          shelfLife = '3–5 days in the fridge';
+          recommendation = 'Store in crisper. Avoid washing until use.';
+        } else if (interpretation.contains('Low')) {
+          shelfLife = '1–2 days max';
+          recommendation = 'Use quickly. Watch for shriveling or dullness.';
         } else {
           shelfLife = '0 days';
-          recommendation = 'Discard. Likely spoiled or unsafe to eat.';
+          recommendation =
+              'Likely spoiled. Discard if brown, soft, or spotted.';
         }
         break;
 
-      case 'eggplant':
-        if (interpretation.contains('Still Fresh')) {
-          shelfLife = '3–5 days in the fridge';
-          recommendation = 'Keep in crisper. Avoid washing until use.';
-        } else if (interpretation.contains('Fresh but Near')) {
-          shelfLife = '1–2 days';
-          recommendation = 'Use quickly. Softness may be starting.';
-        } else if (interpretation.contains('Likely Rotten')) {
-          shelfLife = 'Possibly spoiled';
-          recommendation = 'Check for wrinkles, softness, or spots.';
+      case 'tomato':
+        if (interpretation.contains('High')) {
+          shelfLife = '4–7 days at room temp, up to 2 weeks in the fridge';
+          recommendation = 'Store at room temperature. Refrigerate when ripe.';
+        } else if (interpretation.contains('Low')) {
+          shelfLife = '1–3 days max';
+          recommendation =
+              'Use quickly. May show signs of softness or loss of shine.';
         } else {
           shelfLife = '0 days';
-          recommendation = 'Not safe to eat. Discard.';
+          recommendation =
+              'Uncertain quality. Discard if soft, smelly, or leaking.';
         }
         break;
 
       case 'potato':
-        if (interpretation.contains('Still Fresh')) {
+        if (interpretation.contains('High')) {
           shelfLife = '1–2 months (cool, dark place)';
-          recommendation = 'Store in a paper bag. Avoid refrigeration.';
-        } else if (interpretation.contains('Fresh but Near')) {
-          shelfLife = '1–2 weeks';
-          recommendation = 'Use soon. Watch for sprouting or softness.';
-        } else if (interpretation.contains('Likely Rotten')) {
-          shelfLife = 'Likely spoiled';
-          recommendation = 'Discard if green, soft, or with foul smell.';
+          recommendation = 'Keep in paper bag. Do not refrigerate.';
+        } else if (interpretation.contains('Low')) {
+          shelfLife = '1–2 weeks max';
+          recommendation = 'Use soon. Check for sprouting or green skin.';
         } else {
           shelfLife = '0 days';
-          recommendation = 'Toxic risk (green or sprouted). Discard.';
+          recommendation = 'May be toxic if green or sprouted. Discard.';
         }
         break;
 
@@ -450,6 +496,7 @@ class ModelService {
       'recommendation': recommendation,
     };
   }
+
 
   double _calculateAverageBrightness(Uint8List imageBytes) {
     final img.Image? image = img.decodeImage(imageBytes);
@@ -512,6 +559,74 @@ class ModelService {
     final avgGradient = count > 0 ? totalGradient / count : 0.0;
     log("🌫️ Blur Check - Avg Gradient: $avgGradient, Max Gradient: $maxGradient, Pixels Processed: $count");
     return avgGradient;
+  }
+
+Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
+    required Uint8List frontImage,
+    required Uint8List backImage,
+    required double imageWidth,
+    required double imageHeight,
+  }) async {
+    final frontResults =
+        await detectAndClassify(frontImage, imageWidth, imageHeight);
+    final backResults =
+        await detectAndClassify(backImage, imageWidth, imageHeight);
+
+    List<Map<String, dynamic>> combinedResults = [];
+
+   for (final front in frontResults) {
+      // Skip invalid detection
+      if (front['object'] == 'None' || front['freshness'] == 'N/A') {
+        combinedResults.add({
+          'object': front['object'],
+          'front': front,
+          'back': null,
+          'mergedFreshness': front['freshness'],
+          'mergedConfidence': front['freshnessConfidence'],
+          'mergedStatus': front['freshnessStatus'],
+        });
+        continue;
+      }
+
+      final matchedBack = backResults.firstWhere(
+        (back) => back['object'] == front['object'],
+        orElse: () => {},
+      );
+
+      double finalConfidence = front['freshnessConfidence'];
+      String finalLabel = front['freshness'];
+      String finalStatus = front['freshnessStatus'];
+
+      if (matchedBack.isNotEmpty &&
+          matchedBack['object'] != 'None' &&
+          matchedBack['freshness'] != 'N/A') {
+        final double avgConfidence = (front['freshnessConfidence'] +
+                matchedBack['freshnessConfidence']) /
+            2;
+        final mergedLabel = front['freshness'] == matchedBack['freshness']
+            ? front['freshness']
+            : (avgConfidence > 50
+                ? front['freshness']
+                : matchedBack['freshness']);
+
+        finalConfidence = avgConfidence;
+        finalLabel = mergedLabel;
+        finalStatus =
+            interpretFreshness(avgConfidence, mergedLabel.toLowerCase());
+      }
+
+      combinedResults.add({
+        'object': front['object'],
+        'front': front,
+        'back': matchedBack.isNotEmpty ? matchedBack : null,
+        'mergedFreshness': finalLabel,
+        'mergedConfidence': finalConfidence,
+        'mergedStatus': finalStatus,
+      });
+    }
+
+
+    return combinedResults;
   }
 
   void close() {

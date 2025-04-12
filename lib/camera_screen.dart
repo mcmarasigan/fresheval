@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:fresheval/l10n.dart';
@@ -21,6 +22,9 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
+  File? _frontImage;
+  File? _backImage;
+  bool _isCapturingBack = false;
 
   @override
   void initState() {
@@ -68,25 +72,56 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _captureImage() async {
+ Future<void> _captureMultiAngleImage() async {
     if (!_isCameraInitialized || _cameraController == null) return;
 
     try {
-     final image = await _cameraController!.takePicture();
-      final originalPath = image.path;
-      final resizedPath = await _resizeToFit(originalPath);
+      final image = await _cameraController!.takePicture();
+      final resizedPath = await _resizeToFit(image.path);
+      final resizedFile = File(resizedPath);
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ScanResultScreen(
-            imagePath: resizedPath, // Show square cropped image
-            isUploadedImage: false,
+      if (!_isCapturingBack) {
+        setState(() {
+          _frontImage = resizedFile;
+          _isCapturingBack = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✅ Front image captured. Now take the back image."),
           ),
-        ),
-      );
+        );
+      } else {
+        setState(() {
+          _backImage = resizedFile;
+          _isCapturingBack = false;
+        });
+
+        if (_frontImage != null && _backImage != null) {
+          final frontPath = _frontImage!.path;
+          final backPath = _backImage!.path;
+
+          // Reset before navigating
+          _frontImage = null;
+          _backImage = null;
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ScanResultScreen(
+                frontImagePath: frontPath,
+                backImagePath: backPath,
+                isMultiAngle: true,
+                isUploadedImage: false,
+              ),
+            ),
+          );
+        } else {
+          log("❌ One of the images was null. Capture failed.");
+        }
+      }
     } catch (e) {
-      print('Error capturing image: $e');
+      print("❌ Error during multi-angle capture: $e");
     }
   }
 
@@ -122,7 +157,7 @@ class _CameraScreenState extends State<CameraScreen> {
           MaterialPageRoute(
             builder: (context) => ScanResultScreen(
               imagePath: resizedImagePath,
-              isUploadedImage: true,
+              isUploadedImage: true, isMultiAngle: true,
             ),
           ),
         );
@@ -213,7 +248,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
                 // 📸 Capture Button (Lower Center)
                 GestureDetector(
-                  onTap: _captureImage,
+                  onTap: _captureMultiAngleImage,
                   child: Container(
                     width: 80,
                     height: 80,
