@@ -581,8 +581,7 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
 
     List<Map<String, dynamic>> combinedResults = [];
 
-   for (final front in frontResults) {
-      // Skip invalid detection
+    for (final front in frontResults) {
       if (front['object'] == 'None' || front['freshness'] == 'N/A') {
         combinedResults.add({
           'object': front['object'],
@@ -631,7 +630,6 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
         'mergedStatus': finalStatus,
       });
     }
-
 
     return combinedResults;
   }

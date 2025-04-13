@@ -280,11 +280,13 @@ Future<void> _runInference() async {
       appBar: AppBar(
         title: const Text('Scan Results'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Save',
-            onPressed: _saveScanResult,
-          ),
+          if (_detectedObjects.isNotEmpty &&
+              _detectedObjects[0]['label'] != 'None')
+            IconButton(
+              icon: const Icon(Icons.save),
+              tooltip: 'Save',
+              onPressed: _saveScanResult,
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Retake',
@@ -294,6 +296,7 @@ Future<void> _runInference() async {
           ),
         ],
       ),
+
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -303,78 +306,185 @@ Future<void> _runInference() async {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Image Display
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final imageFile = File(widget.isMultiAngle
-                            ? widget.frontImagePath!
-                            : widget.imagePath!);
-                        final double containerWidth = constraints.maxWidth;
-
-                        return FutureBuilder<Size>(
-                          future: _getImageSize(imageFile),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            }
-
-                            final imageSize = snapshot.data!;
-                            final double aspectRatio =
-                                imageSize.width / imageSize.height;
-
-                            return Center(
-                              child: SizedBox(
-                                width: containerWidth * 0.85,
-                                child: AspectRatio(
-                                  aspectRatio: aspectRatio,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black12,
-                                          blurRadius: 6,
-                                          offset: Offset(0, 2),
+                    widget.isMultiAngle
+                        ? Row(
+                            children: [
+                              for (final path in [
+                                widget.frontImagePath,
+                                widget.backImagePath
+                              ])
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        path == widget.frontImagePath
+                                            ? 'Front View'
+                                            : 'Back View',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
                                         ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: LayoutBuilder(
-                                        builder: (context, boxConstraints) {
-                                          final displayWidth =
-                                              boxConstraints.maxWidth;
-                                          final displayHeight =
-                                              boxConstraints.maxHeight;
+                                      ),
+                                      const SizedBox(height: 6),
+                                      FutureBuilder<Size>(
+                                        future: _getImageSize(File(path!)),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return const SizedBox(
+                                              height: 200,
+                                              child: Center(
+                                                  child:
+                                                      CircularProgressIndicator()),
+                                            );
+                                          }
 
-                                          return Stack(
-                                            children: [
-                                              Image.file(
-                                                imageFile,
-                                                width: displayWidth,
-                                                height: displayHeight,
-                                                fit: BoxFit.cover,
+                                          final imageSize = snapshot.data!;
+                                          final double aspectRatio =
+                                              imageSize.width /
+                                                  imageSize.height;
+
+                                          return Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: AspectRatio(
+                                              aspectRatio: aspectRatio,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Colors.black12,
+                                                      blurRadius: 6,
+                                                      offset: Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  child: LayoutBuilder(
+                                                    builder: (context,
+                                                        boxConstraints) {
+                                                      final displayWidth =
+                                                          boxConstraints
+                                                              .maxWidth;
+                                                      final displayHeight =
+                                                          boxConstraints
+                                                              .maxHeight;
+                                                      final isFront = path ==
+                                                          widget.frontImagePath;
+
+                                                      return Stack(
+                                                        children: [
+                                                          Image.file(
+                                                            File(path),
+                                                            width: displayWidth,
+                                                            height:
+                                                                displayHeight,
+                                                            fit: BoxFit.cover,
+                                                          ),
+                                                          if (isFront &&
+                                                              _detectedObjects
+                                                                  .isNotEmpty &&
+                                                              _detectedObjects[
+                                                                          0][
+                                                                      'label'] !=
+                                                                  'None')
+                                                            ..._buildBoundingBoxes(
+                                                              displayWidth,
+                                                              displayHeight,
+                                                            ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
                                               ),
-                                              if (_detectedObjects.isNotEmpty &&
-                                                  _detectedObjects[0]
-                                                          ['label'] !=
-                                                      'None')
-                                                ..._buildBoundingBoxes(
-                                                    displayWidth,
-                                                    displayHeight),
-                                            ],
+                                            ),
                                           );
                                         },
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                            ],
+                          )
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final imageFile = File(widget.imagePath!);
+                              final double containerWidth =
+                                  constraints.maxWidth;
+
+                              return FutureBuilder<Size>(
+                                future: _getImageSize(imageFile),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }
+
+                                  final imageSize = snapshot.data!;
+                                  final double aspectRatio =
+                                      imageSize.width / imageSize.height;
+
+                                  return Center(
+                                    child: SizedBox(
+                                      width: containerWidth * 0.85,
+                                      child: AspectRatio(
+                                        aspectRatio: aspectRatio,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            boxShadow: const [
+                                              BoxShadow(
+                                                color: Colors.black12,
+                                                blurRadius: 6,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            child: LayoutBuilder(
+                                              builder:
+                                                  (context, boxConstraints) {
+                                                final displayWidth =
+                                                    boxConstraints.maxWidth;
+                                                final displayHeight =
+                                                    boxConstraints.maxHeight;
+
+                                                return Stack(
+                                                  children: [
+                                                    Image.file(
+                                                      imageFile,
+                                                      width: displayWidth,
+                                                      height: displayHeight,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                    if (_detectedObjects
+                                                            .isNotEmpty &&
+                                                        _detectedObjects[0]
+                                                                ['label'] !=
+                                                            'None')
+                                                      ..._buildBoundingBoxes(
+                                                          displayWidth,
+                                                          displayHeight),
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+
 
                     const SizedBox(height: 20),
 

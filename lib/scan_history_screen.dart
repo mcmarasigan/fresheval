@@ -355,205 +355,284 @@ class ScanDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             // 🖼 Image with bounding boxes
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              
-child: imageFile == null
-    ? const SizedBox(
-        height: 200,
-        child: Center(child: Icon(Icons.broken_image, size: 48)),
-      )
-    : FutureBuilder<Size>(
-        future: _getImageSize(imageFile),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const SizedBox(
-              height: 200,
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          final imageSize = snapshot.data!;
-          final double aspectRatio = imageSize.width / imageSize.height;
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final containerWidth = constraints.maxWidth;
-
-              return Center(
-                child: SizedBox(
-                  width: containerWidth * 0.85,
-                  child: AspectRatio(
-                    aspectRatio: aspectRatio,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: LayoutBuilder(
-                        builder: (context, boxConstraints) {
-                          final displayWidth = boxConstraints.maxWidth;
-                          final displayHeight = boxConstraints.maxHeight;
-
-                          return Stack(
+            scan['isMultiAngle'] == true
+                ? Row(
+                    children: [
+                      for (final path in [
+                        scan['frontImagePath'],
+                        scan['backImagePath']
+                      ])
+                        Expanded(
+                          child: Column(
                             children: [
-                              Image.file(
-                                imageFile,
-                                width: displayWidth,
-                                height: displayHeight,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Icon(Icons.broken_image),
+                              Text(
+                                path == scan['frontImagePath']
+                                    ? 'Front View'
+                                    : 'Back View',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
-                              ...objects.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final obj = entry.value;
-                                final bbox = obj['bbox'];
-                                if (bbox == null || bbox.length != 4) {
-                                  return const SizedBox();
-                                }
+                              const SizedBox(height: 6),
+                              FutureBuilder<Size>(
+                                future: _getImageSize(File(path)),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return const SizedBox(
+                                      height: 200,
+                                      child: Center(
+                                          child: CircularProgressIndicator()),
+                                    );
+                                  }
 
-                                final originalWidth =
-                                    (obj['originalWidth'] as num?)?.toDouble() ??
-                                        imageSize.width;
-                                final originalHeight =
-                                    (obj['originalHeight'] as num?)?.toDouble() ??
-                                        imageSize.height;
+                                  final imageSize = snapshot.data!;
+                                  final double aspectRatio =
+                                      imageSize.width / imageSize.height;
 
-                                final scaleX = displayWidth / originalWidth;
-                                final scaleY = displayHeight / originalHeight;
-
-                                final xMin = bbox[0] * scaleX;
-                                final yMin = bbox[1] * scaleY;
-                                final boxWidth = (bbox[2] - bbox[0]) * scaleX;
-                                final boxHeight = (bbox[3] - bbox[1]) * scaleY;
-
-                                final color =
-                                    _getBoxColor(obj['label'] ?? 'unknown');
-
-                                return Positioned(
-                                  left: xMin,
-                                  top: yMin,
-                                  child: Container(
-                                    width: boxWidth,
-                                    height: boxHeight,
-                                    decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: color, width: 2),
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.topLeft,
-                                      child: Container(
-                                        color: color.withOpacity(0.7),
-                                        padding: const EdgeInsets.all(2),
-                                        child: Text(
-                                          "${index + 1}. ${obj['label']} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
+                                  return AspectRatio(
+                                    aspectRatio: aspectRatio,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Colors.black12,
+                                            blurRadius: 6,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.file(
+                                          File(path),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Center(
+                                            child: Icon(Icons.broken_image),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }),
+                                  );
+                                },
+                              ),
                             ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+                          ),
+                        ),
+                    ],
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: imageFile == null
+                        ? const SizedBox(
+                            height: 200,
+                            child: Center(
+                                child: Icon(Icons.broken_image, size: 48)),
+                          )
+                        : FutureBuilder<Size>(
+                            future: _getImageSize(imageFile),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const SizedBox(
+                                  height: 200,
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
+                                );
+                              }
 
-            ),
+                              final imageSize = snapshot.data!;
+                              final double aspectRatio =
+                                  imageSize.width / imageSize.height;
+
+                              return AspectRatio(
+                                aspectRatio: aspectRatio,
+                                child: LayoutBuilder(
+                                  builder: (context, boxConstraints) {
+                                    final displayWidth =
+                                        boxConstraints.maxWidth;
+                                    final displayHeight =
+                                        boxConstraints.maxHeight;
+
+                                    return Stack(
+                                      children: [
+                                        Image.file(
+                                          imageFile,
+                                          width: displayWidth,
+                                          height: displayHeight,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Center(
+                                            child: Icon(Icons.broken_image),
+                                          ),
+                                        ),
+                                        ...objects.asMap().entries.map((entry) {
+                                          final index = entry.key;
+                                          final obj = entry.value;
+                                          final bbox = obj['bbox'];
+                                          if (bbox == null ||
+                                              bbox.length != 4) {
+                                            return const SizedBox();
+                                          }
+
+                                          final originalWidth =
+                                              (obj['originalWidth'] as num?)
+                                                      ?.toDouble() ??
+                                                  imageSize.width;
+                                          final originalHeight =
+                                              (obj['originalHeight'] as num?)
+                                                      ?.toDouble() ??
+                                                  imageSize.height;
+
+                                          final scaleX =
+                                              displayWidth / originalWidth;
+                                          final scaleY =
+                                              displayHeight / originalHeight;
+
+                                          final xMin = bbox[0] * scaleX;
+                                          final yMin = bbox[1] * scaleY;
+                                          final boxWidth =
+                                              (bbox[2] - bbox[0]) * scaleX;
+                                          final boxHeight =
+                                              (bbox[3] - bbox[1]) * scaleY;
+
+                                          final color = _getBoxColor(
+                                              obj['label'] ?? 'unknown');
+
+                                          return Positioned(
+                                            left: xMin,
+                                            top: yMin,
+                                            child: Container(
+                                              width: boxWidth,
+                                              height: boxHeight,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: color, width: 2),
+                                              ),
+                                              child: Align(
+                                                alignment: Alignment.topLeft,
+                                                child: Container(
+                                                  color: color.withOpacity(0.7),
+                                                  padding:
+                                                      const EdgeInsets.all(2),
+                                                  child: Text(
+                                                    "${index + 1}. ${obj['label']} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+
 
             const SizedBox(height: 20),
 
             // 🧾 Object list with number + color
             Expanded(
-              child: ListView.builder(
-                itemCount: objects.length,
-                itemBuilder: (context, index) {
-                  final obj = objects[index];
-                  final boxColor = _getBoxColor(obj['label'] ?? 'unknown');
+              child: objects.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No objects detected.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: objects.length,
+                      itemBuilder: (context, index) {
+                        final obj = objects[index];
+                        final boxColor =
+                            _getBoxColor(obj['label'] ?? 'unknown');
 
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      side: BorderSide(color: boxColor, width: 2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Circle number
-                          Container(
-                            width: 24,
-                            height: 24,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: boxColor,
-                            ),
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            side: BorderSide(color: boxColor, width: 2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 12),
-
-                          // Object details
-                          Expanded(
-                            child: Column(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  "${obj['label']} - ${obj['freshness'] ?? 'Unknown'}",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: boxColor,
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "Detection Confidence: ${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                      "Condition: ${obj['freshnessStatus'] ?? 'N/A'} "
-                                      "(${(obj['freshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)\n"
-                                  "Interpretation: ${obj['freshnessStatus'] ?? 'N/A'}",
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "${obj['label']} - ${obj['freshness'] ?? 'Unknown'}",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "Detection Confidence: ${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                        "Condition: ${obj['freshnessStatus'] ?? 'N/A'} "
+                                        "(${(obj['freshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)\n"
+                                        "Interpretation: ${obj['freshnessStatus'] ?? 'N/A'}",
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        obj['explanation'] ??
+                                            'No explanation available.',
+                                        style: const TextStyle(
+                                            fontStyle: FontStyle.italic),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                          "📆 Shelf Life: ${obj['shelfLife'] ?? 'N/A'}"),
+                                      Text(
+                                          "📌 Recommendation: ${obj['recommendation'] ?? 'N/A'}"),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  obj['explanation'] ??
-                                      'No explanation available.',
-                                  style: const TextStyle(
-                                      fontStyle: FontStyle.italic),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                    "📆 Shelf Life: ${obj['shelfLife'] ?? 'N/A'}"),
-                                Text(
-                                    "📌 Recommendation: ${obj['recommendation'] ?? 'N/A'}"),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
+            )
+
           ],
         ),
       ),
