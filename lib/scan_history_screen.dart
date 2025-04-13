@@ -604,12 +604,31 @@ class ScanDetailScreen extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
+
+                                      // Detection confidence
                                       Text(
-                                        "Detection Confidence: ${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                        "Condition: ${obj['freshnessStatus'] ?? 'N/A'} "
-                                        "(${(obj['freshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)\n"
-                                        "Interpretation: ${obj['freshnessStatus'] ?? 'N/A'}",
+                                        "Detection Confidence: ${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%",
                                       ),
+
+                                      // Freshness confidence (multi-angle or single)
+                                      if (obj['backFreshnessConfidence'] !=
+                                          null)
+                                        Text(
+                                          "Front Confidence: ${(obj['freshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                          "Back Confidence: ${(obj['backFreshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                          "Average Confidence: ${(obj['mergedConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%",
+                                        )
+                                      else
+                                        Text(
+                                          "Condition: ${(obj['freshnessConfidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%",
+                                        ),
+
+                                      // Status and explanation
+                                      Text(
+                                          "Condition: ${obj['freshness'] ?? 'N/A'}"),
+                                      Text(
+                                          "Interpretation: ${obj['freshnessStatus'] ?? 'N/A'}"),
+
                                       const SizedBox(height: 6),
                                       Text(
                                         obj['explanation'] ??
@@ -617,6 +636,7 @@ class ScanDetailScreen extends StatelessWidget {
                                         style: const TextStyle(
                                             fontStyle: FontStyle.italic),
                                       ),
+
                                       const SizedBox(height: 6),
                                       Text(
                                           "📆 Shelf Life: ${obj['shelfLife'] ?? 'N/A'}"),
@@ -624,7 +644,8 @@ class ScanDetailScreen extends StatelessWidget {
                                           "📌 Recommendation: ${obj['recommendation'] ?? 'N/A'}"),
                                     ],
                                   ),
-                                ),
+                                )
+
                               ],
                             ),
                           ),

@@ -145,37 +145,88 @@ class _CameraScreenState extends State<CameraScreen> {
 
 
  Future<void> _pickImageFromGallery() async {
-    try {
-      final picker = ImagePicker();
-      final pickedImages = await picker.pickMultiImage();
+    final picker = ImagePicker();
 
-      if (pickedImages.length >= 2) {
-        final resizedFront = await _resizeToFit(pickedImages[0].path);
-        final resizedBack = await _resizeToFit(pickedImages[1].path);
+    // Ask for FRONT image first
+    final frontConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Upload Front Image'),
+        content: const Text('Please select the FRONT view of the vegetable.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Pick Image'),
+          ),
+        ],
+      ),
+    );
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ScanResultScreen(
-              frontImagePath: resizedFront,
-              backImagePath: resizedBack,
-              isUploadedImage: true,
-              isMultiAngle: true,
+    if (frontConfirmed != true) return;
+
+    final frontImage = await picker.pickImage(source: ImageSource.gallery);
+    if (frontImage == null) return;
+
+    // Ask for BACK image
+    final backConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Upload Back Image'),
+        content: const Text('Now select the BACK view of the vegetable.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.all<Color>(
+                  Colors.green), // 🌱 Your custom background
+              minimumSize: WidgetStateProperty.all<Size>(const Size(100, 48)),
+              shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Pick Image',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold), // 👀 Ensures visibility
             ),
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Please select at least two images (front and back).'),
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Error picking multi images: $e');
-    }
+        ],
+      ),
+    );
+
+    if (backConfirmed != true) return;
+
+    final backImage = await picker.pickImage(source: ImageSource.gallery);
+    if (backImage == null) return;
+
+    final resizedFront = await _resizeToFit(frontImage.path);
+    final resizedBack = await _resizeToFit(backImage.path);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ScanResultScreen(
+          frontImagePath: resizedFront,
+          backImagePath: resizedBack,
+          isUploadedImage: true,
+          isMultiAngle: true,
+        ),
+      ),
+    );
   }
+
+
 
 
   @override

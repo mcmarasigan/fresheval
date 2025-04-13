@@ -128,61 +128,7 @@ class ModelService {
         }
       ];
     }
-    Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
-      required Uint8List frontImage,
-      required Uint8List backImage,
-      required double imageWidth,
-      required double imageHeight,
-    }) async {
-      final frontResults =
-          await detectAndClassify(frontImage, imageWidth, imageHeight);
-      final backResults =
-          await detectAndClassify(backImage, imageWidth, imageHeight);
-
-      // Optionally: Merge logic if needed (based on object label or bounding box proximity)
-      List<Map<String, dynamic>> combinedResults = [];
-
-      for (int i = 0; i < frontResults.length; i++) {
-        final front = frontResults[i];
-
-        Map<String, dynamic> matchedBack = backResults.firstWhere(
-          (back) => back['object'] == front['object'],
-          orElse: () => {},
-        );
-
-        String finalStatus = front['freshnessStatus'];
-        double finalConfidence = front['freshnessConfidence'];
-
-        if (matchedBack.isNotEmpty) {
-          final double avgConfidence = (front['freshnessConfidence'] +
-                  matchedBack['freshnessConfidence']) /
-              2;
-          final String mergedLabel =
-              front['freshness'] == matchedBack['freshness']
-                  ? front['freshness']
-                  : (avgConfidence > 50
-                      ? front['freshness']
-                      : matchedBack['freshness']);
-
-          finalStatus =
-              interpretFreshness(avgConfidence, mergedLabel.toLowerCase());
-          finalConfidence = avgConfidence;
-        }
-
-        combinedResults.add({
-          'object': front['object'],
-          'front': front,
-          'back': matchedBack.isNotEmpty ? matchedBack : null,
-          'mergedFreshness': front['freshness'],
-          'mergedConfidence': finalConfidence,
-          'mergedStatus': finalStatus,
-        });
-      }
-
-      return combinedResults;
-    }
-
-
+    
     // Check image blurriness
     final blurScore = _calculateBlurVariance(imageBytes);
     const double blurThreshold = 5.0; // Lowered threshold for testing
@@ -590,6 +536,9 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
           'mergedFreshness': front['freshness'],
           'mergedConfidence': front['freshnessConfidence'],
           'mergedStatus': front['freshnessStatus'],
+          'frontConfidence': front['freshnessConfidence'],
+          'backConfidence': null,
+          'averageConfidence': front['freshnessConfidence'],
         });
         continue;
       }
@@ -599,40 +548,41 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
         orElse: () => {},
       );
 
-      double finalConfidence = front['freshnessConfidence'];
+      double frontConf = front['freshnessConfidence'];
+      double? backConf = matchedBack.isNotEmpty &&
+              matchedBack['object'] != 'None' &&
+              matchedBack['freshness'] != 'N/A'
+          ? matchedBack['freshnessConfidence']
+          : null;
+
+      double avgConf =
+          backConf != null ? (frontConf + backConf) / 2 : frontConf;
+
       String finalLabel = front['freshness'];
-      String finalStatus = front['freshnessStatus'];
-
-      if (matchedBack.isNotEmpty &&
-          matchedBack['object'] != 'None' &&
-          matchedBack['freshness'] != 'N/A') {
-        final double avgConfidence = (front['freshnessConfidence'] +
-                matchedBack['freshnessConfidence']) /
-            2;
-        final mergedLabel = front['freshness'] == matchedBack['freshness']
-            ? front['freshness']
-            : (avgConfidence > 50
-                ? front['freshness']
-                : matchedBack['freshness']);
-
-        finalConfidence = avgConfidence;
-        finalLabel = mergedLabel;
-        finalStatus =
-            interpretFreshness(avgConfidence, mergedLabel.toLowerCase());
+      if (backConf != null && front['freshness'] != matchedBack['freshness']) {
+        finalLabel =
+            avgConf > 50 ? front['freshness'] : matchedBack['freshness'];
       }
+
+      String finalStatus =
+          interpretFreshness(avgConf, finalLabel.toLowerCase());
 
       combinedResults.add({
         'object': front['object'],
         'front': front,
         'back': matchedBack.isNotEmpty ? matchedBack : null,
         'mergedFreshness': finalLabel,
-        'mergedConfidence': finalConfidence,
+        'mergedConfidence': avgConf,
         'mergedStatus': finalStatus,
+        'frontConfidence': frontConf,
+        'backConfidence': backConf,
+        'averageConfidence': avgConf,
       });
     }
 
     return combinedResults;
   }
+
 
   void close() {
     _flutterVision.closeYoloModel();

@@ -85,12 +85,18 @@ Future<void> _runInference() async {
               'bbox': res['front']['bbox'],
               'originalWidth': res['front']['originalWidth'],
               'originalHeight': res['front']['originalHeight'],
+              'frontConfidence': res['front']['freshnessConfidence'],
+              'backConfidence': res['back']?['freshnessConfidence'],
               'shelfLife': shelfInfo['shelfLife'],
               'recommendation': shelfInfo['recommendation'],
+              'frontFreshnessConfidence': res['front']['freshnessConfidence'],
+              'backFreshnessConfidence': res['back']?['freshnessConfidence'],
+              'mergedConfidence': res['mergedConfidence'],
             };
           }).toList();
           _isLoading = false;
         });
+
       } else {
         final imageBytes = await File(widget.imagePath!).readAsBytes();
 
@@ -160,21 +166,30 @@ Future<void> _runInference() async {
       'backImagePath': widget.backImagePath,
       'isMultiAngle': widget.isMultiAngle,
       'isUploadedImage': widget.isUploadedImage,
-      'objects': _detectedObjects
-          .map((obj) => {
-                'label': obj['label'],
-                'confidence': obj['confidence'],
-                'freshness': obj['freshness'],
-                'freshnessConfidence': obj['freshnessConfidence'],
-                'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
-                'originalWidth': obj['originalWidth'],
-                'originalHeight': obj['originalHeight'],
-                'freshnessStatus': obj['freshnessStatus'],
-                'explanation': obj['explanation'],
-                'shelfLife': obj['shelfLife'],
-                'recommendation': obj['recommendation'],
-              })
-          .toList(),
+      'objects': _detectedObjects.map((obj) {
+        return {
+          'label': obj['label'],
+          'confidence': obj['confidence'],
+          'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
+          'originalWidth': obj['originalWidth'],
+          'originalHeight': obj['originalHeight'],
+          'freshness': obj['freshness'],
+          'freshnessConfidence': obj['freshnessConfidence'],
+          'freshnessStatus': obj['freshnessStatus'],
+          'explanation': obj['explanation'],
+          'shelfLife': obj['shelfLife'],
+          'recommendation': obj['recommendation'],
+          'front': obj['front'],
+          'back': obj['back'],
+          // Add front and back confidence if multi-angle
+          if (widget.isMultiAngle) ...{
+            'frontFreshnessConfidence':
+                obj['frontFreshnessConfidence'] ?? obj['freshnessConfidence'],
+            'backFreshnessConfidence': obj['backFreshnessConfidence'] ?? 0.0,
+            'mergedConfidence': obj['freshnessConfidence'],
+          },
+        };
+      }).toList(),
       'date': formattedDate,
       'time': formattedTime,
     });
@@ -624,7 +639,10 @@ Future<void> _runInference() async {
                                 ListTile(
                                   title: Text(
                                     "Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                    "Condition: ${detected['freshness']} (${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%)\n"
+                                    "Front Condition: ${detected['frontConfidence']?.toStringAsFixed(2) ?? 'N/A'}%\n"
+                                    "Back Condition: ${detected['backConfidence']?.toStringAsFixed(2) ?? 'N/A'}%\n"
+                                    "Average Condition: ${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                    "Condition: ${detected['freshness'] ?? 'N/A'}\n"
                                     "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
                                   ),
                                   subtitle: Column(
@@ -644,7 +662,8 @@ Future<void> _runInference() async {
                                           "📌 Recommendation: ${detected['recommendation']}"),
                                     ],
                                   ),
-                                ),
+                                )
+
                               ],
                             ),
                           );
