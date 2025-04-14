@@ -1,11 +1,11 @@
 import 'dart:io';
-import 'dart:developer';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:fresheval/l10n.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'scan_result_screen.dart';
 import 'scan_history_screen.dart';
 import 'settings.dart';
@@ -25,11 +25,206 @@ class _CameraScreenState extends State<CameraScreen> {
   File? _frontImage;
   File? _backImage;
   bool _isCapturingBack = false;
+  bool _showTips = true;
+  int _currentTipIndex = 0;
+
+  final List<Map<String, String>> _photoTips = [
+    {
+      'title': 'Clean Your Camera',
+      'description':
+          'Wipe your camera lens with a soft cloth to remove smudges and dust for clearer photos.',
+      'image': 'assets/img/clean_cam.png',
+    },
+    {
+      'title': 'Good Lighting',
+      'description':
+          'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows.',
+      'image': 'assets/img/good_lighting.png',
+    },
+    {
+      'title': 'Steady & Clear',
+      'description':
+          'Hold your phone steady to avoid blurry images. Tap to focus on the vegetables.',
+      'image': 'assets/img/steady_clear.png',
+    },
+    {
+      'title': 'Full View',
+      'description':
+          'Capture the entire vegetable in the frame. Avoid cutting off parts of it.',
+      'image': 'assets/img/full_view.png',
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _requestCameraPermission();
+    _checkShowTips();
+  }
+
+  Future<void> _checkShowTips() async {
+    final prefs = await SharedPreferences.getInstance();
+    final showTips = prefs.getBool('showCameraTips') ?? true;
+    if (mounted) {
+      setState(() {
+        _showTips = showTips;
+      });
+      if (_showTips) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showInstructionPrompt();
+        });
+      }
+    }
+  }
+
+  Future<void> _showInstructionPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool dontShowAgain = !(prefs.getBool('showCameraTips') ??
+        true); // Checked if showCameraTips is false
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => StatefulBuilder(
+          builder: (context, setModalState) => Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  width: 40,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: PageView.builder(
+                          itemCount: _photoTips.length,
+                          onPageChanged: (index) {
+                            setModalState(() {
+                              _currentTipIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            final tip = _photoTips[index];
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    tip['image']!,
+                                    width: 200,
+                                    height: 200,
+                                    fit: BoxFit.contain,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    tip['title']!,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    tip['description']!,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _photoTips.length,
+                          (index) => Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: _currentTipIndex == index ? 12 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _currentTipIndex == index
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: dontShowAgain,
+                      onChanged: (value) {
+                        setModalState(() {
+                          dontShowAgain = value ?? false;
+                        });
+                      },
+                    ),
+                    Text(
+                      "Don't show again",
+                      style: GoogleFonts.poppins(fontSize: 14),
+                    ),
+                  ],
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('showCameraTips', !dontShowAgain);
+                    if (mounted) {
+                      setState(() {
+                        _showTips = !dontShowAgain;
+                      });
+                    }
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                  ),
+                  child: Text(
+                    'Got It',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _requestCameraPermission() async {
@@ -65,15 +260,18 @@ class _CameraScreenState extends State<CameraScreen> {
         });
       }
     } catch (e) {
-      print('Error initializing camera: $e');
+      print('📷 Error initializing camera: $e');
       setState(() {
         _isCameraInitialized = false;
       });
     }
   }
 
- Future<void> _captureMultiAngleImage() async {
-    if (!_isCameraInitialized || _cameraController == null) return;
+  Future<void> _captureMultiAngleImage() async {
+    if (!_isCameraInitialized || _cameraController == null) {
+      print('📷 Camera not initialized for capture');
+      return;
+    }
 
     try {
       final image = await _cameraController!.takePicture();
@@ -105,6 +303,8 @@ class _CameraScreenState extends State<CameraScreen> {
           _frontImage = null;
           _backImage = null;
 
+          print(
+              "📸 Navigating to ScanResultScreen with front: $frontPath, back: $backPath");
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -117,7 +317,7 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           );
         } else {
-          log("❌ One of the images was null. Capture failed.");
+          print("❌ One of the images was null. Capture failed.");
         }
       }
     } catch (e) {
@@ -125,12 +325,15 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
- Future<String> _resizeToFit(String imagePath) async {
+  Future<String> _resizeToFit(String imagePath) async {
     final File imageFile = File(imagePath);
     final img.Image? originalImage =
         img.decodeImage(await imageFile.readAsBytes());
 
-    if (originalImage == null) return imagePath;
+    if (originalImage == null) {
+      print("❌ Failed to decode image for resizing: $imagePath");
+      return imagePath;
+    }
 
     final img.Image resized = img.copyResize(originalImage, width: 640);
 
@@ -142,9 +345,7 @@ class _CameraScreenState extends State<CameraScreen> {
     return resizedPath;
   }
 
-
-
- Future<void> _pickImageFromGallery() async {
+  Future<void> _pickImageFromGallery() async {
     final picker = ImagePicker();
 
     // Ask for FRONT image first
@@ -169,7 +370,10 @@ class _CameraScreenState extends State<CameraScreen> {
     if (frontConfirmed != true) return;
 
     final frontImage = await picker.pickImage(source: ImageSource.gallery);
-    if (frontImage == null) return;
+    if (frontImage == null) {
+      print("❌ No front image selected from gallery");
+      return;
+    }
 
     // Ask for BACK image
     final backConfirmed = await showDialog<bool>(
@@ -182,24 +386,9 @@ class _CameraScreenState extends State<CameraScreen> {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.all<Color>(
-                  Colors.green), // 🌱 Your custom background
-              minimumSize: WidgetStateProperty.all<Size>(const Size(100, 48)),
-              shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Pick Image',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold), // 👀 Ensures visibility
-            ),
+            child: const Text('Pick Image'),
           ),
         ],
       ),
@@ -208,11 +397,16 @@ class _CameraScreenState extends State<CameraScreen> {
     if (backConfirmed != true) return;
 
     final backImage = await picker.pickImage(source: ImageSource.gallery);
-    if (backImage == null) return;
+    if (backImage == null) {
+      print("❌ No back image selected from gallery");
+      return;
+    }
 
     final resizedFront = await _resizeToFit(frontImage.path);
     final resizedBack = await _resizeToFit(backImage.path);
 
+    print(
+        "📸 Navigating to ScanResultScreen with front: $resizedFront, back: $resizedBack");
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -225,9 +419,6 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
     );
   }
-
-
-
 
   @override
   void dispose() {
@@ -254,32 +445,32 @@ class _CameraScreenState extends State<CameraScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.question_mark),
+            onPressed: _showInstructionPrompt,
+            tooltip: 'Show photo tips',
+          ),
         ],
       ),
       body: Stack(
         children: [
-         if (_isCameraInitialized && _cameraController != null)
-         Positioned.fill(
+          if (_isCameraInitialized && _cameraController != null)
+            Positioned.fill(
               child: CameraPreview(_cameraController!),
             )
           else
             const Center(child: CircularProgressIndicator()),
-
-          // 📸 Capture & Upload Buttons (Positioned Correctly)
-         Positioned(
-            bottom: 30, // Places the buttons near the bottom
+          Positioned(
+            bottom: 30,
             left: 0,
-            right: 0, // Ensures full width usage for centering
+            right: 0,
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Centering the capture button
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 📤 Upload Button (Lower Left)
                 Align(
                   alignment: Alignment.bottomLeft,
                   child: Padding(
-                    padding:
-                        const EdgeInsets.only(left: 30), // Adjust left padding
+                    padding: const EdgeInsets.only(left: 30),
                     child: GestureDetector(
                       onTap: _pickImageFromGallery,
                       child: Container(
@@ -305,10 +496,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ),
-
-                const Spacer(), // Pushes the capture button to the center
-
-                // 📸 Capture Button (Lower Center)
+                const Spacer(),
                 GestureDetector(
                   onTap: _captureMultiAngleImage,
                   child: Container(
@@ -338,15 +526,11 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ),
-
-                const Spacer(), // Balances layout
-
-                // **(Optional) Empty space for symmetry**
+                const Spacer(),
                 const SizedBox(width: 60),
               ],
             ),
           ),
-
         ],
       ),
     );
@@ -400,5 +584,4 @@ class _CameraScreenState extends State<CameraScreen> {
       ),
     );
   }
-
 }
