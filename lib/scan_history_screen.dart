@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 import 'l10n.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
@@ -13,17 +14,20 @@ class ScanHistoryScreen extends StatefulWidget {
   _ScanHistoryScreenState createState() => _ScanHistoryScreenState();
 }
 
-class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
+class _ScanHistoryScreenState extends State<ScanHistoryScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> scanHistory = [];
   List<Map<String, dynamic>> filteredScanHistory = [];
   List<bool> selectedItems = [];
   String searchQuery = '';
   bool showDeleteMode = false;
   final TextEditingController _searchController = TextEditingController();
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadScanHistory();
     _searchController.addListener(() {
       _filterScanHistory(_searchController.text);
@@ -43,6 +47,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
           'frontImagePath': decoded['frontImagePath']?.toString(),
           'backImagePath': decoded['backImagePath']?.toString(),
           'isMultiAngle': decoded['isMultiAngle'] ?? false,
+          'bookmarked': decoded['bookmarked'] ?? false,
           'objects': decoded.containsKey('objects') &&
                   decoded['objects'] != null
               ? List<Map<String, dynamic>>.from(decoded['objects'])
@@ -50,7 +55,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                       obj.isNotEmpty &&
                       (obj['bbox'] != null && (obj['bbox'] as List).isNotEmpty))
                   .toList()
-              : [], // ✅ Ensure objects is always a valid list
+              : [],
           'date': decoded.containsKey('date')
               ? decoded['date'].toString()
               : "Unknown",
@@ -72,21 +77,25 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
       filteredScanHistory = scanHistory.where((scan) {
         final date = scan['date'].toLowerCase();
         final time = scan['time'].toLowerCase();
-
-        // Search inside detected objects
         final objectLabels = scan['objects']
             .map<String>((obj) => obj['label'].toString().toLowerCase())
             .join(" ");
 
-        return date.contains(query) ||
-            time.contains(query) ||
-            objectLabels.contains(query);
+        if (_tabController.index == 1) {
+          return scan['bookmarked'] == true &&
+              (date.contains(query) ||
+                  time.contains(query) ||
+                  objectLabels.contains(query));
+        } else {
+          return date.contains(query) ||
+              time.contains(query) ||
+              objectLabels.contains(query);
+        }
       }).toList();
 
       selectedItems = List.generate(filteredScanHistory.length, (_) => false);
     });
   }
-
 
   void _confirmDelete() {
     showDialog(
@@ -144,104 +153,124 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color greenColor = Color(0xFF059212);
+    const Color grayColor = Color(0xFF787878);
+
     return Scaffold(
       drawer: _buildDrawer(context),
       appBar: AppBar(
-        title: Text(widget.localizations.getTranslation('scan history')),
-        backgroundColor: Colors.green,
-        actions: [
-          if (scanHistory.isNotEmpty)
-            IconButton(
-              icon: Icon(showDeleteMode ? Icons.cancel : Icons.delete,
-                  color: Colors.white),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: Icon(
+                Icons.menu,
+                color: greenColor, // Changed to green
+                size: 30,
+              ),
               onPressed: () {
-                setState(() {
-                  showDeleteMode = !showDeleteMode;
-                  selectedItems =
-                      List.generate(filteredScanHistory.length, (_) => false);
-                });
+                Scaffold.of(context).openDrawer();
               },
-            ),
-          if (showDeleteMode)
-            IconButton(
-              icon: const Icon(Icons.check, color: Colors.white),
-              onPressed: selectedItems.contains(true) ? _confirmDelete : null,
-            ),
-        ],
+            );
+          },
+        ),
+        title: Text(
+          widget.localizations.getTranslation('scan history'),
+          style: TextStyle(color: greenColor), // Changed to green
+        ),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
                 labelText: widget.localizations.getTranslation('search'),
-                hintText:
-                    widget.localizations.getTranslation('Search by Date and Time'),
-                prefixIcon: const Icon(Icons.search),
+                labelStyle: TextStyle(color: greenColor), // Changed to green
+                hintText: widget.localizations
+                    .getTranslation('Search by Date and Time'),
+                prefixIcon:
+                    Icon(Icons.search, color: greenColor), // Changed to green
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide(color: greenColor), // Changed to green
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide(color: greenColor), // Changed to green
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide(
+                      color: greenColor, width: 2), // Changed to green
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
               ),
             ),
+          ),
+          TabBar(
+            controller: _tabController,
+            labelColor: greenColor,
+            unselectedLabelColor: grayColor, // Changed to gray
+            labelStyle: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
+            indicatorColor: greenColor,
+            onTap: (index) {
+              _filterScanHistory(_searchController.text);
+            },
+            tabs: [
+              Tab(text: "ALL SCANS"),
+              Tab(text: "BOOKMARKS"),
+            ],
           ),
           Expanded(
             child: filteredScanHistory.isEmpty
                 ? Center(
-                    child: Text(widget.localizations
-                        .getTranslation('no scans available')),
+                    child: Text(
+                      widget.localizations.getTranslation('no scans available'),
+                      style: TextStyle(color: grayColor), // Changed to gray
+                    ),
                   )
-                : ListView.builder(
+                : GridView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.0,
+                      mainAxisSpacing: 16.0,
+                      childAspectRatio: 0.75,
+                    ),
                     itemCount: filteredScanHistory.length,
                     itemBuilder: (context, index) {
                       final scan = filteredScanHistory[index];
                       final objectCount =
                           (scan['objects'] as List?)?.length ?? 0;
+                      final firstObjectLabel = objectCount > 0
+                          ? scan['objects'][0]['label']
+                          : 'Unknown';
+                      final freshness = objectCount > 0
+                          ? scan['objects'][0]['freshness']
+                          : 'N/A';
+                      final vqr = objectCount > 0
+                          ? (scan['objects'][0]['vqr'] ?? 8)
+                          : 8;
 
-
-                      return ListTile(
-                        leading: showDeleteMode
-                            ? Checkbox(
-                                value: selectedItems[index],
-                                onChanged: (bool? value) {
-                                  setState(() {
-                                    selectedItems[index] = value ?? false;
-                                  });
-                                },
-                              )
-                            : null,
-                       title: Text(
-                            objectCount == 0
-                                ? "No Object Detected"
-                                : "$objectCount Object${objectCount > 1 ? 's' : ''} Detected",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        subtitle: Text(
-                            "Date: ${scan['date']}  Time: ${scan['time']}"),
-                        trailing: scan['isMultiAngle'] == true
-                            ? Image.file(
-                                File(scan['frontImagePath'] ?? ''),
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(Icons.broken_image),
-                              )
-                            : Image.file(
-                                File(scan['imagePath'] ?? ''),
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(Icons.broken_image),
-                              ),
-
+                      return GestureDetector(
                         onTap: () {
                           if (showDeleteMode) {
                             setState(() {
@@ -257,65 +286,325 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                             );
                           }
                         },
+                        onLongPress: () {
+                          setState(() {
+                            showDeleteMode = true;
+                            selectedItems = List.generate(
+                                filteredScanHistory.length, (_) => false);
+                          });
+                        },
+                        child: Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            side: BorderSide(
+                                color: greenColor,
+                                width: 1), // Changed to green
+                          ),
+                          child: Stack(
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(8.0)),
+                                      child: scan['isMultiAngle'] == true
+                                          ? Image.file(
+                                              File(
+                                                  scan['frontImagePath'] ?? ''),
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  const Icon(
+                                                      Icons.broken_image),
+                                            )
+                                          : Image.file(
+                                              File(scan['imagePath'] ?? ''),
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  const Icon(
+                                                      Icons.broken_image),
+                                            ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "$firstObjectLabel (VQR: $vqr)",
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          scan['date'],
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (showDeleteMode)
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: Checkbox(
+                                    value: selectedItems[index],
+                                    onChanged: (bool? value) {
+                                      setState(() {
+                                        selectedItems[index] = value ?? false;
+                                      });
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       );
                     },
                   ),
           ),
+          if (showDeleteMode)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        showDeleteMode = false;
+                        selectedItems = List.generate(
+                            filteredScanHistory.length, (_) => false);
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Text(
+                      widget.localizations.getTranslation('cancel'),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed:
+                        selectedItems.contains(true) ? _confirmDelete : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Text(
+                      widget.localizations.getTranslation('delete'),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 
- Widget _buildDrawer(BuildContext context) {
+  Widget _buildDrawer(BuildContext context) {
+    const Color selectedColor = Color(0xFF059212);
+    const Color unselectedColor = Color(0xFF787878);
+
+    bool isRouteActive(String routeName) {
+      return ModalRoute.of(context)?.settings.name == routeName;
+    }
+
     return Drawer(
       child: Column(
         children: [
-          const UserAccountsDrawerHeader(
-            accountName: Text("FreshEval"),
-            accountEmail: Text("Scan and evaluate freshness"),
-            decoration: BoxDecoration(color: Colors.green),
+          Container(
+            height: 120,
+            width: double.infinity,
+            color: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FRESHEVAL',
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.camera),
-            title: const Text("Camera"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/camera');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text("Scan History"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/history');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text("Settings"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/settings');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.help),
-            title: const Text("Help"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/help');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text("Developers"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/developers');
-            },
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.camera,
+                    color: isRouteActive('/camera')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Camera",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/camera')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/camera')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/camera');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.history,
+                    color: isRouteActive('/history')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Scan History",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/history')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/history')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/history') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/history');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.settings,
+                    color: isRouteActive('/settings')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Settings",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/settings')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/settings')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/settings') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/settings');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.help,
+                    color: isRouteActive('/help')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Help",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/help')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/help')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/help') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/help');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.info,
+                    color: isRouteActive('/developers')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Developers",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/developers')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/developers')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/developers') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/developers');
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
-
-
 }
 
 /// **Full View Screen**
@@ -342,7 +631,7 @@ class ScanDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<dynamic> objects = scan['objects'] ?? [];
     const double fallbackSize = 640;
-  final imagePath = scan['isMultiAngle'] == true
+    final imagePath = scan['isMultiAngle'] == true
         ? (scan['frontImagePath'] ?? scan['imagePath'])
         : scan['imagePath'];
 
@@ -539,7 +828,6 @@ class ScanDetailScreen extends StatelessWidget {
                           ),
                   ),
 
-
             const SizedBox(height: 20),
 
             // 🧾 Object list with number + color
@@ -644,21 +932,20 @@ class ScanDetailScreen extends StatelessWidget {
                                           "📌 Recommendation: ${obj['recommendation'] ?? 'N/A'}"),
                                     ],
                                   ),
-                                )
-
+                                ),
                               ],
                             ),
                           ),
                         );
                       },
                     ),
-            )
-
+            ),
           ],
         ),
       ),
     );
   }
+
   Future<Size> _getImageSize(File imageFile) async {
     final decoded = await decodeImageFromList(imageFile.readAsBytesSync());
     return Size(decoded.width.toDouble(), decoded.height.toDouble());

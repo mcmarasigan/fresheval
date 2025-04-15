@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -79,8 +80,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _showInstructionPrompt() async {
     final prefs = await SharedPreferences.getInstance();
-    bool dontShowAgain = !(prefs.getBool('showCameraTips') ??
-        true); // Checked if showCameraTips is false
+    bool dontShowAgain = !(prefs.getBool('showCameraTips') ?? true);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -98,7 +98,6 @@ class _CameraScreenState extends State<CameraScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                // Handle
                 Container(
                   width: 40,
                   height: 5,
@@ -299,7 +298,6 @@ class _CameraScreenState extends State<CameraScreen> {
           final frontPath = _frontImage!.path;
           final backPath = _backImage!.path;
 
-          // Reset before navigating
           _frontImage = null;
           _backImage = null;
 
@@ -348,7 +346,6 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _pickImageFromGallery() async {
     final picker = ImagePicker();
 
-    // Ask for FRONT image first
     final frontConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -375,7 +372,6 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
 
-    // Ask for BACK image
     final backConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -428,30 +424,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarIconBrightness: Brightness.light,
+      statusBarColor: Colors.transparent,
+    ));
+
     return Scaffold(
       drawer: _buildDrawer(context),
-      appBar: AppBar(
-        title: const Text('FreshEval Camera'),
-        backgroundColor: Colors.green,
-        actions: [
-          IconButton(
-            icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
-            onPressed: () async {
-              setState(() {
-                _isFlashOn = !_isFlashOn;
-              });
-              await _cameraController!.setFlashMode(
-                _isFlashOn ? FlashMode.torch : FlashMode.off,
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.question_mark),
-            onPressed: _showInstructionPrompt,
-            tooltip: 'Show photo tips',
-          ),
-        ],
-      ),
       body: Stack(
         children: [
           if (_isCameraInitialized && _cameraController != null)
@@ -460,6 +439,108 @@ class _CameraScreenState extends State<CameraScreen> {
             )
           else
             const Center(child: CircularProgressIndicator()),
+          // Hamburger Menu Icon
+          Positioned(
+            top: 50,
+            left: 16,
+            child: Builder(
+              builder: (BuildContext context) {
+                return IconButton(
+                  icon: const Icon(
+                    Icons.menu,
+                    color: Colors.white,
+                    size: 35,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer();
+                  },
+                );
+              },
+            ),
+          ),
+          // Flash and Question Mark Icons
+          Positioned(
+            top: 50,
+            right: 16,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                    color: Colors.white,
+                    size: 28,
+                    shadows: const [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  onPressed: () async {
+                    setState(() {
+                      _isFlashOn = !_isFlashOn;
+                    });
+                    await _cameraController!.setFlashMode(
+                      _isFlashOn ? FlashMode.torch : FlashMode.off,
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.question_mark,
+                    color: Colors.white,
+                    size: 28,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  onPressed: _showInstructionPrompt,
+                  tooltip: 'Show photo tips',
+                ),
+              ],
+            ),
+          ),
+          // Gallery Button
+          Positioned(
+            bottom: 40,
+            left: 50,
+            child: GestureDetector(
+              onTap: _pickImageFromGallery,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.image,
+                  color: Colors.green,
+                  size: 35,
+                ),
+              ),
+            ),
+          ),
+          // Capture Button
           Positioned(
             bottom: 30,
             left: 0,
@@ -467,36 +548,6 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 30),
-                    child: GestureDetector(
-                      onTap: _pickImageFromGallery,
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.image,
-                          color: Colors.green,
-                          size: 35,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
                 GestureDetector(
                   onTap: _captureMultiAngleImage,
                   child: Container(
@@ -526,8 +577,6 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   ),
                 ),
-                const Spacer(),
-                const SizedBox(width: 60),
               ],
             ),
           ),
@@ -537,48 +586,187 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
+    // Define colors
+    const Color selectedColor = Color(0xFF059212); // Green for selected item
+    const Color unselectedColor =
+        Color(0xFF787878); // Gray for unselected items
+
+    // Helper function to determine if a route is active
+    bool isRouteActive(String routeName) {
+      return ModalRoute.of(context)?.settings.name == routeName;
+    }
+
     return Drawer(
       child: Column(
         children: [
-          const UserAccountsDrawerHeader(
-            accountName: Text("FreshEval"),
-            accountEmail: Text("Scan and evaluate freshness"),
-            decoration: BoxDecoration(color: Colors.green),
+          // Custom Drawer Header
+          Container(
+            height: 120,
+            width: double.infinity,
+            color: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FRESHEVAL',
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context); // Close the drawer
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.camera),
-            title: const Text("Camera"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/camera');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text("Scan History"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/history');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text("Settings"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/settings');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.help),
-            title: const Text("Help"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/help');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text("Developers"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/developers');
-            },
+          // Drawer Items
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.camera,
+                    color: isRouteActive('/camera')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Camera",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/camera')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/camera')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.pushReplacementNamed(context, '/camera');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.history,
+                    color: isRouteActive('/history')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Scan History",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/history')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/history')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/history') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/history');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.settings,
+                    color: isRouteActive('/settings')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Settings",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/settings')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/settings')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/settings') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/settings');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.help,
+                    color: isRouteActive('/help')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Help",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/help')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/help')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/help') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/help');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.info,
+                    color: isRouteActive('/developers')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Developers",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/developers')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/developers')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/developers') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/developers');
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
