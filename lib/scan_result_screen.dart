@@ -64,21 +64,25 @@ Future<void> _runInference() async {
 
         for (var res in combinedResults) {
           log("📸 MULTI-ANGLE RESULT:");
-          log("🫲 Front: ${res['front']['freshness']} (${res['front']['freshnessConfidence']?.toStringAsFixed(2)}%)");
-          log("🫱 Back:  ${res['back']?['freshness'] ?? 'N/A'} (${res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--'}%)");
+          log("🫲 Front: ${res['front']['vqr'] ?? res['front']['freshness']} (${res['front']['freshnessConfidence']?.toStringAsFixed(2)}%)");
+          log("🫱 Back:  ${res['back']?['vqr'] ?? res['back']?['freshness'] ?? 'N/A'} (${res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--'}%)");
           log("✅ Merged: ${res['mergedFreshness']} (${res['mergedConfidence'].toStringAsFixed(2)}%) => ${res['mergedStatus']}");
         }
 
         setState(() {
           _detectedObjects = combinedResults.map((res) {
+            final freshnessLabel =
+                _modelService.getFreshnessLabel(res['mergedFreshness']);
             final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-              res['object'],
-              res['mergedStatus'],
+              res['object'] ?? 'unknown',
+              res['vqr'] ?? res['mergedFreshness'] ?? 'VQR-0',
             );
+
             return {
               'label': res['object'],
               'confidence': res['mergedConfidence'],
-              'freshness': res['mergedFreshness'],
+              'freshness': freshnessLabel,
+              'vqr': res['mergedFreshness'],
               'freshnessConfidence': res['mergedConfidence'],
               'freshnessStatus': res['mergedStatus'],
               'explanation': res['front']['explanation'] ?? 'No explanation',
@@ -96,7 +100,6 @@ Future<void> _runInference() async {
           }).toList();
           _isLoading = false;
         });
-
       } else {
         final imageBytes = await File(widget.imagePath!).readAsBytes();
 
@@ -112,14 +115,14 @@ Future<void> _runInference() async {
 
         for (var res in classifiedResults) {
           log("📸 SINGLE IMAGE RESULT:");
-          log("✅ ${res['object']} - ${res['freshness']} (${res['freshnessConfidence'].toStringAsFixed(2)}%) => ${res['freshnessStatus']}");
+          log("✅ ${res['object']} - ${res['vqr'] ?? res['freshness']} (${res['freshnessConfidence'].toStringAsFixed(2)}%) => ${res['freshnessStatus']}");
         }
 
         setState(() {
           _detectedObjects = classifiedResults.map((res) {
             final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-              res['object'],
-              res['freshnessStatus'] ?? '',
+              res['object'] ?? 'unknown',
+              res['vqr'] ?? 'VQR-0',
             );
 
             return {
@@ -127,6 +130,7 @@ Future<void> _runInference() async {
               'confidence': res['confidence'],
               'bbox': res['bbox'],
               'freshness': res['freshness'],
+              'vqr': res['vqr'] ?? res['freshness'],
               'freshnessConfidence': res['freshnessConfidence'],
               'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
               'explanation': res['explanation'] ?? 'No explanation available.',
@@ -150,6 +154,7 @@ Future<void> _runInference() async {
 
 
 
+
   Future<void> _saveScanResult() async {
     if (_detectedObjects.isEmpty) return;
 
@@ -169,11 +174,12 @@ Future<void> _runInference() async {
       'objects': _detectedObjects.map((obj) {
         return {
           'label': obj['label'],
+          'vqr': obj['vqr'], // ✅ NEW: Save the VQR label
           'confidence': obj['confidence'],
           'bbox': (obj['bbox'] as List).map((e) => e.toDouble()).toList(),
           'originalWidth': obj['originalWidth'],
           'originalHeight': obj['originalHeight'],
-          'freshness': obj['freshness'],
+          'freshness': obj['freshness'], // "Fresh" / "Rotten"
           'freshnessConfidence': obj['freshnessConfidence'],
           'freshnessStatus': obj['freshnessStatus'],
           'explanation': obj['explanation'],
@@ -181,7 +187,6 @@ Future<void> _runInference() async {
           'recommendation': obj['recommendation'],
           'front': obj['front'],
           'back': obj['back'],
-          // Add front and back confidence if multi-angle
           if (widget.isMultiAngle) ...{
             'frontFreshnessConfidence':
                 obj['frontFreshnessConfidence'] ?? obj['freshnessConfidence'],
@@ -194,6 +199,7 @@ Future<void> _runInference() async {
       'time': formattedTime,
     });
 
+    // Remove any older scan of the same image to avoid duplicates
     scanData.removeWhere((scan) {
       final decoded = json.decode(scan);
       return decoded['imagePath'] == widget.imagePath;
@@ -204,6 +210,7 @@ Future<void> _runInference() async {
 
     _showSaveDialog();
   }
+
 
 
   void _showSaveDialog() {
@@ -626,29 +633,37 @@ Future<void> _runInference() async {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "${detected['label'] ?? 'Unknown'} - ${detected['freshness'] ?? 'N/A'}",
+                                      "${detected['label'] ?? 'Unknown'} - ${detected['freshness'] ?? 'Unknown'}",
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
                                     ),
                                   ),
+
                                 ],
                               ),
                               children: [
                                 ListTile(
-                                  title: Text(
-                                    "Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                    "Front Condition: ${detected['frontConfidence']?.toStringAsFixed(2) ?? 'N/A'}%\n"
-                                    "Back Condition: ${detected['backConfidence']?.toStringAsFixed(2) ?? 'N/A'}%\n"
-                                    "Average Condition: ${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
-                                    "Condition: ${detected['freshness'] ?? 'N/A'}\n"
-                                    "Interpretation: ${detected['freshnessStatus'] ?? 'Unknown'}",
-                                  ),
+                                  //title: Text(
+                                    //"Detection Confidence: ${detected['confidence']?.toStringAsFixed(2) ?? '0.00'}%\n"
+                                    //"Front Condition: ${detected['frontConfidence']?.toStringAsFixed(2) ?? 'N/A'}%\n"
+                                   // "Back Condition: ${detected['backConfidence']?.toStringAsFixed(2) ?? 'N/A'}%\n"
+                                   // "Average Condition: ${detected['freshnessConfidence']?.toStringAsFixed(2) ?? '0.00'}%",
+                                  //),
                                   subtitle: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        detected['freshnessStatus'] ??
+                                            'Condition unknown',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
                                       Text(
                                         detected['explanation'] ??
                                             'No explanation available.',

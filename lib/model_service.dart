@@ -162,16 +162,18 @@ class ModelService {
         {
           'object': 'None',
           'confidence': 0.0,
-          'freshness': 'N/A',
+          'freshness': 'Unknown',
           'freshnessConfidence': 0.0,
           'freshnessStatus': 'No Detection',
           'explanation': 'No objects were detected in the image.',
           'bbox': [],
           'originalWidth': imageWidth,
           'originalHeight': imageHeight,
+          'isDetected': false,
         }
       ];
     }
+
 
     List<Map<String, dynamic>> results = [];
 
@@ -186,24 +188,27 @@ class ModelService {
       final freshness = await classifyFreshness(cropped);
       final interpretation = interpretFreshness(
         freshness['confidence'],
-        freshness['label'].toLowerCase(),
+        freshness['label'], 
       );
       final explanation = getPredictionExplanation(
-        freshness['label'].toLowerCase(),
+        freshness['label'],
         freshness['confidence'],
       );
+      final freshnessLabel = getFreshnessLabel(freshness['label']);
 
       results.add({
         'object': detection['label'],
         'bbox': detection['bbox'],
         'confidence': detection['confidence'],
-        'freshness': freshness['label'],
+        'freshness': freshnessLabel, // <-- Fresh or Rotten
         'freshnessConfidence': freshness['confidence'],
         'freshnessStatus': interpretation,
         'explanation': explanation,
         'originalWidth': detection['originalWidth'],
         'originalHeight': detection['originalHeight'],
+        'vqr': freshness['label'], //  raw VQR value too
       });
+
     }
 
     return results;
@@ -265,6 +270,13 @@ class ModelService {
       return [];
     }
   }
+String getFreshnessLabel(String vqrLabel) {
+  final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
+  if (vqr >= 4) return "Fresh";
+  if (vqr >= 1) return "Rotten";
+  return "Unknown";
+}
+
 
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
@@ -347,99 +359,109 @@ class ModelService {
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
-String interpretFreshness(double confidence, String label) {
-    final isFresh = label.toLowerCase() == "fresh";
+String interpretFreshness(double confidence, String vqrLabel) {
+    final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
-    if (isFresh) {
-      if (confidence > 80.0) return "Healthy and vibrant";
-      if (confidence >= 35.0) return "Showing signs of dullness or ripping";
-      return "May be entering early spoilage";
+    if (vqr >= 7) {
+      return "🟢 Very Fresh – Firm and bright in color";
+    } else if (vqr >= 4) {
+      return "🟡 Slightly Old – Losing freshness but still usable";
+    } else if (vqr >= 1) {
+      return "🔴 Spoiled – May no longer be safe to use";
     } else {
-      if (confidence > 80.0) return "Shriveled or moldy";
-      if (confidence > 40.0) return "Bruised or soft, early mold possible";
-      return "Degradation suspected";
+      return "⚠️ Unknown – Try scanning again";
     }
   }
 
 
-  String getPredictionExplanation(String label, double confidence) {
-    final isFresh = label.toLowerCase() == "fresh";
 
-    if (isFresh) {
-      if (confidence > 80.0) {
-        return "The item is healthy, with firm skin and vibrant color.";
-      } else if (confidence >= 35.0) {
-        return "Dullness or minor ripping observed. Quality may be declining.";
-      } else {
-        return "Early spoilage signs are visible. Use with caution.";
-      }
+
+String getPredictionExplanation(String vqrLabel, double confidence) {
+    final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
+
+    if (vqr >= 8) {
+      return "✅ This vegetable looks very healthy – bright, shiny, and firm.";
+    } else if (vqr >= 4) {
+      return "⚠️ The vegetable may be soft or dull. It’s best to use it soon.";
+    } else if (vqr >= 1) {
+      return "❌ Signs of spoilage like wrinkling, mold, or bruises are visible.";
     } else {
-      if (confidence > 80.0) {
-        return "Clear signs of spoilage: shriveling, mold, or discoloration.";
-      } else if (confidence > 40.0) {
-        return "Bruising or softness observed. Early mold might be forming.";
-      } else {
-        return "Slight issues noted. Degradation might be starting.";
-      }
+      return "⚠️ The app could not determine freshness. Try a better photo.";
     }
   }
 
 
-  Map<String, String> getShelfLifeAndRecommendation(
-      String label, String interpretation) {
-    final lowerLabel = label.toLowerCase();
-    String shelfLife = '';
-    String recommendation = '';
+Map<String, String> getShelfLifeAndRecommendation(
+    String label,
+    String vqrLabel,
+  ) {
+    String originalLabel = label.toLowerCase().trim();
+    final RegExp vqrMatch = RegExp(r"(\d+)");
+    final int vqr =
+        int.tryParse(vqrMatch.firstMatch(vqrLabel)?.group(1) ?? '') ?? -1;
 
-    switch (lowerLabel) {
+    // Normalize label to known types
+    String matchedLabel = '';
+    if (originalLabel.contains('eggplant')) {
+      matchedLabel = 'eggplant';
+    } else if (originalLabel.contains('tomato')) {
+      matchedLabel = 'tomato';
+    } else if (originalLabel.contains('potato')) {
+      matchedLabel = 'potato';
+    } else {
+      matchedLabel = 'unknown';
+    }
+
+    String shelfLife = '📆 Shelf life unknown';
+    String recommendation = '📌 No recommendation available.';
+
+    if (vqr == -1) {
+      log("⚠️ Could not parse VQR from label: $vqrLabel");
+    }
+
+    switch (matchedLabel) {
       case 'eggplant':
-        if (interpretation.contains('Healthy')) {
-          shelfLife = '3–5 days in the fridge';
-          recommendation = 'Store in a crisper drawer. Don’t wash until use.';
-        } else if (interpretation.contains('dullness') ||
-            interpretation.contains('ripping')) {
-          shelfLife = '1–2 days max';
-          recommendation = 'Use quickly. May already be soft or less shiny.';
-        } else {
-          shelfLife = '0 days';
-          recommendation = 'Spoiled or risky to eat. Discard if soft or brown.';
+        if (vqr >= 7) {
+          shelfLife = '📆 3–5 days in the fridge';
+          recommendation =
+              '✅ Store in the crisper drawer. Don’t wash before storing.';
+        } else if (vqr >= 4) {
+          shelfLife = '📆 1–2 days only';
+          recommendation = '⚠️ Use soon. It may already be soft or dull.';
+        } else if (vqr >= 1) {
+          shelfLife = '📆 0 days';
+          recommendation = '❌ Spoiled. Discard if soft or brown.';
         }
         break;
 
       case 'tomato':
-        if (interpretation.contains('Healthy')) {
-          shelfLife = '4–7 days at room temp, up to 2 weeks in the fridge';
-          recommendation =
-              'Store at room temp to ripen. Refrigerate when ripe.';
-        } else if (interpretation.contains('dullness') ||
-            interpretation.contains('ripping')) {
-          shelfLife = '1–3 days (likely overripe)';
-          recommendation = 'Use soon. Check for softness or bruising.';
-        } else {
-          shelfLife = '0 days';
-          recommendation =
-              'Likely spoiled. Discard if soft, leaking, or smelly.';
+        if (vqr >= 7) {
+          shelfLife = '📆 4–7 days at room temp, up to 2 weeks in fridge';
+          recommendation = '✅ Let ripen at room temp. Refrigerate when ripe.';
+        } else if (vqr >= 4) {
+          shelfLife = '📆 1–3 days';
+          recommendation = '⚠️ Use soon. May be overripe or bruised.';
+        } else if (vqr >= 1) {
+          shelfLife = '📆 0 days';
+          recommendation = '❌ Likely spoiled. Discard if leaking or smelly.';
         }
         break;
 
       case 'potato':
-        if (interpretation.contains('Healthy')) {
-          shelfLife = '1–2 months (cool, dark place)';
-          recommendation = 'Store in a paper bag. Don’t refrigerate.';
-        } else if (interpretation.contains('dullness') ||
-            interpretation.contains('ripping')) {
-          shelfLife = '1–2 weeks max';
-          recommendation = 'Use soon. Check for sprouting or soft spots.';
-        } else {
-          shelfLife = '0 days';
-          recommendation =
-              'Toxic signs possible (green skin/sprouting). Discard.';
+        if (vqr >= 7) {
+          shelfLife = '📆 1–2 months in a cool, dark place';
+          recommendation = '✅ Store in a paper bag. Don’t refrigerate.';
+        } else if (vqr >= 4) {
+          shelfLife = '📆 1–2 weeks';
+          recommendation = '⚠️ Use soon. Check for sprouting or soft spots.';
+        } else if (vqr >= 1) {
+          shelfLife = '📆 0 days';
+          recommendation = '❌ May be toxic (green skin or sprouts). Discard.';
         }
         break;
 
       default:
-        shelfLife = 'Unknown';
-        recommendation = 'No data available.';
+        log("❌ No shelf life info found for label: '$label' → normalized as '$matchedLabel'");
     }
 
     return {
@@ -447,6 +469,8 @@ String interpretFreshness(double confidence, String label) {
       'recommendation': recommendation,
     };
   }
+
+
 
 
 
@@ -528,17 +552,18 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
     List<Map<String, dynamic>> combinedResults = [];
 
     for (final front in frontResults) {
-      if (front['object'] == 'None' || front['freshness'] == 'N/A') {
+      if (front['object'] == 'None' || front['vqr'] == null) {
         combinedResults.add({
           'object': front['object'],
           'front': front,
           'back': null,
-          'mergedFreshness': front['freshness'],
+          'mergedFreshness': front['vqr'] ?? 'N/A',
           'mergedConfidence': front['freshnessConfidence'],
           'mergedStatus': front['freshnessStatus'],
           'frontConfidence': front['freshnessConfidence'],
           'backConfidence': null,
           'averageConfidence': front['freshnessConfidence'],
+          'freshness': front['freshness'],
         });
         continue;
       }
@@ -547,6 +572,12 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
         (back) => back['object'] == front['object'],
         orElse: () => {},
       );
+
+      final frontVQR = front['vqr'] ?? front['freshness'];
+      final backVQR = matchedBack['vqr'] ?? matchedBack['freshness'];
+
+      int frontVQRNum = int.tryParse(frontVQR.replaceAll("VQR-", "")) ?? -1;
+      int backVQRNum = int.tryParse(backVQR.replaceAll("VQR-", "")) ?? -1;
 
       double frontConf = front['freshnessConfidence'];
       double? backConf = matchedBack.isNotEmpty &&
@@ -558,31 +589,41 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
       double avgConf =
           backConf != null ? (frontConf + backConf) / 2 : frontConf;
 
-      String finalLabel = front['freshness'];
-      if (backConf != null && front['freshness'] != matchedBack['freshness']) {
-        finalLabel =
-            avgConf > 50 ? front['freshness'] : matchedBack['freshness'];
+      const double threshold = 60.0;
+      int mergedVQRNum;
+
+      // Hybrid logic: choose the min VQR if both are confident, else take confident one
+      if (frontConf >= threshold && (backConf ?? 0) >= threshold) {
+        mergedVQRNum = math.min(frontVQRNum, backVQRNum);
+      } else if (frontConf >= threshold) {
+        mergedVQRNum = frontVQRNum;
+      } else if ((backConf ?? 0) >= threshold) {
+        mergedVQRNum = backVQRNum;
+      } else {
+        // fallback: still choose worst case
+        mergedVQRNum = math.min(frontVQRNum, backVQRNum);
       }
 
-      String finalStatus =
-          interpretFreshness(avgConf, finalLabel.toLowerCase());
+      String mergedVQR = "VQR-$mergedVQRNum";
+      String mergedStatus = interpretFreshness(0, mergedVQR);
+      String mergedFreshness = getFreshnessLabel(mergedVQR);
 
       combinedResults.add({
         'object': front['object'],
         'front': front,
         'back': matchedBack.isNotEmpty ? matchedBack : null,
-        'mergedFreshness': finalLabel,
+        'mergedFreshness': mergedVQR,
         'mergedConfidence': avgConf,
-        'mergedStatus': finalStatus,
+        'mergedStatus': mergedStatus,
         'frontConfidence': frontConf,
         'backConfidence': backConf,
         'averageConfidence': avgConf,
+        'freshness': mergedFreshness,
       });
     }
 
     return combinedResults;
   }
-
 
   void close() {
     _flutterVision.closeYoloModel();
