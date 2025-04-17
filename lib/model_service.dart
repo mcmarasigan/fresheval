@@ -88,10 +88,7 @@ class ModelService {
  
 
   Future<List<Map<String, dynamic>>> detectObjects(
-    Uint8List imageBytes,
-    double imageWidth,
-    double imageHeight,
-  ) async {
+      Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
       return [];
@@ -99,19 +96,20 @@ class ModelService {
 
     try {
       final img.Image? originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) {
-        throw Exception("❌ Failed to decode original image.");
-      }
+      if (originalImage == null) return [];
 
-      final originalWidth = originalImage.width.toDouble();
-      final originalHeight = originalImage.height.toDouble();
-      log("📏 Original Image Dimensions: ${originalWidth}x$originalHeight");
+      final double originalWidth = originalImage.width.toDouble();
+      final double originalHeight = originalImage.height.toDouble();
 
-      // ✅ Resize image for YOLOv8 input
+      // 🔁 Resize for YOLO input
       final img.Image resizedImage = img.copyResize(originalImage,
           width: _yoloInputSize.toInt(), height: _yoloInputSize.toInt());
+
       final Uint8List resizedBytes =
           Uint8List.fromList(img.encodeJpg(resizedImage));
+
+      log("📏 Original Image: ${originalWidth}x${originalHeight}");
+      log("📏 YOLO Input Image: 640x640");
 
       final detections = await _flutterVision.yoloOnImage(
         bytesList: resizedBytes,
@@ -128,18 +126,21 @@ class ModelService {
         return [];
       }
 
+      // 🧠 Scale bbox back to original dimensions
       return detections
           .map((detection) {
-            List bbox = detection['box'];
+            final bbox = detection['box'];
             if (bbox.length < 5) return null;
 
-            double xMin = bbox[0] * (originalWidth / _yoloInputSize);
-            double yMin = bbox[1] * (originalHeight / _yoloInputSize);
-            double xMax = bbox[2] * (originalWidth / _yoloInputSize);
-            double yMax = bbox[3] * (originalHeight / _yoloInputSize);
-            double confidence = bbox[4] * 100;
+            final double scaleX = originalWidth / _yoloInputSize;
+            final double scaleY = originalHeight / _yoloInputSize;
 
-            log("📍 Scaled BBox for ${detection['tag']}: [$xMin, $yMin, $xMax, $yMax]");
+            final double xMin = bbox[0] * scaleX;
+            final double yMin = bbox[1] * scaleY;
+            final double xMax = bbox[2] * scaleX;
+            final double yMax = bbox[3] * scaleY;
+
+            final double confidence = bbox[4] * 100;
 
             return {
               'label': detection['tag'],
