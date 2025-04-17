@@ -150,8 +150,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    AspectRatio(
-                      aspectRatio: 1,
+                    SizedBox(
+                      width: 320,
+                      height: 320,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final double displaySize = constraints.maxWidth;
@@ -186,7 +187,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                     final originalHeight =
                                         detected['originalHeight'] as double;
 
-                                    // Scale from YOLOv8 640x640 to original dimensions
                                     double scaleX = _imageSize / originalWidth;
                                     double scaleY = _imageSize / originalHeight;
                                     double scale =
@@ -213,7 +213,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
                                     Color boxColor =
                                         _getBoxColor(detected['label']);
-                                    log("🟢 Adjusted BBox for ${detected['label']}: xMin=$xMin, yMin=$yMin, width=$boxWidth, height=$boxHeight, displaySize=$displaySize");
 
                                     return Positioned(
                                       left: xMin,
@@ -249,6 +248,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         },
                       ),
                     ),
+
                     const SizedBox(height: 20),
                     Column(
                       children: _detectedObjects

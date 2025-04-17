@@ -141,121 +141,99 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: _buildDrawer(),
-      appBar: AppBar(
-        title: const Text('FreshEval Camera'),
-        backgroundColor: Colors.green,
-        actions: [
-          IconButton(
-            icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off),
-            onPressed: () async {
-              setState(() {
-                _isFlashOn = !_isFlashOn;
-              });
-              await _cameraController!.setFlashMode(
-                _isFlashOn ? FlashMode.torch : FlashMode.off,
-              );
-            },
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          if (_isCameraInitialized)
-            Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: CameraPreview(_cameraController!),
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            if (_isCameraInitialized)
+              Positioned.fill(child: CameraPreview(_cameraController!))
+            else
+              const Center(child: CircularProgressIndicator()),
+            Positioned(
+              top: 20,
+              right: 20,
+              child: IconButton(
+                icon: Icon(
+                  _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.white,
+                  size: 30,
+                ),
+                onPressed: () async {
+                  setState(() {
+                    _isFlashOn = !_isFlashOn;
+                  });
+                  await _cameraController!.setFlashMode(
+                    _isFlashOn ? FlashMode.torch : FlashMode.off,
+                  );
+                },
               ),
-            )
-          else
-            const Center(child: CircularProgressIndicator()),
-
-          // 📸 Capture & Upload Buttons (Positioned Correctly)
-         Positioned(
-            bottom: 30, // Places the buttons near the bottom
-            left: 0,
-            right: 0, // Ensures full width usage for centering
-            child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Centering the capture button
-              children: [
-                // 📤 Upload Button (Lower Left)
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.only(left: 30), // Adjust left padding
-                    child: GestureDetector(
-                      onTap: _pickImageFromGallery,
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
+            ),
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: _pickImageFromGallery,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      margin: const EdgeInsets.only(left: 30),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
                               color: Colors.black26,
                               blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.image,
-                          color: Colors.green,
-                          size: 35,
+                              offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: const Icon(Icons.image,
+                          color: Colors.green, size: 35),
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _captureImage,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black38,
+                              blurRadius: 6,
+                              offset: Offset(0, 3)),
+                        ],
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 2),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-
-                const Spacer(), // Pushes the capture button to the center
-
-                // 📸 Capture Button (Lower Center)
-                GestureDetector(
-                  onTap: _captureImage,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black38,
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black, width: 2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const Spacer(), // Balances layout
-
-                // **(Optional) Empty space for symmetry**
-                const SizedBox(width: 60),
-              ],
+                  const Spacer(),
+                  const SizedBox(width: 60),
+                ],
+              ),
             ),
-          ),
-
-        ],
+          ],
+        ),
       ),
     );
+
   }
 
   Widget _buildDrawer() {
