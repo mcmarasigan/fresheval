@@ -305,7 +305,7 @@ String interpretFreshness(double confidence, String vqrLabel) {
 String getPredictionExplanation(String vqrLabel, double confidence) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
-    if (vqr >= 8) {
+    if (vqr >= 7) {
       return "✅ This looks very fresh – shiny and firm.";
     } else if (vqr >= 4) {
       return "⚠️ It might be starting to go bad. Use it soon.";
@@ -315,6 +315,7 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
       return "⚠️ Couldn’t tell. Try a clearer photo.";
     }
   }
+
 Map<String, String> getShelfLifeAndRecommendation(
     String label,
     String vqrLabel,
