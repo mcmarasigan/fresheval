@@ -85,137 +85,13 @@ class ModelService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> detectAndClassify(
+ 
+
+  Future<List<Map<String, dynamic>>> detectObjects(
     Uint8List imageBytes,
     double imageWidth,
     double imageHeight,
   ) async {
-    // Check image brightness
-    final avgBrightness = _calculateAverageBrightness(imageBytes);
-    const double darkThreshold = 50.0;
-    const double brightThreshold = 200.0;
-
-    if (avgBrightness < darkThreshold) {
-      log("🌑 Image too dark (Brightness: $avgBrightness).");
-      return [
-        {
-          'object': 'None',
-          'confidence': 0.0,
-          'freshness': 'N/A',
-          'freshnessConfidence': 0.0,
-          'freshnessStatus': 'Image Too Dark',
-          'explanation':
-              'The image is too dark for accurate detection. Try turning on the flash, increasing lighting, or cleaning the camera lens.',
-          'bbox': [],
-          'originalWidth': imageWidth,
-          'originalHeight': imageHeight,
-        }
-      ];
-    } else if (avgBrightness > brightThreshold) {
-      log("☀️ Image too bright (Brightness: $avgBrightness).");
-      return [
-        {
-          'object': 'None',
-          'confidence': 0.0,
-          'freshness': 'N/A',
-          'freshnessConfidence': 0.0,
-          'freshnessStatus': 'Image Too Bright',
-          'explanation':
-              'The image is too bright for accurate detection. Please reduce lighting or clean the camera lens.',
-          'bbox': [],
-          'originalWidth': imageWidth,
-          'originalHeight': imageHeight,
-        }
-      ];
-    }
-    
-    // Check image blurriness
-    final blurScore = _calculateBlurVariance(imageBytes);
-    const double blurThreshold = 5.0; // Lowered threshold for testing
-
-    if (blurScore < blurThreshold) {
-      log("🌫️ Image too blurry (Gradient Score: $blurScore < $blurThreshold).");
-      return [
-        {
-          'object': 'None',
-          'confidence': 0.0,
-          'freshness': 'N/A',
-          'freshnessConfidence': 0.0,
-          'freshnessStatus': 'Image Too Blurry',
-          'explanation':
-              'The image is too blurry for accurate detection. Please hold the camera steady or clean the lens.',
-          'bbox': [],
-          'originalWidth': imageWidth,
-          'originalHeight': imageHeight,
-        }
-      ];
-    } else {
-      log("✅ Image sharpness acceptable (Gradient Score: $blurScore >= $blurThreshold).");
-    }
-
-    // Proceed with detection if brightness and blur are acceptable
-    final detections = await detectObjects(imageBytes, imageWidth, imageHeight);
-
-    if (detections.isEmpty) {
-      log("❌ No objects detected in the image.");
-      return [
-        {
-          'object': 'None',
-          'confidence': 0.0,
-          'freshness': 'Unknown',
-          'freshnessConfidence': 0.0,
-          'freshnessStatus': 'No Detection',
-          'explanation': 'No objects were detected in the image.',
-          'bbox': [],
-          'originalWidth': imageWidth,
-          'originalHeight': imageHeight,
-          'isDetected': false,
-        }
-      ];
-    }
-
-
-    List<Map<String, dynamic>> results = [];
-
-    for (final detection in detections) {
-      final cropped = cropObject(
-        imageBytes,
-        detection['bbox'],
-        detection['originalWidth'],
-        detection['originalHeight'],
-      );
-
-      final freshness = await classifyFreshness(cropped);
-      final interpretation = interpretFreshness(
-        freshness['confidence'],
-        freshness['label'], 
-      );
-      final explanation = getPredictionExplanation(
-        freshness['label'],
-        freshness['confidence'],
-      );
-      final freshnessLabel = getFreshnessLabel(freshness['label']);
-
-      results.add({
-        'object': detection['label'],
-        'bbox': detection['bbox'],
-        'confidence': detection['confidence'],
-        'freshness': freshnessLabel, // <-- Fresh or Rotten
-        'freshnessConfidence': freshness['confidence'],
-        'freshnessStatus': interpretation,
-        'explanation': explanation,
-        'originalWidth': detection['originalWidth'],
-        'originalHeight': detection['originalHeight'],
-        'vqr': freshness['label'], //  raw VQR value too
-      });
-
-    }
-
-    return results;
-  }
-
-  Future<List<Map<String, dynamic>>> detectObjects(
-      Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
       return [];
@@ -223,12 +99,22 @@ class ModelService {
 
     try {
       final img.Image? originalImage = img.decodeImage(imageBytes);
-      final originalWidth = originalImage?.width.toDouble() ?? imageWidth;
-      final originalHeight = originalImage?.height.toDouble() ?? imageHeight;
+      if (originalImage == null) {
+        throw Exception("❌ Failed to decode original image.");
+      }
+
+      final originalWidth = originalImage.width.toDouble();
+      final originalHeight = originalImage.height.toDouble();
       log("📏 Original Image Dimensions: ${originalWidth}x$originalHeight");
 
+      // ✅ Resize image for YOLOv8 input
+      final img.Image resizedImage = img.copyResize(originalImage,
+          width: _yoloInputSize.toInt(), height: _yoloInputSize.toInt());
+      final Uint8List resizedBytes =
+          Uint8List.fromList(img.encodeJpg(resizedImage));
+
       final detections = await _flutterVision.yoloOnImage(
-        bytesList: imageBytes,
+        bytesList: resizedBytes,
         imageHeight: _yoloInputSize.toInt(),
         imageWidth: _yoloInputSize.toInt(),
         iouThreshold: 0.4,
@@ -247,13 +133,13 @@ class ModelService {
             List bbox = detection['box'];
             if (bbox.length < 5) return null;
 
-            double xMin = bbox[0];
-            double yMin = bbox[1];
-            double xMax = bbox[2];
-            double yMax = bbox[3];
+            double xMin = bbox[0] * (originalWidth / _yoloInputSize);
+            double yMin = bbox[1] * (originalHeight / _yoloInputSize);
+            double xMax = bbox[2] * (originalWidth / _yoloInputSize);
+            double yMax = bbox[3] * (originalHeight / _yoloInputSize);
             double confidence = bbox[4] * 100;
 
-            log("📍 Raw BBox for ${detection['tag']}: [$xMin, $yMin, $xMax, $yMax]");
+            log("📍 Scaled BBox for ${detection['tag']}: [$xMin, $yMin, $xMax, $yMax]");
 
             return {
               'label': detection['tag'],
@@ -270,6 +156,45 @@ class ModelService {
       return [];
     }
   }
+
+Future<Map<String, dynamic>> classifyDetection({
+    required Uint8List imageBytes,
+    required Map<String, dynamic> detection,
+  }) async {
+    final cropped = cropObject(
+      imageBytes,
+      detection['bbox'],
+      detection['originalWidth'],
+      detection['originalHeight'],
+    );
+
+    final freshness = await classifyFreshness(cropped);
+    final interpretation = interpretFreshness(
+      freshness['confidence'],
+      freshness['label'],
+    );
+    final explanation = getPredictionExplanation(
+      freshness['label'],
+      freshness['confidence'],
+    );
+    final freshnessLabel = getFreshnessLabel(freshness['label']);
+
+    return {
+      'object': detection['label'],
+      'bbox': detection['bbox'],
+      'confidence': detection['confidence'],
+      'freshness': freshnessLabel,
+      'freshnessConfidence': freshness['confidence'],
+      'freshnessStatus': interpretation,
+      'explanation': explanation,
+      'originalWidth': detection['originalWidth'],
+      'originalHeight': detection['originalHeight'],
+      'vqr': freshness['label'],
+    };
+  }
+
+
+
 String getFreshnessLabel(String vqrLabel) {
   final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
   if (vqr >= 4) return "Fresh";
@@ -400,6 +325,9 @@ Map<String, String> getShelfLifeAndRecommendation(
     final int vqr =
         int.tryParse(vqrMatch.firstMatch(vqrLabel)?.group(1) ?? '') ?? -1;
 
+    // Fallback value if parsing failed
+    final int effectiveVqr = vqr == -1 ? 1 : vqr;
+
     // Normalize label to known types
     String matchedLabel = '';
     if (originalLabel.contains('eggplant')) {
@@ -416,45 +344,45 @@ Map<String, String> getShelfLifeAndRecommendation(
     String recommendation = '📌 No recommendation available.';
 
     if (vqr == -1) {
-      log("⚠️ Could not parse VQR from label: $vqrLabel");
+      log("⚠️ Could not parse valid VQR from label: $vqrLabel → using fallback VQR value: $effectiveVqr");
     }
 
     switch (matchedLabel) {
       case 'eggplant':
-        if (vqr >= 7) {
+        if (effectiveVqr >= 7) {
           shelfLife = '📆 3–5 days in the fridge';
           recommendation =
               '✅ Store in the crisper drawer. Don’t wash before storing.';
-        } else if (vqr >= 4) {
+        } else if (effectiveVqr >= 4) {
           shelfLife = '📆 1–2 days only';
           recommendation = '⚠️ Use soon. It may already be soft or dull.';
-        } else if (vqr >= 1) {
+        } else if (effectiveVqr >= 1) {
           shelfLife = '📆 0 days';
           recommendation = '❌ Spoiled. Discard if soft or brown.';
         }
         break;
 
       case 'tomato':
-        if (vqr >= 7) {
+        if (effectiveVqr >= 7) {
           shelfLife = '📆 4–7 days at room temp, up to 2 weeks in fridge';
           recommendation = '✅ Let ripen at room temp. Refrigerate when ripe.';
-        } else if (vqr >= 4) {
+        } else if (effectiveVqr >= 4) {
           shelfLife = '📆 1–3 days';
           recommendation = '⚠️ Use soon. May be overripe or bruised.';
-        } else if (vqr >= 1) {
+        } else if (effectiveVqr >= 1) {
           shelfLife = '📆 0 days';
           recommendation = '❌ Likely spoiled. Discard if leaking or smelly.';
         }
         break;
 
       case 'potato':
-        if (vqr >= 7) {
+        if (effectiveVqr >= 7) {
           shelfLife = '📆 1–2 months in a cool, dark place';
           recommendation = '✅ Store in a paper bag. Don’t refrigerate.';
-        } else if (vqr >= 4) {
+        } else if (effectiveVqr >= 4) {
           shelfLife = '📆 1–2 weeks';
           recommendation = '⚠️ Use soon. Check for sprouting or soft spots.';
-        } else if (vqr >= 1) {
+        } else if (effectiveVqr >= 1) {
           shelfLife = '📆 0 days';
           recommendation = '❌ May be toxic (green skin or sprouts). Discard.';
         }
@@ -469,6 +397,7 @@ Map<String, String> getShelfLifeAndRecommendation(
       'recommendation': recommendation,
     };
   }
+
 
 
 
@@ -544,86 +473,91 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
     required double imageWidth,
     required double imageHeight,
   }) async {
-    final frontResults =
-        await detectAndClassify(frontImage, imageWidth, imageHeight);
-    final backResults =
-        await detectAndClassify(backImage, imageWidth, imageHeight);
+    final frontDetections =
+        await detectObjects(frontImage, imageWidth, imageHeight);
+    final backDetections =
+        await detectObjects(backImage, imageWidth, imageHeight);
 
-    List<Map<String, dynamic>> combinedResults = [];
+    final frontTop = frontDetections.isNotEmpty
+        ? frontDetections
+            .reduce((a, b) => a['confidence'] > b['confidence'] ? a : b)
+        : null;
 
-    for (final front in frontResults) {
-      if (front['object'] == 'None' || front['vqr'] == null) {
-        combinedResults.add({
-          'object': front['object'],
-          'front': front,
+    final backTop = backDetections.isNotEmpty
+        ? backDetections
+            .reduce((a, b) => a['confidence'] > b['confidence'] ? a : b)
+        : null;
+
+    final frontClassified = frontTop != null
+        ? await classifyDetection(imageBytes: frontImage, detection: frontTop)
+        : null;
+
+    final backClassified = backTop != null
+        ? await classifyDetection(imageBytes: backImage, detection: backTop)
+        : null;
+
+    if (frontClassified == null && backClassified == null) {
+      return [
+        {
+          'object': 'None',
+          'front': null,
           'back': null,
-          'mergedFreshness': front['vqr'] ?? 'N/A',
-          'mergedConfidence': front['freshnessConfidence'],
-          'mergedStatus': front['freshnessStatus'],
-          'frontConfidence': front['freshnessConfidence'],
-          'backConfidence': null,
-          'averageConfidence': front['freshnessConfidence'],
-          'freshness': front['freshness'],
-        });
-        continue;
-      }
-
-      final matchedBack = backResults.firstWhere(
-        (back) => back['object'] == front['object'],
-        orElse: () => {},
-      );
-
-      final frontVQR = front['vqr'] ?? front['freshness'];
-      final backVQR = matchedBack['vqr'] ?? matchedBack['freshness'];
-
-      int frontVQRNum = int.tryParse(frontVQR.replaceAll("VQR-", "")) ?? -1;
-      int backVQRNum = int.tryParse(backVQR.replaceAll("VQR-", "")) ?? -1;
-
-      double frontConf = front['freshnessConfidence'];
-      double? backConf = matchedBack.isNotEmpty &&
-              matchedBack['object'] != 'None' &&
-              matchedBack['freshness'] != 'N/A'
-          ? matchedBack['freshnessConfidence']
-          : null;
-
-      double avgConf =
-          backConf != null ? (frontConf + backConf) / 2 : frontConf;
-
-      const double threshold = 60.0;
-      int mergedVQRNum;
-
-      // Hybrid logic: choose the min VQR if both are confident, else take confident one
-      if (frontConf >= threshold && (backConf ?? 0) >= threshold) {
-        mergedVQRNum = math.min(frontVQRNum, backVQRNum);
-      } else if (frontConf >= threshold) {
-        mergedVQRNum = frontVQRNum;
-      } else if ((backConf ?? 0) >= threshold) {
-        mergedVQRNum = backVQRNum;
-      } else {
-        // fallback: still choose worst case
-        mergedVQRNum = math.min(frontVQRNum, backVQRNum);
-      }
-
-      String mergedVQR = "VQR-$mergedVQRNum";
-      String mergedStatus = interpretFreshness(0, mergedVQR);
-      String mergedFreshness = getFreshnessLabel(mergedVQR);
-
-      combinedResults.add({
-        'object': front['object'],
-        'front': front,
-        'back': matchedBack.isNotEmpty ? matchedBack : null,
-        'mergedFreshness': mergedVQR,
-        'mergedConfidence': avgConf,
-        'mergedStatus': mergedStatus,
-        'frontConfidence': frontConf,
-        'backConfidence': backConf,
-        'averageConfidence': avgConf,
-        'freshness': mergedFreshness,
-      });
+          'mergedFreshness': 'Unknown',
+          'mergedStatus': '⚠️ Unknown – Try scanning again',
+          'mergedVQR': 'VQR-0',
+          'mergedConfidence': 0.0,
+        }
+      ];
     }
 
-    return combinedResults;
+    final String frontVQR = frontClassified?['vqr'] ?? 'VQR-0';
+    final String backVQR = backClassified?['vqr'] ?? 'VQR-0';
+    final int frontVQRNum = int.tryParse(frontVQR.replaceAll("VQR-", "")) ?? 0;
+    final int backVQRNum = int.tryParse(backVQR.replaceAll("VQR-", "")) ?? 0;
+    final double frontConf = frontClassified?['freshnessConfidence'] ?? 0;
+    final double backConf = backClassified?['freshnessConfidence'] ?? 0;
+
+    const double threshold = 60.0;
+    double avgConf;
+    int mergedVQRNum;
+
+    if (frontClassified != null && backClassified != null) {
+      if (frontConf >= threshold && backConf >= threshold) {
+        mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
+      } else if (frontConf >= threshold) {
+        mergedVQRNum = frontVQRNum;
+      } else if (backConf >= threshold) {
+        mergedVQRNum = backVQRNum;
+      } else {
+        mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
+      }
+      avgConf = (frontConf + backConf) / 2;
+    } else if (frontClassified != null) {
+      mergedVQRNum = frontVQRNum;
+      avgConf = frontConf;
+    } else {
+      mergedVQRNum = backVQRNum;
+      avgConf = backConf;
+    }
+
+    final mergedVQR = "VQR-$mergedVQRNum";
+    final mergedFreshness = getFreshnessLabel(mergedVQR);
+    final mergedStatus = interpretFreshness(avgConf, mergedVQR);
+
+    return [
+      {
+        'object':
+            frontClassified?['object'] ?? backClassified?['object'] ?? 'None',
+        'front': frontClassified,
+        'back': backClassified,
+        'mergedFreshness': mergedFreshness,
+        'mergedStatus': mergedStatus,
+        'mergedVQR': mergedVQR,
+        'mergedConfidence': avgConf,
+      }
+    ];
   }
+
 
   void close() {
     _flutterVision.closeYoloModel();

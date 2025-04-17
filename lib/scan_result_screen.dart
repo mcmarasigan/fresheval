@@ -71,18 +71,21 @@ Future<void> _runInference() async {
 
         setState(() {
           _detectedObjects = combinedResults.map((res) {
-            final freshnessLabel =
-                _modelService.getFreshnessLabel(res['mergedFreshness']);
+            final freshnessLabel = _modelService
+                .getFreshnessLabel(res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0');
+
             final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-              res['object'] ?? 'unknown',
-              res['vqr'] ?? res['mergedFreshness'] ?? 'VQR-0',
+              res['object'] ?? res['label'] ?? 'unknown',
+              res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
             );
+
+
 
             return {
               'label': res['object'],
               'confidence': res['mergedConfidence'],
-              'freshness': freshnessLabel,
-              'vqr': res['mergedFreshness'],
+              'mergedFreshness': freshnessLabel,
+              'vqr': res['mergedVQR'] ?? 'VQR-0',
               'freshnessConfidence': res['mergedConfidence'],
               'freshnessStatus': res['mergedStatus'],
               'explanation': res['front']['explanation'] ?? 'No explanation',
@@ -100,49 +103,56 @@ Future<void> _runInference() async {
           }).toList();
           _isLoading = false;
         });
-      } else {
+            } else {
         final imageBytes = await File(widget.imagePath!).readAsBytes();
 
         final decoded = await decodeImageFromList(imageBytes);
         _originalWidth = decoded.width.toDouble();
         _originalHeight = decoded.height.toDouble();
 
-        final classifiedResults = await _modelService.detectAndClassify(
+        final detections = await _modelService.detectObjects(
           imageBytes,
           _originalWidth,
           _originalHeight,
         );
 
-        for (var res in classifiedResults) {
-          log("📸 SINGLE IMAGE RESULT:");
-          log("✅ ${res['object']} - ${res['vqr'] ?? res['freshness']} (${res['freshnessConfidence'].toStringAsFixed(2)}%) => ${res['freshnessStatus']}");
+        if (detections.isEmpty) {
+          log("❌ No objects detected.");
+          setState(() {
+            _isLoading = false;
+            _detectedObjects = [];
+          });
+          return;
         }
 
-        setState(() {
-          _detectedObjects = classifiedResults.map((res) {
-            final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-              res['object'] ?? 'unknown',
-              res['vqr'] ?? 'VQR-0',
-            );
+        final topDetection = detections
+            .reduce((a, b) => a['confidence'] > b['confidence'] ? a : b);
 
-            return {
-              'label': res['object'],
-              'confidence': res['confidence'],
-              'bbox': res['bbox'],
-              'freshness': res['freshness'],
-              'vqr': res['vqr'] ?? res['freshness'],
-              'freshnessConfidence': res['freshnessConfidence'],
-              'freshnessStatus': res['freshnessStatus'] ?? 'Unknown',
-              'explanation': res['explanation'] ?? 'No explanation available.',
-              'originalWidth': res['originalWidth'] ?? _originalWidth,
-              'originalHeight': res['originalHeight'] ?? _originalHeight,
+        final classified = await _modelService.classifyDetection(
+          imageBytes: imageBytes,
+          detection: topDetection,
+        );
+
+        final shelfInfo = _modelService.getShelfLifeAndRecommendation(
+          classified['object'] ?? 'unknown',
+          classified['vqr'] ?? 'VQR-0',
+        );
+
+        log("📸 SINGLE IMAGE RESULT:");
+        log("✅ ${classified['object']} - ${classified['vqr']} (${classified['freshnessConfidence'].toStringAsFixed(2)}%) => ${classified['freshnessStatus']}");
+
+        setState(() {
+          _detectedObjects = [
+            {
+              ...classified,
               'shelfLife': shelfInfo['shelfLife'],
               'recommendation': shelfInfo['recommendation'],
-            };
-          }).toList();
+            }
+          ];
           _isLoading = false;
         });
       }
+
     } catch (e) {
       log("⚠️ Error during inference: $e");
       setState(() {
@@ -633,7 +643,8 @@ Future<void> _runInference() async {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "${detected['label'] ?? 'Unknown'} - ${detected['freshness'] ?? 'Unknown'}",
+                                     "${detected['label'] ?? 'Unknown'} - ${detected['mergedFreshness'] ?? 'Unknown'}",
+
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
