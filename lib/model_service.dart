@@ -289,13 +289,13 @@ String interpretFreshness(double confidence, String vqrLabel) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
     if (vqr >= 7) {
-      return "🟢 Very Fresh – Firm and bright in color";
+      return "🟢 Very Fresh – Looks great and ready to use.";
     } else if (vqr >= 4) {
-      return "🟡 Slightly Old – Losing freshness but still usable";
+      return "🟡 Not So Fresh – Use it soon.";
     } else if (vqr >= 1) {
-      return "🔴 Spoiled – May no longer be safe to use";
+      return "🔴 Not Good – Better to throw it away.";
     } else {
-      return "⚠️ Unknown – Try scanning again";
+      return "⚠️ Not Sure – Try taking another photo.";
     }
   }
 
@@ -306,17 +306,15 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
     if (vqr >= 8) {
-      return "✅ This vegetable looks very healthy – bright, shiny, and firm.";
+      return "✅ This looks very fresh – shiny and firm.";
     } else if (vqr >= 4) {
-      return "⚠️ The vegetable may be soft or dull. It’s best to use it soon.";
+      return "⚠️ It might be starting to go bad. Use it soon.";
     } else if (vqr >= 1) {
-      return "❌ Signs of spoilage like wrinkling, mold, or bruises are visible.";
+      return "❌ This looks spoiled – soft, discolored, or moldy.";
     } else {
-      return "⚠️ The app could not determine freshness. Try a better photo.";
+      return "⚠️ Couldn’t tell. Try a clearer photo.";
     }
   }
-
-
 Map<String, String> getShelfLifeAndRecommendation(
     String label,
     String vqrLabel,
@@ -326,10 +324,8 @@ Map<String, String> getShelfLifeAndRecommendation(
     final int vqr =
         int.tryParse(vqrMatch.firstMatch(vqrLabel)?.group(1) ?? '') ?? -1;
 
-    // Fallback value if parsing failed
     final int effectiveVqr = vqr == -1 ? 1 : vqr;
 
-    // Normalize label to known types
     String matchedLabel = '';
     if (originalLabel.contains('eggplant')) {
       matchedLabel = 'eggplant';
@@ -341,56 +337,53 @@ Map<String, String> getShelfLifeAndRecommendation(
       matchedLabel = 'unknown';
     }
 
-    String shelfLife = '📆 Shelf life unknown';
-    String recommendation = '📌 No recommendation available.';
-
-    if (vqr == -1) {
-      log("⚠️ Could not parse valid VQR from label: $vqrLabel → using fallback VQR value: $effectiveVqr");
-    }
+    String shelfLife = '📆 Shelf life info not available';
+    String recommendation = '📌 No advice available.';
 
     switch (matchedLabel) {
       case 'eggplant':
         if (effectiveVqr >= 7) {
-          shelfLife = '📆 3–5 days in the fridge';
-          recommendation =
-              '✅ Store in the crisper drawer. Don’t wash before storing.';
+          shelfLife = '📆 Use within 3–5 days (keep in fridge)';
+          recommendation = '✅ Store in crisper. Don’t wash before storing.';
         } else if (effectiveVqr >= 4) {
-          shelfLife = '📆 1–2 days only';
-          recommendation = '⚠️ Use soon. It may already be soft or dull.';
-        } else if (effectiveVqr >= 1) {
-          shelfLife = '📆 0 days';
-          recommendation = '❌ Spoiled. Discard if soft or brown.';
+          shelfLife = '📆 Use within 1–2 days';
+          recommendation = '⚠️ Keep it in fridge. Use it soon.';
+        } else {
+          shelfLife = '📆 Not safe to keep';
+          recommendation = '❌ It may be spoiled. Throw it away.';
         }
         break;
 
       case 'tomato':
         if (effectiveVqr >= 7) {
-          shelfLife = '📆 4–7 days at room temp, up to 2 weeks in fridge';
-          recommendation = '✅ Let ripen at room temp. Refrigerate when ripe.';
+          shelfLife = '📆 4–7 days on counter, 2 weeks in fridge';
+          recommendation =
+              '✅ Let ripen at room temp. Store in fridge when ripe.';
         } else if (effectiveVqr >= 4) {
-          shelfLife = '📆 1–3 days';
-          recommendation = '⚠️ Use soon. May be overripe or bruised.';
-        } else if (effectiveVqr >= 1) {
-          shelfLife = '📆 0 days';
-          recommendation = '❌ Likely spoiled. Discard if leaking or smelly.';
+          shelfLife = '📆 Use in 1–3 days';
+          recommendation = '⚠️ Might be overripe. Eat it soon.';
+        } else {
+          shelfLife = '📆 Not safe to keep';
+          recommendation = '❌ Throw it away if soft or smelly.';
         }
         break;
 
       case 'potato':
         if (effectiveVqr >= 7) {
-          shelfLife = '📆 1–2 months in a cool, dark place';
-          recommendation = '✅ Store in a paper bag. Don’t refrigerate.';
+          shelfLife = '📆 1–2 months (cool, dark place)';
+          recommendation = '✅ Keep in paper bag. Don’t put in fridge.';
         } else if (effectiveVqr >= 4) {
-          shelfLife = '📆 1–2 weeks';
-          recommendation = '⚠️ Use soon. Check for sprouting or soft spots.';
-        } else if (effectiveVqr >= 1) {
-          shelfLife = '📆 0 days';
-          recommendation = '❌ May be toxic (green skin or sprouts). Discard.';
+          shelfLife = '📆 Use in 1–2 weeks';
+          recommendation = '⚠️ Use soon. Watch out for sprouts or soft spots.';
+        } else {
+          shelfLife = '📆 Not safe to keep';
+          recommendation = '❌ Might be bad. Discard if green or sprouting.';
         }
         break;
 
       default:
-        log("❌ No shelf life info found for label: '$label' → normalized as '$matchedLabel'");
+        shelfLife = '📆 Shelf life info not available';
+        recommendation = '📌 No advice available.';
     }
 
     return {
