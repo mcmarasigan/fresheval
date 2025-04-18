@@ -1,4 +1,5 @@
-// l10n.dart
+import 'package:flutter/foundation.dart';
+
 class AppLocalizations {
   final String languageCode;
 
@@ -6,7 +7,7 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> localizedStrings = {
     'en': {
-      // General (existing keys remain unchanged)
+      // General
       'settings': 'Settings',
       'language': 'Language',
       'clear scan history': 'Clear Scan History',
@@ -35,6 +36,9 @@ class AppLocalizations {
       'confirm_delete_selected_scans':
           'Are you sure you want to delete the selected scans?',
       'deleted': 'deleted',
+      'scans_deleted': 'Selected scans deleted.', // Added
+      'all_scans': 'All Scans', // Added
+      'bookmarks': 'Bookmarks', // Added
 
       // Confirmation Dialogs
       'confirm_clear_history':
@@ -79,9 +83,9 @@ class AppLocalizations {
           'Go to the Settings page and tap "Clear Scan History."',
       'faq6_title': '6. What types of food items can the app analyze?',
       'faq6_description':
-          'It supports following vegetables: eggplant, tomato, and potato.',
+          'It supports the following vegetables: eggplant, tomato, and potato.',
 
-      // Developers Page (new keys)
+      // Developers Page
       'developers_title': 'Developers',
       'about_developers': 'About the Developers',
       'developers_description':
@@ -98,7 +102,7 @@ class AppLocalizations {
       'contact_us': 'Contact Us',
       'website_label': 'Website',
 
-      // Developer Detail Page (new keys)
+      // Developer Detail Page
       'developer_details': 'Developer Details',
       'name_label': 'Name',
       'role_label': 'Role',
@@ -106,7 +110,7 @@ class AppLocalizations {
       'email_label': 'Email:',
     },
     'tl': {
-      // General (existing keys remain unchanged)
+      // General
       'settings': 'Mga Setting',
       'language': 'Wika',
       'clear scan history': 'Burahin ang Kasaysayan ng Scan',
@@ -135,6 +139,9 @@ class AppLocalizations {
       'confirm_delete_selected_scans':
           'Sigurado ka bang nais mong burahin ang mga napiling scan?',
       'deleted': 'nabura',
+      'scans_deleted': 'Nabura ang mga napiling scan.', // Added
+      'all_scans': 'Lahat ng Scan', // Added
+      'bookmarks': 'Mga Bookmark', // Added
 
       // Confirmation Dialogs
       'confirm_clear_history':
@@ -181,24 +188,24 @@ class AppLocalizations {
       'faq6_description':
           'Sumusuporta ito sa mga gulay: talong, kamatis, at patatas.',
 
-      // Developers Page (new keys)
+      // Developers Page
       'developers_title': 'Mga Developer',
       'about_developers': 'Tungkol sa Mga Developer',
       'developers_description':
           'Kilalanin ang koponan sa likod ng FreshEval, na nakatuon sa pagbibigay ng pinakamahusay na pagtukoy sa pagiging sariwa ng gulay.',
       'team_members': 'Mga Miyembro ng Koponan',
       'member1_name': 'Ma. Clarissa Marasigan',
-      'member1_role': 'Main Programmer',
+      'member1_role': 'Pangunahing Programmer',
       'member2_name': 'Vhon Joshua Agbayani',
-      'member2_role': 'AI Specialist',
+      'member2_role': 'Eksperto sa AI',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
       'member4_name': 'Clark Czedrick Limson',
-      'member4_role': 'UI/UX Designer',
-      'contact_us': 'Contact Us',
+      'member4_role': 'Designer ng UI/UX',
+      'contact_us': 'Makipag-ugnayan Sa Amin',
       'website_label': 'Website',
 
-      // Developer Detail Page (new keys)
+      // Developer Detail Page
       'developer_details': 'Mga Detalye ng Developer',
       'name_label': 'Pangalan',
       'role_label': 'Tungkulin',
@@ -208,8 +215,13 @@ class AppLocalizations {
   };
 
   String getTranslation(String key) {
-    return localizedStrings[languageCode]?[key] ??
+    final translation = localizedStrings[languageCode]?[key] ??
         localizedStrings['en']?[key] ??
-        'Translation missing for $key';
+        '';
+    if (translation.isEmpty) {
+      debugPrint(
+          'Translation missing for key: $key in language: $languageCode');
+    }
+    return translation;
   }
 }

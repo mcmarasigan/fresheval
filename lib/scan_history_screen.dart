@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'l10n.dart';
+import 'dart:ui';
 
 class ScanHistoryScreen extends StatefulWidget {
   final AppLocalizations localizations;
@@ -38,35 +39,32 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
     final prefs = await SharedPreferences.getInstance();
     final scanData = prefs.getStringList('recent_scans') ?? [];
 
-    setState(() {
-      scanHistory = scanData.map((scan) {
-        final decoded = json.decode(scan) as Map<String, dynamic>;
+    scanHistory = scanData.map((scan) {
+      final decoded = json.decode(scan) as Map<String, dynamic>;
 
-        return {
-          'imagePath': decoded['imagePath']?.toString(),
-          'frontImagePath': decoded['frontImagePath']?.toString(),
-          'backImagePath': decoded['backImagePath']?.toString(),
-          'isMultiAngle': decoded['isMultiAngle'] ?? false,
-          'bookmarked': decoded['bookmarked'] ?? false,
-          'objects': decoded.containsKey('objects') &&
-                  decoded['objects'] != null
-              ? List<Map<String, dynamic>>.from(decoded['objects'])
-                  .where((obj) =>
-                      obj.isNotEmpty &&
-                      (obj['bbox'] != null && (obj['bbox'] as List).isNotEmpty))
-                  .toList()
-              : [],
-          'date': decoded.containsKey('date')
-              ? decoded['date'].toString()
-              : "Unknown",
-          'time': decoded.containsKey('time')
-              ? decoded['time'].toString()
-              : "Unknown",
-        };
-      }).toList();
+      return {
+        'imagePath': decoded['imagePath']?.toString(),
+        'frontImagePath': decoded['frontImagePath']?.toString(),
+        'backImagePath': decoded['backImagePath']?.toString(),
+        'isMultiAngle': decoded['isMultiAngle'] ?? false,
+        'bookmarked': decoded['bookmarked'] ?? false,
+        'objects': decoded.containsKey('objects') && decoded['objects'] != null
+            ? List<Map<String, dynamic>>.from(decoded['objects'])
+                .where((obj) =>
+                    obj.isNotEmpty &&
+                    (obj['bbox'] != null && (obj['bbox'] as List).isNotEmpty))
+                .toList()
+            : [],
+        'date': decoded.containsKey('date')
+            ? decoded['date'].toString()
+            : "Unknown",
+        'time': decoded.containsKey('time')
+            ? decoded['time'].toString()
+            : "Unknown",
+      };
+    }).toList();
 
-      _filterScanHistory('');
-    });
+    _filterScanHistory('');
   }
 
   void _filterScanHistory(String query) {
@@ -95,6 +93,26 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
 
       selectedItems = List.generate(filteredScanHistory.length, (_) => false);
     });
+  }
+
+  Future<void> _toggleBookmark(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    final scan = filteredScanHistory[index];
+    final scanIndex = scanHistory.indexWhere((s) =>
+        s['imagePath'] == scan['imagePath'] &&
+        s['date'] == scan['date'] &&
+        s['time'] == scan['time']);
+
+    if (scanIndex != -1) {
+      setState(() {
+        scanHistory[scanIndex]['bookmarked'] =
+            !(scanHistory[scanIndex]['bookmarked'] ?? false);
+        _filterScanHistory(_searchController.text);
+      });
+
+      await prefs.setStringList('recent_scans',
+          scanHistory.map((scan) => json.encode(scan)).toList());
+    }
   }
 
   void _confirmDelete() {
@@ -144,8 +162,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-            '${widget.localizations.getTranslation('scan history')} ${widget.localizations.getTranslation('deleted')}'),
+        content: Text(widget.localizations.getTranslation('scans_deleted')),
       ),
     );
   }
@@ -172,7 +189,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
             return IconButton(
               icon: Icon(
                 Icons.menu,
-                color: greenColor, // Changed to green
+                color: greenColor,
                 size: 30,
               ),
               onPressed: () {
@@ -183,7 +200,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
         ),
         title: Text(
           widget.localizations.getTranslation('scan history'),
-          style: TextStyle(color: greenColor), // Changed to green
+          style: TextStyle(color: greenColor),
         ),
       ),
       body: Column(
@@ -195,23 +212,21 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
               controller: _searchController,
               decoration: InputDecoration(
                 labelText: widget.localizations.getTranslation('search'),
-                labelStyle: TextStyle(color: greenColor), // Changed to green
+                labelStyle: TextStyle(color: greenColor),
                 hintText: widget.localizations
                     .getTranslation('Search by Date and Time'),
-                prefixIcon:
-                    Icon(Icons.search, color: greenColor), // Changed to green
+                prefixIcon: Icon(Icons.search, color: greenColor),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide(color: greenColor), // Changed to green
+                  borderSide: BorderSide(color: greenColor),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide(color: greenColor), // Changed to green
+                  borderSide: BorderSide(color: greenColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide(
-                      color: greenColor, width: 2), // Changed to green
+                  borderSide: BorderSide(color: greenColor, width: 2),
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
               ),
@@ -220,7 +235,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
           TabBar(
             controller: _tabController,
             labelColor: greenColor,
-            unselectedLabelColor: grayColor, // Changed to gray
+            unselectedLabelColor: grayColor,
             labelStyle: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -234,8 +249,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
               _filterScanHistory(_searchController.text);
             },
             tabs: [
-              Tab(text: "ALL SCANS"),
-              Tab(text: "BOOKMARKS"),
+              Tab(text: widget.localizations.getTranslation('all_scans')),
+              Tab(text: widget.localizations.getTranslation('bookmarks')),
             ],
           ),
           Expanded(
@@ -243,7 +258,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                 ? Center(
                     child: Text(
                       widget.localizations.getTranslation('no scans available'),
-                      style: TextStyle(color: grayColor), // Changed to gray
+                      style: TextStyle(color: grayColor),
                     ),
                   )
                 : GridView.builder(
@@ -269,6 +284,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                       final vqr = objectCount > 0
                           ? (scan['objects'][0]['vqr'] ?? 8)
                           : 8;
+                      final isBookmarked = scan['bookmarked'] ?? false;
 
                       return GestureDetector(
                         onTap: () {
@@ -297,9 +313,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                           elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.0),
-                            side: BorderSide(
-                                color: greenColor,
-                                width: 1), // Changed to green
+                            side: BorderSide(color: greenColor, width: 1),
                           ),
                           child: Stack(
                             children: [
@@ -355,6 +369,23 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                                     ),
                                   ),
                                 ],
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: IconButton(
+                                  icon: Icon(
+                                    isBookmarked
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    color: isBookmarked
+                                        ? Colors.yellow[700]
+                                        : Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    _toggleBookmark(index);
+                                  },
+                                ),
                               ),
                               if (showDeleteMode)
                                 Positioned(
@@ -426,6 +457,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
   Widget _buildDrawer(BuildContext context) {
     const Color selectedColor = Color(0xFF059212);
     const Color unselectedColor = Color(0xFF787878);
+    const Color greenColor = Color(0xFF059212);
 
     bool isRouteActive(String routeName) {
       return ModalRoute.of(context)?.settings.name == routeName;
@@ -437,7 +469,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
           Container(
             height: 120,
             width: double.infinity,
-            color: Colors.green,
+            color: greenColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: SafeArea(
               child: Row(
@@ -606,8 +638,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
     );
   }
 }
-
-/// **Full View Screen**
 
 class ScanDetailScreen extends StatelessWidget {
   final Map<String, dynamic> scan;
@@ -947,7 +977,11 @@ class ScanDetailScreen extends StatelessWidget {
   }
 
   Future<Size> _getImageSize(File imageFile) async {
-    final decoded = await decodeImageFromList(imageFile.readAsBytesSync());
-    return Size(decoded.width.toDouble(), decoded.height.toDouble());
+    try {
+      final decoded = await decodeImageFromList(imageFile.readAsBytesSync());
+      return Size(decoded.width.toDouble(), decoded.height.toDouble());
+    } catch (e) {
+      return const Size(640, 640); // Fallback size
+    }
   }
 }
