@@ -87,8 +87,11 @@ class ModelService {
 
  
 
-  Future<List<Map<String, dynamic>>> detectObjects(
-      Uint8List imageBytes, double imageWidth, double imageHeight) async {
+ Future<List<Map<String, dynamic>>> detectObjects(
+    Uint8List imageBytes,
+    double imageWidth,
+    double imageHeight,
+  ) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
       return [];
@@ -101,20 +104,12 @@ class ModelService {
       final double originalWidth = originalImage.width.toDouble();
       final double originalHeight = originalImage.height.toDouble();
 
-      // 🔁 Resize for YOLO input
-      final img.Image resizedImage = img.copyResize(originalImage,
-          width: _yoloInputSize.toInt(), height: _yoloInputSize.toInt());
-
-      final Uint8List resizedBytes =
-          Uint8List.fromList(img.encodeJpg(resizedImage));
-
       log("📏 Original Image: ${originalWidth}x${originalHeight}");
-      log("📏 YOLO Input Image: 640x640");
 
       final detections = await _flutterVision.yoloOnImage(
-        bytesList: resizedBytes,
-        imageHeight: _yoloInputSize.toInt(),
-        imageWidth: _yoloInputSize.toInt(),
+        bytesList: imageBytes,
+        imageHeight: originalHeight.toInt(),
+        imageWidth: originalWidth.toInt(),
         iouThreshold: 0.4,
         confThreshold: 0.5,
       );
@@ -126,20 +121,15 @@ class ModelService {
         return [];
       }
 
-      // 🧠 Scale bbox back to original dimensions
       return detections
           .map((detection) {
             final bbox = detection['box'];
             if (bbox.length < 5) return null;
 
-            final double scaleX = originalWidth / _yoloInputSize;
-            final double scaleY = originalHeight / _yoloInputSize;
-
-            final double xMin = bbox[0] * scaleX;
-            final double yMin = bbox[1] * scaleY;
-            final double xMax = bbox[2] * scaleX;
-            final double yMax = bbox[3] * scaleY;
-
+            final double xMin = bbox[0];
+            final double yMin = bbox[1];
+            final double xMax = bbox[2];
+            final double yMax = bbox[3];
             final double confidence = bbox[4] * 100;
 
             return {
@@ -157,6 +147,7 @@ class ModelService {
       return [];
     }
   }
+
 
 Future<Map<String, dynamic>> classifyDetection({
     required Uint8List imageBytes,

@@ -274,8 +274,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
     try {
       final image = await _cameraController!.takePicture();
-      final resizedPath = await _resizeToFit(image.path);
-      final resizedFile = File(resizedPath);
+      final resizedFile = File(image.path);
 
       if (!_isCapturingBack) {
         setState(() {
@@ -323,25 +322,7 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<String> _resizeToFit(String imagePath) async {
-    final File imageFile = File(imagePath);
-    final img.Image? originalImage =
-        img.decodeImage(await imageFile.readAsBytes());
-
-    if (originalImage == null) {
-      print("❌ Failed to decode image for resizing: $imagePath");
-      return imagePath;
-    }
-
-    final img.Image resized = img.copyResize(originalImage, width: 640);
-
-    final String resizedPath =
-        '${imageFile.parent.path}/resized_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-    await File(resizedPath).writeAsBytes(img.encodeJpg(resized));
-
-    return resizedPath;
-  }
+  
 
   Future<void> _pickImageFromGallery() async {
     final picker = ImagePicker();
@@ -398,8 +379,8 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
 
-    final resizedFront = await _resizeToFit(frontImage.path);
-    final resizedBack = await _resizeToFit(backImage.path);
+   final resizedFront = frontImage.path;
+    final resizedBack = backImage.path;
 
     print(
         "📸 Navigating to ScanResultScreen with front: $resizedFront, back: $resizedBack");
