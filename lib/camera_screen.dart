@@ -416,10 +416,19 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           if (_isCameraInitialized && _cameraController != null)
             Positioned.fill(
-              child: CameraPreview(_cameraController!),
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _cameraController!.value.previewSize!.height,
+                  height: _cameraController!.value.previewSize!.width,
+                  child: CameraPreview(_cameraController!),
+                ),
+              ),
             )
           else
             const Center(child: CircularProgressIndicator()),
+
+
           // Hamburger Menu Icon
           Positioned(
             top: 50,

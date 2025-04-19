@@ -98,51 +98,33 @@ class ModelService {
     }
 
     try {
-      // Decode to get original dimensions
       final img.Image? originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) return [];
 
       final double originalWidth = originalImage.width.toDouble();
       final double originalHeight = originalImage.height.toDouble();
-
       log("📏 Original Image: ${originalWidth}x${originalHeight}");
 
-      // Resize to 640x640 (YOLOv8 requirement)
-      final img.Image resizedImage = img.copyResize(originalImage,
-          width: _yoloInputSize.toInt(), height: _yoloInputSize.toInt());
-
-      final Uint8List resizedBytes =
-          Uint8List.fromList(img.encodeJpg(resizedImage));
-
-      // Run YOLOv8 detection on resized image
+      // Don't manually resize, plugin handles it internally
       final detections = await _flutterVision.yoloOnImage(
-        bytesList: resizedBytes,
-        imageHeight: _yoloInputSize.toInt(),
-        imageWidth: _yoloInputSize.toInt(),
+        bytesList: imageBytes,
+        imageHeight: originalHeight.toInt(),
+        imageWidth: originalWidth.toInt(),
         iouThreshold: 0.4,
         confThreshold: 0.5,
       );
 
       log("🔍 YOLOv8 Raw Detections: $detections");
 
-      if (detections.isEmpty) {
-        log("⚠️ No objects detected.");
-        return [];
-      }
-
-      // Scale bbox back to original size
-      final double scaleX = originalWidth / _yoloInputSize;
-      final double scaleY = originalHeight / _yoloInputSize;
-
       return detections
           .map((detection) {
             final bbox = detection['box'];
             if (bbox.length < 5) return null;
 
-            final double xMin = bbox[0] * scaleX;
-            final double yMin = bbox[1] * scaleY;
-            final double xMax = bbox[2] * scaleX;
-            final double yMax = bbox[3] * scaleY;
+            final double xMin = bbox[0];
+            final double yMin = bbox[1];
+            final double xMax = bbox[2];
+            final double yMax = bbox[3];
             final double confidence = bbox[4] * 100;
 
             return {
@@ -202,7 +184,7 @@ Future<Map<String, dynamic>> classifyDetection({
 
 String getFreshnessLabel(String vqrLabel) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
-    if (vqr >= 4) return "Fresh";
+    if (vqr >= 5) return "Fresh";
     if (vqr >= 1) return "Rotten";
     return "❓ Not sure – try taking another photo";
   }
