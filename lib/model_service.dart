@@ -275,15 +275,16 @@ String interpretFreshness(double confidence, String vqrLabel) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
     if (vqr >= 8) {
-      return "🟢 Fresh – Looks great and ready to use.";
+      return "🟢 Fresh";
     } else if (vqr >= 5) {
-      return "🟡 Slightly Fresh – Use it soon.";
+      return "🟡 Slightly Fresh";
     } else if (vqr >= 1) {
-      return "🔴 Not Good – Better to throw it away.";
+      return "🔴 Not Good";
     } else {
-      return "⚠️ Not Sure – Try taking another photo.";
+      return "⚠️ Not Sure";
     }
   }
+
 
 
 
@@ -291,15 +292,16 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
     if (vqr >= 8) {
-      return "✅ Looks fresh – shiny, firm, and vibrant.";
+      return "✅ It appears shiny, firm, and vibrant.";
     } else if (vqr >= 5) {
-      return "⚠️ Might be starting to go bad – soft spots or dull skin.";
+      return "⚠️ May show signs of soft spots or dull skin.";
     } else if (vqr >= 1) {
-      return "❌ Likely spoiled – soft, wrinkled, or with visible mold.";
+      return "❌ Visible signs of spoilage like wrinkles or mold.";
     } else {
-      return "❓ We couldn't analyze the image properly. Try again with better lighting or focus.";
+      return "❓ Image quality may be poor. Try a clearer photo.";
     }
   }
+
 
 
 
@@ -308,9 +310,9 @@ Map<String, String> getShelfLifeAndRecommendation(
     String vqrLabel,
   ) {
     String originalLabel = label.toLowerCase().trim();
-    final RegExp vqrMatch = RegExp(r"(\d+)");
     final int vqr =
-        int.tryParse(vqrMatch.firstMatch(vqrLabel)?.group(1) ?? '') ?? -1;
+        int.tryParse(RegExp(r"(\d+)").firstMatch(vqrLabel)?.group(1) ?? '') ??
+            -1;
     final int effectiveVqr = vqr == -1 ? 0 : vqr;
 
     String matchedLabel = '';
@@ -334,54 +336,51 @@ Map<String, String> getShelfLifeAndRecommendation(
           recommendation = '✅ Store in crisper. Don’t wash before storing.';
         } else if (effectiveVqr >= 5) {
           shelfLife = '📆 Use within 1–2 days';
-          recommendation = '⚠️ Use soon. Keep in fridge.';
+          recommendation = '⚠️ Keep in fridge. Use it soon.';
         } else if (effectiveVqr >= 1) {
           shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Likely spoiled. Best to throw it away.';
+          recommendation = '❌ Throw it away.';
         } else {
-          shelfLife = '📆 Shelf life could not be assessed';
-          recommendation = '❓ Try retaking the photo with better lighting.';
+          shelfLife = '📆 Couldn’t assess shelf life';
+          recommendation = '❓ Retake photo with better lighting.';
         }
         break;
 
       case 'tomato':
         if (effectiveVqr >= 8) {
           shelfLife = '📆 4–7 days on counter, up to 2 weeks in fridge';
-          recommendation =
-              '✅ Let ripen at room temp. Store in fridge when ripe.';
+          recommendation = '✅ Let ripen on counter. Store in fridge when ripe.';
         } else if (effectiveVqr >= 5) {
           shelfLife = '📆 Use in 1–3 days';
-          recommendation = '⚠️ Eat soon. May be slightly overripe.';
+          recommendation = '⚠️ Might be overripe. Eat soon.';
         } else if (effectiveVqr >= 1) {
           shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Spoiled. Throw away if soft or smelly.';
+          recommendation = '❌ Discard if soft or smelly.';
         } else {
-          shelfLife = '📆 Shelf life could not be assessed';
-          recommendation = '❓ Retake photo. Ensure good lighting and focus.';
+          shelfLife = '📆 Couldn’t assess shelf life';
+          recommendation = '❓ Try again with a clearer image.';
         }
         break;
 
       case 'potato':
         if (effectiveVqr >= 8) {
           shelfLife = '📆 1–2 months (cool, dark place)';
-          recommendation = '✅ Keep in paper bag. Do not refrigerate.';
+          recommendation = '✅ Store in paper bag. Don’t refrigerate.';
         } else if (effectiveVqr >= 5) {
           shelfLife = '📆 Use within 1–2 weeks';
-          recommendation = '⚠️ Use soon. Watch for sprouts or soft spots.';
+          recommendation = '⚠️ Use soon. Check for sprouts or soft spots.';
         } else if (effectiveVqr >= 1) {
           shelfLife = '📆 Not safe to keep';
-          recommendation =
-              '❌ May be bad. Discard if green, sprouting, or mushy.';
+          recommendation = '❌ Discard if green, mushy, or sprouting.';
         } else {
-          shelfLife = '📆 Shelf life could not be assessed';
-          recommendation = '❓ Try retaking the image under better conditions.';
+          shelfLife = '📆 Couldn’t assess shelf life';
+          recommendation = '❓ Retake photo under better conditions.';
         }
         break;
 
       default:
-        shelfLife = '📆 Shelf life could not be assessed';
-        recommendation =
-            '📌 Unknown item. Please retake photo or try another item.';
+        shelfLife = '📆 Shelf life not available';
+        recommendation = '📌 Please retake the photo or try another item.';
     }
 
     return {
@@ -389,6 +388,7 @@ Map<String, String> getShelfLifeAndRecommendation(
       'recommendation': recommendation,
     };
   }
+
 
 
   double _calculateAverageBrightness(Uint8List imageBytes) {
