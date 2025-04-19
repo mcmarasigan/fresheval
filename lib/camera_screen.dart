@@ -79,6 +79,72 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  void _showFloatingPrompt(String message) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+    final opacityNotifier = ValueNotifier<double>(0.0); // For fade animation
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).size.height * 0.15,
+        left: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: Center(
+            child: ValueListenableBuilder<double>(
+              valueListenable: opacityNotifier,
+              builder: (context, opacity, _) {
+                return AnimatedOpacity(
+                  opacity: opacity,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    // Fade in
+    opacityNotifier.value = 1.0;
+
+    // Wait, then fade out
+    Future.delayed(const Duration(seconds: 2), () async {
+      opacityNotifier.value = 0.0;
+      await Future.delayed(const Duration(milliseconds: 300));
+      overlayEntry.remove();
+    });
+  }
+
+  void _resetFrontImage() {
+    setState(() {
+      _frontImage = null;
+      _isCapturingBack = false;
+    });
+    _showFloatingPrompt("🔄 Front image reset. You can retake.");
+  }
+
+
   Future<void> _showInstructionPrompt() async {
     final prefs = await SharedPreferences.getInstance();
     bool dontShowAgain = !(prefs.getBool('showCameraTips') ?? true);
@@ -286,17 +352,13 @@ class _CameraScreenState extends State<CameraScreen> {
       final resizedFile = File(image.path);
 
       if (!_isCapturingBack) {
-        setState(() {
-          _frontImage = resizedFile;
-          _isCapturingBack = true;
-        });
+          setState(() {
+            _frontImage = resizedFile;
+            _isCapturingBack = true;
+          });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ Front image captured. Now take the back image."),
-          ),
-        );
-      } else {
+          _showFloatingPrompt("✅ Front image captured. Now take the back image.");
+        } else {
         setState(() {
           _backImage = resizedFile;
           _isCapturingBack = false;
@@ -603,6 +665,33 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
+                    // Retake Button (shows after front image is taken)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            top: _isCapturingBack ? 120 : -100, // offscreen when false
+            right: 20,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isCapturingBack ? 1.0 : 0.0,
+              child: GestureDetector(
+                onTap: _resetFrontImage,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.refresh, // or Icons.undo
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
         ],
       ),
     );
