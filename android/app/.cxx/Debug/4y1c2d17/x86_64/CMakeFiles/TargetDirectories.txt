@@ -1,0 +1,2 @@
+C:/Users/Clark/Documents/Fresh Eval/fresheval/android/app/.cxx/Debug/4y1c2d17/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Clark/Documents/Fresh Eval/fresheval/android/app/.cxx/Debug/4y1c2d17/x86_64/CMakeFiles/rebuild_cache.dir

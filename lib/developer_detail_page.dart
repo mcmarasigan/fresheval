@@ -23,10 +23,11 @@ class DeveloperDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color greenColor = Color(0xFF059212);
     return Scaffold(
       appBar: AppBar(
         title: Text(name),
-        backgroundColor: const Color(0xFF00BFA6),
+        backgroundColor: Colors.green,
         elevation: 0,
       ),
       body: Padding(
@@ -40,13 +41,14 @@ class DeveloperDetailPage extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF00BFA6),
+                  color: greenColor,
                 ),
               ),
               const SizedBox(height: 16),
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
+                  side: BorderSide(color: greenColor, width: 1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Padding(

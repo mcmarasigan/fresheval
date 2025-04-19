@@ -469,7 +469,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
           Container(
             height: 120,
             width: double.infinity,
-            color: greenColor,
+            color: Colors.green,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: SafeArea(
               child: Row(

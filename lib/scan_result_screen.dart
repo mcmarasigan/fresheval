@@ -234,10 +234,22 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       'time': formattedTime,
     });
 
-    scanData.add(newScan);
-    await prefs.setStringList('recent_scans', scanData);
+    //check if the scan is already saved
+    bool alreadyExists = scanData.any((entry) {
+      final decoded =json.decode(entry);
+      return decoded['imagePath'] == widget.imagePath &&
+        decoded['frontImagePath'] == widget.frontImagePath &&
+        decoded['backImagePath'] == widget.backImagePath &&
+        decoded['isMultiAngle'] == widget.isMultiAngle;
+    });
 
-    _showSaveDialog();
+    if (alreadyExists) {
+      _showDuplicateDialog();
+    } else {
+      scanData.add(newScan);
+      await prefs.setStringList('recent_scans', scanData);
+      _showSaveDialog();
+    }
   }
 
   void _showSaveDialog() {
@@ -254,6 +266,20 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         ],
       ),
     );
+  }
+
+  void _showDuplicateDialog() {
+    showDialog(
+      context: context, 
+      builder: (context) => AlertDialog(
+        title: const Text('Already Saved'),
+        content: const Text('This scan result has already been saved to scan history.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text ('Ok'),)
+        ],
+      ));
   }
 
   Future<Size> _getImageSize(File imageFile) async {
