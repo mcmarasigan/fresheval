@@ -85,13 +85,8 @@ class ModelService {
     }
   }
 
- 
-
- Future<List<Map<String, dynamic>>> detectObjects(
-    Uint8List imageBytes,
-    double imageWidth,
-    double imageHeight,
-  ) async {
+  Future<List<Map<String, dynamic>>> detectObjects(
+      Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
       log("⚠️ Models not loaded yet.");
       return [];
@@ -99,33 +94,86 @@ class ModelService {
 
     try {
       final img.Image? originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) return [];
+      if (originalImage == null) {
+        log("⚠️ Failed to decode image.");
+        return [];
+      }
 
       final double originalWidth = originalImage.width.toDouble();
       final double originalHeight = originalImage.height.toDouble();
-      log("📏 Original Image: ${originalWidth}x${originalHeight}");
 
-      // Don't manually resize, plugin handles it internally
+      // Calculate scaling to fit 640x640 while preserving aspect ratio
+      final double scale = math.min(
+          _yoloInputSize / originalWidth, _yoloInputSize / originalHeight);
+      final int newWidth = (originalWidth * scale).round();
+      final int newHeight = (originalHeight * scale).round();
+
+      // Resize the image
+      final img.Image resizedImage =
+          img.copyResize(originalImage, width: newWidth, height: newHeight);
+
+      // Create a 640x640 canvas
+      final img.Image canvas =
+          img.Image(_yoloInputSize.toInt(), _yoloInputSize.toInt());
+      img.fill(canvas, img.getColor(0, 0, 0));
+
+      // Calculate offsets to center the image
+      final int offsetX = ((_yoloInputSize - newWidth) / 2).round();
+      final int offsetY = ((_yoloInputSize - newHeight) / 2).round();
+
+      // Copy the resized image onto the canvas
+      img.copyInto(canvas, resizedImage, dstX: offsetX, dstY: offsetY);
+
+      final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(canvas));
+
+      log("📏 Original Image: ${originalWidth}x${originalHeight}");
+      log("📏 YOLO Input Image: 640x640 (resized: ${newWidth}x${newHeight}, offset: ${offsetX}x${offsetY})");
+
       final detections = await _flutterVision.yoloOnImage(
-        bytesList: imageBytes,
-        imageHeight: originalHeight.toInt(),
-        imageWidth: originalWidth.toInt(),
+        bytesList: resizedBytes,
+        imageHeight: _yoloInputSize.toInt(),
+        imageWidth: _yoloInputSize.toInt(),
         iouThreshold: 0.4,
         confThreshold: 0.5,
       );
 
       log("🔍 YOLOv8 Raw Detections: $detections");
 
+      if (detections.isEmpty) {
+        log("⚠️ No objects detected.");
+        return [];
+      }
+
+      // Scale bounding box coordinates back to original dimensions
       return detections
           .map((detection) {
             final bbox = detection['box'];
-            if (bbox.length < 5) return null;
+            if (bbox.length < 5) {
+              log("⚠️ Invalid bbox format: $bbox");
+              return null;
+            }
 
-            final double xMin = bbox[0];
-            final double yMin = bbox[1];
-            final double xMax = bbox[2];
-            final double yMax = bbox[3];
-            final double confidence = bbox[4] * 100;
+            // YOLOv8 outputs [xMin, yMin, xMax, yMax, confidence]
+            double xMin = bbox[0].toDouble();
+            double yMin = bbox[1].toDouble();
+            double xMax = bbox[2].toDouble();
+            double yMax = bbox[3].toDouble();
+            final double confidence = bbox[4].toDouble() * 100;
+
+            // Adjust for padding and scaling
+            xMin = ((xMin - offsetX) / scale).clamp(0.0, originalWidth);
+            yMin = ((yMin - offsetY) / scale).clamp(0.0, originalHeight);
+            xMax = ((xMax - offsetX) / scale).clamp(0.0, originalWidth);
+            yMax = ((yMax - offsetY) / scale).clamp(0.0, originalHeight);
+
+            // Log adjusted coordinates
+            log("📍 Adjusted bbox for ${detection['tag']}: [xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax], confidence=$confidence");
+
+            // Ensure valid bounding box
+            if (xMin >= xMax || yMin >= yMax) {
+              log("⚠️ Invalid bbox dimensions: xMin=$xMin, xMax=$xMax, yMin=$yMin, yMax=$yMax");
+              return null;
+            }
 
             return {
               'label': detection['tag'],
@@ -143,8 +191,7 @@ class ModelService {
     }
   }
 
-
-Future<Map<String, dynamic>> classifyDetection({
+  Future<Map<String, dynamic>> classifyDetection({
     required Uint8List imageBytes,
     required Map<String, dynamic> detection,
   }) async {
@@ -180,15 +227,12 @@ Future<Map<String, dynamic>> classifyDetection({
     };
   }
 
-
-
-String getFreshnessLabel(String vqrLabel) {
+  String getFreshnessLabel(String vqrLabel) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
-    if (vqr >= 5) return "Fresh";
+    if (vqr >= 4) return "Fresh";
     if (vqr >= 1) return "Rotten";
-    return "❓ Not sure – try taking another photo";
+    return "Unknown";
   }
-
 
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
@@ -228,10 +272,20 @@ String getFreshnessLabel(String vqrLabel) {
     double xMax = bbox[2];
     double yMax = bbox[3];
 
+    // Clamp coordinates to image boundaries
+    xMin = xMin.clamp(0.0, imageWidth);
+    yMin = yMin.clamp(0.0, imageHeight);
+    xMax = xMax.clamp(0.0, imageWidth);
+    yMax = yMax.clamp(0.0, imageHeight);
+
     int cropX = xMin.round();
     int cropY = yMin.round();
     int cropW = (xMax - xMin).round();
     int cropH = (yMax - yMin).round();
+
+    // Ensure positive dimensions
+    cropW = cropW > 0 ? cropW : 1;
+    cropH = cropH > 0 ? cropH : 1;
 
     final img.Image cropped =
         img.copyCrop(originalImage, cropX, cropY, cropW, cropH);
@@ -271,49 +325,42 @@ String getFreshnessLabel(String vqrLabel) {
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
-String interpretFreshness(double confidence, String vqrLabel) {
+  String interpretFreshness(double confidence, String vqrLabel) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
-    if (vqr >= 8) {
-      return "🟢 Fresh";
-    } else if (vqr >= 5) {
-      return "🟡 Slightly Fresh";
+    if (vqr >= 7) {
+      return "🟢 Very Fresh – Looks great and ready to use.";
+    } else if (vqr >= 4) {
+      return "🟡 Not So Fresh – Use it soon.";
     } else if (vqr >= 1) {
-      return "🔴 Not Good";
+      return "🔴 Not Good – Better to throw it away.";
     } else {
-      return "⚠️ Not Sure";
+      return "⚠️ Not Sure – Try taking another photo.";
     }
   }
 
-
-
-
-String getPredictionExplanation(String vqrLabel, double confidence) {
+  String getPredictionExplanation(String vqrLabel, double confidence) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
-    if (vqr >= 8) {
-      return "✅ It appears shiny, firm, and vibrant.";
-    } else if (vqr >= 5) {
-      return "⚠️ May show signs of soft spots or dull skin.";
+    if (vqr >= 7) {
+      return "✅ This looks very fresh – shiny and firm.";
+    } else if (vqr >= 4) {
+      return "⚠️ It might be starting to go bad. Use it soon.";
     } else if (vqr >= 1) {
-      return "❌ Visible signs of spoilage like wrinkles or mold.";
+      return "❌ This looks spoiled – soft, discolored, or moldy.";
     } else {
-      return "❓ Image quality may be poor. Try a clearer photo.";
+      return "⚠️ Couldn’t tell. Try a clearer photo.";
     }
   }
 
-
-
-
-Map<String, String> getShelfLifeAndRecommendation(
-    String label,
-    String vqrLabel,
-  ) {
+  Map<String, String> getShelfLifeAndRecommendation(
+      String label, String vqrLabel) {
     String originalLabel = label.toLowerCase().trim();
+    final RegExp vqrMatch = RegExp(r"(\d+)");
     final int vqr =
-        int.tryParse(RegExp(r"(\d+)").firstMatch(vqrLabel)?.group(1) ?? '') ??
-            -1;
-    final int effectiveVqr = vqr == -1 ? 0 : vqr;
+        int.tryParse(vqrMatch.firstMatch(vqrLabel)?.group(1) ?? '') ?? -1;
+
+    final int effectiveVqr = vqr == -1 ? 1 : vqr;
 
     String matchedLabel = '';
     if (originalLabel.contains('eggplant')) {
@@ -331,56 +378,48 @@ Map<String, String> getShelfLifeAndRecommendation(
 
     switch (matchedLabel) {
       case 'eggplant':
-        if (effectiveVqr >= 8) {
+        if (effectiveVqr >= 7) {
           shelfLife = '📆 Use within 3–5 days (keep in fridge)';
           recommendation = '✅ Store in crisper. Don’t wash before storing.';
-        } else if (effectiveVqr >= 5) {
+        } else if (effectiveVqr >= 4) {
           shelfLife = '📆 Use within 1–2 days';
-          recommendation = '⚠️ Keep in fridge. Use it soon.';
-        } else if (effectiveVqr >= 1) {
-          shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Throw it away.';
+          recommendation = '⚠️ Keep it in fridge. Use it soon.';
         } else {
-          shelfLife = '📆 Couldn’t assess shelf life';
-          recommendation = '❓ Retake photo with better lighting.';
+          shelfLife = '📆 Not safe to keep';
+          recommendation = '❌ It may be spoiled. Throw it away.';
         }
         break;
 
       case 'tomato':
-        if (effectiveVqr >= 8) {
-          shelfLife = '📆 4–7 days on counter, up to 2 weeks in fridge';
-          recommendation = '✅ Let ripen on counter. Store in fridge when ripe.';
-        } else if (effectiveVqr >= 5) {
+        if (effectiveVqr >= 7) {
+          shelfLife = '📆 4–7 days on counter, 2 weeks in fridge';
+          recommendation =
+              '✅ Let ripen at room temp. Store in fridge when ripe.';
+        } else if (effectiveVqr >= 4) {
           shelfLife = '📆 Use in 1–3 days';
-          recommendation = '⚠️ Might be overripe. Eat soon.';
-        } else if (effectiveVqr >= 1) {
-          shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Discard if soft or smelly.';
+          recommendation = '⚠️ Might be overripe. Eat it soon.';
         } else {
-          shelfLife = '📆 Couldn’t assess shelf life';
-          recommendation = '❓ Try again with a clearer image.';
+          shelfLife = '📆 Not safe to keep';
+          recommendation = '❌ Throw it away if soft or smelly.';
         }
         break;
 
       case 'potato':
-        if (effectiveVqr >= 8) {
+        if (effectiveVqr >= 7) {
           shelfLife = '📆 1–2 months (cool, dark place)';
-          recommendation = '✅ Store in paper bag. Don’t refrigerate.';
-        } else if (effectiveVqr >= 5) {
-          shelfLife = '📆 Use within 1–2 weeks';
-          recommendation = '⚠️ Use soon. Check for sprouts or soft spots.';
-        } else if (effectiveVqr >= 1) {
-          shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Discard if green, mushy, or sprouting.';
+          recommendation = '✅ Keep in paper bag. Don’t put in fridge.';
+        } else if (effectiveVqr >= 4) {
+          shelfLife = '📆 Use in 1–2 weeks';
+          recommendation = '⚠️ Use soon. Watch out for sprouts or soft spots.';
         } else {
-          shelfLife = '📆 Couldn’t assess shelf life';
-          recommendation = '❓ Retake photo under better conditions.';
+          shelfLife = '📆 Not safe to keep';
+          recommendation = '❌ Might be bad. Discard if green or sprouting.';
         }
         break;
 
       default:
-        shelfLife = '📆 Shelf life not available';
-        recommendation = '📌 Please retake the photo or try another item.';
+        shelfLife = '📆 Shelf life info not available';
+        recommendation = '📌 No advice available.';
     }
 
     return {
@@ -388,8 +427,6 @@ Map<String, String> getShelfLifeAndRecommendation(
       'recommendation': recommendation,
     };
   }
-
-
 
   double _calculateAverageBrightness(Uint8List imageBytes) {
     final img.Image? image = img.decodeImage(imageBytes);
@@ -454,7 +491,7 @@ Map<String, String> getShelfLifeAndRecommendation(
     return avgGradient;
   }
 
-Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
+  Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
     required Uint8List frontImage,
     required Uint8List backImage,
     required double imageWidth,
@@ -475,66 +512,88 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
             .reduce((a, b) => a['confidence'] > b['confidence'] ? a : b)
         : null;
 
-    final frontClassified = frontTop != null
-        ? await classifyDetection(imageBytes: frontImage, detection: frontTop)
-        : null;
-
-    final backClassified = backTop != null
-        ? await classifyDetection(imageBytes: backImage, detection: backTop)
-        : null;
-
-    if (frontClassified == null && backClassified == null) {
+    // Check if objects are detected in both images
+    if (frontTop == null || backTop == null) {
+      log("⚠️ No objects detected in one or both images: front=${frontTop != null}, back=${backTop != null}");
       return [
         {
           'object': 'None',
           'front': null,
           'back': null,
           'mergedFreshness': 'Unknown',
-          'mergedStatus': '⚠️ Unknown – Try scanning again',
+          'mergedStatus': '⚠️ No objects detected – Try scanning again',
           'mergedVQR': 'VQR-0',
           'mergedConfidence': 0.0,
+          'error':
+              'No objects detected in ${frontTop == null ? "front" : "back"} image',
         }
       ];
     }
 
-    final String frontVQR = frontClassified?['vqr'] ?? 'VQR-0';
-    final String backVQR = backClassified?['vqr'] ?? 'VQR-0';
+    // Compare labels to ensure the same vegetable
+    final frontLabel = frontTop['label'].toString().toLowerCase().trim();
+    final backLabel = backTop['label'].toString().toLowerCase().trim();
+    if (frontLabel != backLabel) {
+      log("❌ Different vegetables detected: front=$frontLabel, back=$backLabel");
+      return [
+        {
+          'object': 'None',
+          'front': null,
+          'back': null,
+          'mergedFreshness': 'Unknown',
+          'mergedStatus': '❌ Error – Different vegetables detected',
+          'mergedVQR': 'VQR-0',
+          'mergedConfidence': 0.0,
+          'error':
+              'Different vegetables detected: Front ($frontLabel) vs. Back ($backLabel). Please scan the same vegetable.',
+        }
+      ];
+    }
+
+    final frontClassified = await classifyDetection(
+      imageBytes: frontImage,
+      detection: frontTop,
+    );
+
+    final backClassified = await classifyDetection(
+      imageBytes: backImage,
+      detection: backTop,
+    );
+
+    final String frontVQR = frontClassified['vqr'] ?? 'VQR-0';
+    final String backVQR = backClassified['vqr'] ?? 'VQR-0';
     final int frontVQRNum = int.tryParse(frontVQR.replaceAll("VQR-", "")) ?? 0;
     final int backVQRNum = int.tryParse(backVQR.replaceAll("VQR-", "")) ?? 0;
-    final double frontConf = frontClassified?['freshnessConfidence'] ?? 0;
-    final double backConf = backClassified?['freshnessConfidence'] ?? 0;
+    final double frontConf = frontClassified['freshnessConfidence'] ?? 0.0;
+    final double backConf = backClassified['freshnessConfidence'] ?? 0.0;
 
     const double threshold = 60.0;
     double avgConf;
     int mergedVQRNum;
 
-    if (frontClassified != null && backClassified != null) {
-      if (frontConf >= threshold && backConf >= threshold) {
-        mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
-      } else if (frontConf >= threshold) {
-        mergedVQRNum = frontVQRNum;
-      } else if (backConf >= threshold) {
-        mergedVQRNum = backVQRNum;
-      } else {
-        mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
-      }
-      avgConf = (frontConf + backConf) / 2;
-    } else if (frontClassified != null) {
+    if (frontConf >= threshold && backConf >= threshold) {
+      mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
+    } else if (frontConf >= threshold) {
       mergedVQRNum = frontVQRNum;
-      avgConf = frontConf;
-    } else {
+    } else if (backConf >= threshold) {
       mergedVQRNum = backVQRNum;
-      avgConf = backConf;
+    } else {
+      mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
     }
+    avgConf = (frontConf + backConf) / 2;
 
     final mergedVQR = "VQR-$mergedVQRNum";
     final mergedFreshness = getFreshnessLabel(mergedVQR);
     final mergedStatus = interpretFreshness(avgConf, mergedVQR);
 
+    log("✅ Same vegetable detected: $frontLabel");
+    log("🫲 Front: $frontVQR ($frontConf%)");
+    log("🫱 Back: $backVQR ($backConf%)");
+    log("✅ Merged: $mergedFreshness ($avgConf%) => $mergedStatus");
+
     return [
       {
-        'object':
-            frontClassified?['object'] ?? backClassified?['object'] ?? 'None',
+        'object': frontClassified['object'],
         'front': frontClassified,
         'back': backClassified,
         'mergedFreshness': mergedFreshness,
@@ -544,7 +603,6 @@ Future<List<Map<String, dynamic>>> analyzeMultiAngleImages({
       }
     ];
   }
-
 
   void close() {
     _flutterVision.closeYoloModel();

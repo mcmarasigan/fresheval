@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'model_service.dart';
@@ -51,7 +52,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         final frontBytes = await File(widget.frontImagePath!).readAsBytes();
         final backBytes = await File(widget.backImagePath!).readAsBytes();
 
-        final decoded = await decodeImageFromList(frontBytes);
+        final decoded = img.decodeImage(frontBytes);
+        if (decoded == null) throw Exception("Failed to decode front image");
         _originalWidth = decoded.width.toDouble();
         _originalHeight = decoded.height.toDouble();
 
@@ -64,69 +66,68 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
         for (var res in combinedResults) {
           log("📸 MULTI-ANGLE RESULT:");
-
           final frontVQR =
               res['front']?['vqr'] ?? res['front']?['freshness'] ?? 'None';
           final frontConf =
               res['front']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--';
-
           final backVQR =
               res['back']?['vqr'] ?? res['back']?['freshness'] ?? 'None';
           final backConf =
               res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--';
-
           final mergedFreshness = res['mergedFreshness'] ?? 'Unknown';
           final mergedConf =
               res['mergedConfidence']?.toStringAsFixed(2) ?? '--';
           final mergedStatus = res['mergedStatus'] ?? 'No Status';
-
+          final error = res['error'];
           log("🫲 Front: $frontVQR ($frontConf%)");
           log("🫱 Back:  $backVQR ($backConf%)");
           log("✅ Merged: $mergedFreshness ($mergedConf%) => $mergedStatus");
+          if (error != null) {
+            log("❌ Error: $error");
+          }
+
+          setState(() {
+            _detectedObjects = combinedResults.map((res) {
+              final freshnessLabel = _modelService
+                  .getFreshnessLabel(res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0');
+              final shelfInfo = _modelService.getShelfLifeAndRecommendation(
+                res['object'] ?? res['label'] ?? 'unknown',
+                res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
+              );
+
+              return {
+                'label': res['object'],
+                'confidence': res['mergedConfidence'],
+                'mergedFreshness': freshnessLabel,
+                'vqr': res['mergedVQR'] ?? 'VQR-0',
+                'freshnessConfidence': res['mergedConfidence'],
+                'freshnessStatus': res['mergedStatus'],
+                'explanation': res['front']?['explanation'] ??
+                    res['back']?['explanation'] ??
+                    'No explanation',
+                'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
+                'originalWidth': res['front']?['originalWidth'] ??
+                    res['back']?['originalWidth'],
+                'originalHeight': res['front']?['originalHeight'] ??
+                    res['back']?['originalHeight'],
+                'frontConfidence': res['front']?['freshnessConfidence'],
+                'backConfidence': res['back']?['freshnessConfidence'],
+                'shelfLife': shelfInfo['shelfLife'],
+                'recommendation': shelfInfo['recommendation'],
+                'frontFreshnessConfidence': res['front']
+                    ?['freshnessConfidence'],
+                'backFreshnessConfidence': res['back']?['freshnessConfidence'],
+                'mergedConfidence': res['mergedConfidence'],
+                'error': res['error'],
+              };
+            }).toList();
+            _isLoading = false;
+          });
         }
-
-
-        setState(() {
-          _detectedObjects = combinedResults.map((res) {
-            final freshnessLabel = _modelService
-                .getFreshnessLabel(res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0');
-
-            final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-              res['object'] ?? res['label'] ?? 'unknown',
-              res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
-            );
-
-           return {
-              'label': res['object'],
-              'confidence': res['mergedConfidence'],
-              'mergedFreshness': freshnessLabel,
-              'vqr': res['mergedVQR'] ?? 'VQR-0',
-              'freshnessConfidence': res['mergedConfidence'],
-              'freshnessStatus': res['mergedStatus'],
-              'explanation': res['front']?['explanation'] ??
-                  res['back']?['explanation'] ??
-                  'No explanation',
-              'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
-              'originalWidth': res['front']?['originalWidth'] ??
-                  res['back']?['originalWidth'],
-              'originalHeight': res['front']?['originalHeight'] ??
-                  res['back']?['originalHeight'],
-              'frontConfidence': res['front']?['freshnessConfidence'],
-              'backConfidence': res['back']?['freshnessConfidence'],
-              'shelfLife': shelfInfo['shelfLife'],
-              'recommendation': shelfInfo['recommendation'],
-              'frontFreshnessConfidence': res['front']?['freshnessConfidence'],
-              'backFreshnessConfidence': res['back']?['freshnessConfidence'],
-              'mergedConfidence': res['mergedConfidence'],
-            };
-
-          }).toList();
-          _isLoading = false;
-        });
       } else {
         final imageBytes = await File(widget.imagePath!).readAsBytes();
-
-        final decoded = await decodeImageFromList(imageBytes);
+        final decoded = img.decodeImage(imageBytes);
+        if (decoded == null) throw Exception("Failed to decode image");
         _originalWidth = decoded.width.toDouble();
         _originalHeight = decoded.height.toDouble();
 
@@ -182,7 +183,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   Future<void> _saveScanResult() async {
-    if (_detectedObjects.isEmpty) return;
+    if (_detectedObjects.isEmpty || _detectedObjects[0]['error'] != null)
+      return;
 
     final prefs = await SharedPreferences.getInstance();
     final scanData = prefs.getStringList('recent_scans') ?? [];
@@ -197,7 +199,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       'backImagePath': widget.backImagePath,
       'isMultiAngle': widget.isMultiAngle,
       'isUploadedImage': widget.isUploadedImage,
-      'bookmarked': false, // Add bookmarked field for ScanHistoryScreen
+      'bookmarked': false,
       'objects': _detectedObjects.map((obj) {
         return {
           'label': obj['label'],
@@ -226,7 +228,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       'time': formattedTime,
     });
 
-    // Append the new scan without removing existing ones
     scanData.add(newScan);
     await prefs.setStringList('recent_scans', scanData);
 
@@ -250,33 +251,106 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   Future<Size> _getImageSize(File imageFile) async {
-    final decoded = await decodeImageFromList(imageFile.readAsBytesSync());
+    final decoded = img.decodeImage(imageFile.readAsBytesSync());
+    if (decoded == null) return const Size(640, 640);
     return Size(decoded.width.toDouble(), decoded.height.toDouble());
   }
 
-  List<Widget> _buildBoundingBoxes(double displayWidth, double displayHeight) {
+  List<Widget> _buildBoundingBoxes(
+      double displayWidth, double displayHeight, double imageAspectRatio) {
     return _detectedObjects.asMap().entries.map((entry) {
       final int index = entry.key;
       final detected = entry.value;
       final bbox = detected['bbox'];
 
       if (bbox == null || bbox.isEmpty || bbox.length < 4) {
+        log("⚠️ Invalid bounding box for object ${detected['label']}: $bbox");
         return const SizedBox();
       }
 
-      final double scaleX = displayWidth / _originalWidth;
-      final double scaleY = displayHeight / _originalHeight;
+      // Original image dimensions
+      final double originalWidth =
+          (detected['originalWidth'] ?? _originalWidth).toDouble();
+      final double originalHeight =
+          (detected['originalHeight'] ?? _originalHeight).toDouble();
+      if (originalWidth <= 0 || originalHeight <= 0) {
+        log("⚠️ Invalid original dimensions for object ${detected['label']}: ${originalWidth}x${originalHeight}");
+        return const SizedBox();
+      }
 
-      final double xMin = bbox[0] * scaleX;
-      final double yMin = bbox[1] * scaleY;
-      final double boxWidth = (bbox[2] - bbox[0]) * scaleX;
-      final double boxHeight = (bbox[3] - bbox[1]) * scaleY;
+      // Safely extract bounding box coordinates with type checking
+      double xMin = 0.0;
+      double yMin = 0.0;
+      double xMax = 0.0;
+      double yMax = 0.0;
+      try {
+        xMin = (bbox[0] is num
+            ? bbox[0].toDouble()
+            : double.tryParse(bbox[0].toString()) ?? 0.0);
+        yMin = (bbox[1] is num
+            ? bbox[1].toDouble()
+            : double.tryParse(bbox[1].toString()) ?? 0.0);
+        xMax = (bbox[2] is num
+            ? bbox[2].toDouble()
+            : double.tryParse(bbox[2].toString()) ?? 0.0);
+        yMax = (bbox[3] is num
+            ? bbox[3].toDouble()
+            : double.tryParse(bbox[3].toString()) ?? 0.0);
+      } catch (e) {
+        log("⚠️ Error parsing bbox for ${detected['label']}: $bbox, error: $e");
+        return const SizedBox();
+      }
 
-      final Color boxColor = _getBoxColor(detected['label']);
+      // Log raw bbox values for debugging
+      log("📍 Raw bbox for ${detected['label']}: $bbox, types: ${bbox.map((e) => e.runtimeType).toList()}");
+      log("📍 Parsed bbox values: xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax");
+
+      // No need to check for normalized coordinates, as model_service.dart handles this
+      // Clamp coordinates to image boundaries
+      xMin = xMin < 0.0 ? 0.0 : (xMin > originalWidth ? originalWidth : xMin);
+      yMin = yMin < 0.0 ? 0.0 : (yMin > originalHeight ? originalHeight : yMin);
+      xMax = xMax < 0.0 ? 0.0 : (xMax > originalWidth ? originalWidth : xMax);
+      yMax = yMax < 0.0 ? 0.0 : (yMax > originalHeight ? originalHeight : yMax);
+
+      // Calculate scaling factors considering aspect ratio preservation
+      final double containerAspectRatio = displayWidth / displayHeight;
+      double scaleX, scaleY, xOffset = 0.0, yOffset = 0.0;
+
+      if (imageAspectRatio > containerAspectRatio) {
+        // Image is wider than container, fit by width
+        scaleX = displayWidth / originalWidth;
+        scaleY = scaleX; // Maintain aspect ratio
+        final scaledHeight = originalHeight * scaleY;
+        yOffset = (displayHeight - scaledHeight) / 2;
+      } else {
+        // Image is taller than container, fit by height
+        scaleY = displayHeight / originalHeight;
+        scaleX = scaleY; // Maintain aspect ratio
+        final scaledWidth = originalWidth * scaleX;
+        xOffset = (displayWidth - scaledWidth) / 2;
+      }
+
+      // Apply scaling and offsets
+      final double scaledXMin = xMin * scaleX + xOffset;
+      final double scaledYMin = yMin * scaleY + yOffset;
+      final double scaledXMax = xMax * scaleX + xOffset;
+      final double scaledYMax = yMax * scaleY + yOffset;
+
+      // Ensure positive dimensions
+      final double boxWidth =
+          (scaledXMax - scaledXMin).clamp(0.0, displayWidth);
+      final double boxHeight =
+          (scaledYMax - scaledYMin).clamp(0.0, displayHeight);
+
+      log("📏 Bounding box for ${detected['label']} (pixel coords): xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax");
+      log("📏 Scaled box: xMin=$scaledXMin, yMin=$scaledYMin, width=$boxWidth, height=$boxHeight, scaleX=$scaleX, scaleY=$scaleY, xOffset=$xOffset, yOffset=$yOffset");
+
+      // Use original box color
+      final boxColor = _getBoxColor(detected['label']);
 
       return Positioned(
-        left: xMin,
-        top: yMin,
+        left: scaledXMin,
+        top: scaledYMin,
         child: Container(
           width: boxWidth,
           height: boxHeight,
@@ -331,22 +405,22 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                   Row(
                     children: [
                       IconButton(
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.arrow_back,
-                          color: Color(0xFF059212), // Green color
+                          color: Color(0xFF059212),
                         ),
                         tooltip: 'Back',
                         onPressed: () {
                           Navigator.pop(context);
                         },
                       ),
-                      SizedBox(width: 8),
-                      Text(
+                      const SizedBox(width: 8),
+                      const Text(
                         'Scan Results',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF059212), // Green color
+                          color: Color(0xFF059212),
                         ),
                       ),
                     ],
@@ -355,20 +429,21 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                     children: [
                       if (_detectedObjects.isNotEmpty &&
                           _detectedObjects[0]['label'] != 'None' &&
+                          _detectedObjects[0]['error'] == null &&
                           (_detectedObjects[0]['frontConfidence'] != null ||
                               _detectedObjects[0]['backConfidence'] != null))
                         IconButton(
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.save,
-                            color: Color(0xFF059212), // Green color
+                            color: Color(0xFF059212),
                           ),
                           tooltip: 'Save',
                           onPressed: _saveScanResult,
                         ),
                       IconButton(
-                        icon: Icon(
+                        icon: const Icon(
                           Icons.refresh,
-                          color: Color(0xFF059212), // Green color
+                          color: Color(0xFF059212),
                         ),
                         tooltip: 'Retake',
                         onPressed: () {
@@ -376,7 +451,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         },
                       ),
                     ],
-
                   ),
                 ],
               ),
@@ -407,8 +481,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 16,
-                                                  color: Color(
-                                                      0xFF787878), // Gray color
+                                                  color: Color(0xFF787878),
                                                 ),
                                               ),
                                               const SizedBox(height: 6),
@@ -480,7 +553,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                                     height:
                                                                         displayHeight,
                                                                     fit: BoxFit
-                                                                        .cover,
+                                                                        .contain,
                                                                   ),
                                                                   if (isFront &&
                                                                       _detectedObjects
@@ -488,10 +561,15 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                                       _detectedObjects[0]
                                                                               [
                                                                               'label'] !=
-                                                                          'None')
+                                                                          'None' &&
+                                                                      _detectedObjects[0]
+                                                                              [
+                                                                              'error'] ==
+                                                                          null)
                                                                     ..._buildBoundingBoxes(
                                                                       displayWidth,
                                                                       displayHeight,
+                                                                      aspectRatio,
                                                                     ),
                                                                 ],
                                                               );
@@ -568,17 +646,24 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                                   displayWidth,
                                                               height:
                                                                   displayHeight,
-                                                              fit: BoxFit.cover,
+                                                              fit: BoxFit
+                                                                  .contain,
                                                             ),
                                                             if (_detectedObjects
                                                                     .isNotEmpty &&
                                                                 _detectedObjects[
                                                                             0][
                                                                         'label'] !=
-                                                                    'None')
+                                                                    'None' &&
+                                                                _detectedObjects[
+                                                                            0][
+                                                                        'error'] ==
+                                                                    null)
                                                               ..._buildBoundingBoxes(
-                                                                  displayWidth,
-                                                                  displayHeight),
+                                                                displayWidth,
+                                                                displayHeight,
+                                                                aspectRatio,
+                                                              ),
                                                           ],
                                                         );
                                                       },
@@ -594,6 +679,33 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                   ),
                             const SizedBox(height: 20),
                             if (_detectedObjects.isNotEmpty &&
+                                _detectedObjects[0]['error'] != null)
+                              Card(
+                                color: Colors.red[50],
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Scan Error',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red[900],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _detectedObjects[0]['error'],
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else if (_detectedObjects.isNotEmpty &&
                                 _detectedObjects[0]['freshnessStatus'] ==
                                     'Image Too Dark')
                               Card(
