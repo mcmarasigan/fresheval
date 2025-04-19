@@ -2,10 +2,14 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'model_service.dart';
+import 'scan_history_screen.dart';
+import 'settings.dart';
+import 'help_screen.dart';
 
 class ScanResultScreen extends StatefulWidget {
   final String? imagePath;
@@ -14,6 +18,7 @@ class ScanResultScreen extends StatefulWidget {
   final bool isMultiAngle;
   final bool isUploadedImage;
   final Function(String imagePath, String name)? onSave;
+  final bool userFlashPreference;
 
   const ScanResultScreen({
     super.key,
@@ -23,6 +28,7 @@ class ScanResultScreen extends StatefulWidget {
     required this.isMultiAngle,
     required this.isUploadedImage,
     this.onSave,
+    this.userFlashPreference = false,
   });
 
   @override
@@ -305,7 +311,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       log("📍 Raw bbox for ${detected['label']}: $bbox, types: ${bbox.map((e) => e.runtimeType).toList()}");
       log("📍 Parsed bbox values: xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax");
 
-      // No need to check for normalized coordinates, as model_service.dart handles this
       // Clamp coordinates to image boundaries
       xMin = xMin < 0.0 ? 0.0 : (xMin > originalWidth ? originalWidth : xMin);
       yMin = yMin < 0.0 ? 0.0 : (yMin > originalHeight ? originalHeight : yMin);
@@ -393,6 +398,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildDrawer(context),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,28 +408,31 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      IconButton(
+                  Builder(
+                    builder: (BuildContext context) {
+                      return IconButton(
                         icon: const Icon(
-                          Icons.arrow_back,
+                          Icons.menu,
                           color: Color(0xFF059212),
+                          size: 30,
                         ),
-                        tooltip: 'Back',
+                        tooltip: 'Menu',
                         onPressed: () {
-                          Navigator.pop(context);
+                          Scaffold.of(context).openDrawer();
                         },
+                      );
+                    },
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Scan Results',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF059212),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Scan Results',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF059212),
-                        ),
-                      ),
-                    ],
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   Row(
                     children: [
@@ -447,7 +456,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         ),
                         tooltip: 'Retake',
                         onPressed: () {
-                          Navigator.pop(context);
+                          Navigator.pop(context, widget.userFlashPreference);
                         },
                       ),
                     ],
@@ -885,6 +894,190 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    const Color selectedColor = Color(0xFF059212); // Green for selected item
+    const Color unselectedColor =
+        Color(0xFF787878); // Gray for unselected items
+
+    bool isRouteActive(String routeName) {
+      return ModalRoute.of(context)?.settings.name == routeName;
+    }
+
+    return Drawer(
+      child: Column(
+        children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            color: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FRESHEVAL',
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context); // Close the drawer
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.camera,
+                    color: isRouteActive('/camera')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Camera",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/camera')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/camera')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.pushReplacementNamed(context, '/camera');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.history,
+                    color: isRouteActive('/history')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Scan History",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/history')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/history')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/history') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/history');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.settings,
+                    color: isRouteActive('/settings')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Settings",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/settings')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/settings')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/settings') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/settings');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.help,
+                    color: isRouteActive('/help')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Help",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/help')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/help')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/help') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/help');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.info,
+                    color: isRouteActive('/developers')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Developers",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/developers')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/developers')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/developers') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/developers');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

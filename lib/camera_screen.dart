@@ -23,6 +23,7 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
+  bool _userFlashPreference = false; // Tracks user's flash preference
   File? _frontImage;
   File? _backImage;
   bool _isCapturingBack = false;
@@ -253,6 +254,14 @@ class _CameraScreenState extends State<CameraScreen> {
 
       await _cameraController?.initialize();
 
+      // Set initial flash state based on user preference
+      if (_userFlashPreference && _cameraController != null) {
+        await _cameraController!.setFlashMode(FlashMode.torch);
+        setState(() {
+          _isFlashOn = true;
+        });
+      }
+
       if (mounted) {
         setState(() {
           _isCameraInitialized = true;
@@ -300,9 +309,17 @@ class _CameraScreenState extends State<CameraScreen> {
           _frontImage = null;
           _backImage = null;
 
+          // Turn off flash before navigating to ScanResultScreen
+          if (_isFlashOn) {
+            await _cameraController!.setFlashMode(FlashMode.off);
+            setState(() {
+              _isFlashOn = false;
+            });
+          }
+
           print(
               "📸 Navigating to ScanResultScreen with front: $frontPath, back: $backPath");
-          Navigator.push(
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => ScanResultScreen(
@@ -310,9 +327,21 @@ class _CameraScreenState extends State<CameraScreen> {
                 backImagePath: backPath,
                 isMultiAngle: true,
                 isUploadedImage: false,
+                userFlashPreference: _userFlashPreference,
               ),
             ),
           );
+
+          // Restore flash state based on returned preference
+          if (result is bool && _cameraController != null) {
+            setState(() {
+              _userFlashPreference = result;
+              _isFlashOn = result;
+            });
+            await _cameraController!.setFlashMode(
+              result ? FlashMode.torch : FlashMode.off,
+            );
+          }
         } else {
           print("❌ One of the images was null. Capture failed.");
         }
@@ -321,8 +350,6 @@ class _CameraScreenState extends State<CameraScreen> {
       print("❌ Error during multi-angle capture: $e");
     }
   }
-
-  
 
   Future<void> _pickImageFromGallery() async {
     final picker = ImagePicker();
@@ -379,7 +406,7 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
 
-   final resizedFront = frontImage.path;
+    final resizedFront = frontImage.path;
     final resizedBack = backImage.path;
 
     print(
@@ -392,6 +419,7 @@ class _CameraScreenState extends State<CameraScreen> {
           backImagePath: resizedBack,
           isUploadedImage: true,
           isMultiAngle: true,
+          userFlashPreference: _userFlashPreference,
         ),
       ),
     );
@@ -477,12 +505,15 @@ class _CameraScreenState extends State<CameraScreen> {
                     ],
                   ),
                   onPressed: () async {
-                    setState(() {
-                      _isFlashOn = !_isFlashOn;
-                    });
-                    await _cameraController!.setFlashMode(
-                      _isFlashOn ? FlashMode.torch : FlashMode.off,
-                    );
+                    if (_cameraController != null) {
+                      setState(() {
+                        _isFlashOn = !_isFlashOn;
+                        _userFlashPreference = _isFlashOn;
+                      });
+                      await _cameraController!.setFlashMode(
+                        _isFlashOn ? FlashMode.torch : FlashMode.off,
+                      );
+                    }
                   },
                 ),
                 IconButton(
