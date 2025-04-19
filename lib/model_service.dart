@@ -98,6 +98,7 @@ class ModelService {
     }
 
     try {
+      // Decode to get original dimensions
       final img.Image? originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) return [];
 
@@ -106,10 +107,18 @@ class ModelService {
 
       log("📏 Original Image: ${originalWidth}x${originalHeight}");
 
+      // Resize to 640x640 (YOLOv8 requirement)
+      final img.Image resizedImage = img.copyResize(originalImage,
+          width: _yoloInputSize.toInt(), height: _yoloInputSize.toInt());
+
+      final Uint8List resizedBytes =
+          Uint8List.fromList(img.encodeJpg(resizedImage));
+
+      // Run YOLOv8 detection on resized image
       final detections = await _flutterVision.yoloOnImage(
-        bytesList: imageBytes,
-        imageHeight: originalHeight.toInt(),
-        imageWidth: originalWidth.toInt(),
+        bytesList: resizedBytes,
+        imageHeight: _yoloInputSize.toInt(),
+        imageWidth: _yoloInputSize.toInt(),
         iouThreshold: 0.4,
         confThreshold: 0.5,
       );
@@ -121,15 +130,19 @@ class ModelService {
         return [];
       }
 
+      // Scale bbox back to original size
+      final double scaleX = originalWidth / _yoloInputSize;
+      final double scaleY = originalHeight / _yoloInputSize;
+
       return detections
           .map((detection) {
             final bbox = detection['box'];
             if (bbox.length < 5) return null;
 
-            final double xMin = bbox[0];
-            final double yMin = bbox[1];
-            final double xMax = bbox[2];
-            final double yMax = bbox[3];
+            final double xMin = bbox[0] * scaleX;
+            final double yMin = bbox[1] * scaleY;
+            final double xMax = bbox[2] * scaleX;
+            final double yMax = bbox[3] * scaleY;
             final double confidence = bbox[4] * 100;
 
             return {
@@ -188,11 +201,11 @@ Future<Map<String, dynamic>> classifyDetection({
 
 
 String getFreshnessLabel(String vqrLabel) {
-  final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
-  if (vqr >= 4) return "Fresh";
-  if (vqr >= 1) return "Rotten";
-  return "Unknown";
-}
+    final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
+    if (vqr >= 4) return "Fresh";
+    if (vqr >= 1) return "Rotten";
+    return "❓ Not sure – try taking another photo";
+  }
 
 
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
@@ -279,10 +292,10 @@ String getFreshnessLabel(String vqrLabel) {
 String interpretFreshness(double confidence, String vqrLabel) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
-    if (vqr >= 7) {
-      return "🟢 Very Fresh – Looks great and ready to use.";
-    } else if (vqr >= 4) {
-      return "🟡 Not So Fresh – Use it soon.";
+    if (vqr >= 8) {
+      return "🟢 Fresh – Looks great and ready to use.";
+    } else if (vqr >= 5) {
+      return "🟡 Slightly Fresh – Use it soon.";
     } else if (vqr >= 1) {
       return "🔴 Not Good – Better to throw it away.";
     } else {
@@ -292,20 +305,21 @@ String interpretFreshness(double confidence, String vqrLabel) {
 
 
 
-
 String getPredictionExplanation(String vqrLabel, double confidence) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
-    if (vqr >= 7) {
-      return "✅ This looks very fresh – shiny and firm.";
-    } else if (vqr >= 4) {
-      return "⚠️ It might be starting to go bad. Use it soon.";
+    if (vqr >= 8) {
+      return "✅ Looks fresh – shiny, firm, and vibrant.";
+    } else if (vqr >= 5) {
+      return "⚠️ Might be starting to go bad – soft spots or dull skin.";
     } else if (vqr >= 1) {
-      return "❌ This looks spoiled – soft, discolored, or moldy.";
+      return "❌ Likely spoiled – soft, wrinkled, or with visible mold.";
     } else {
-      return "⚠️ Couldn’t tell. Try a clearer photo.";
+      return "❓ We couldn't analyze the image properly. Try again with better lighting or focus.";
     }
   }
+
+
 
 Map<String, String> getShelfLifeAndRecommendation(
     String label,
@@ -315,8 +329,7 @@ Map<String, String> getShelfLifeAndRecommendation(
     final RegExp vqrMatch = RegExp(r"(\d+)");
     final int vqr =
         int.tryParse(vqrMatch.firstMatch(vqrLabel)?.group(1) ?? '') ?? -1;
-
-    final int effectiveVqr = vqr == -1 ? 1 : vqr;
+    final int effectiveVqr = vqr == -1 ? 0 : vqr;
 
     String matchedLabel = '';
     if (originalLabel.contains('eggplant')) {
@@ -334,48 +347,59 @@ Map<String, String> getShelfLifeAndRecommendation(
 
     switch (matchedLabel) {
       case 'eggplant':
-        if (effectiveVqr >= 7) {
+        if (effectiveVqr >= 8) {
           shelfLife = '📆 Use within 3–5 days (keep in fridge)';
           recommendation = '✅ Store in crisper. Don’t wash before storing.';
-        } else if (effectiveVqr >= 4) {
+        } else if (effectiveVqr >= 5) {
           shelfLife = '📆 Use within 1–2 days';
-          recommendation = '⚠️ Keep it in fridge. Use it soon.';
-        } else {
+          recommendation = '⚠️ Use soon. Keep in fridge.';
+        } else if (effectiveVqr >= 1) {
           shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ It may be spoiled. Throw it away.';
+          recommendation = '❌ Likely spoiled. Best to throw it away.';
+        } else {
+          shelfLife = '📆 Shelf life could not be assessed';
+          recommendation = '❓ Try retaking the photo with better lighting.';
         }
         break;
 
       case 'tomato':
-        if (effectiveVqr >= 7) {
-          shelfLife = '📆 4–7 days on counter, 2 weeks in fridge';
+        if (effectiveVqr >= 8) {
+          shelfLife = '📆 4–7 days on counter, up to 2 weeks in fridge';
           recommendation =
               '✅ Let ripen at room temp. Store in fridge when ripe.';
-        } else if (effectiveVqr >= 4) {
+        } else if (effectiveVqr >= 5) {
           shelfLife = '📆 Use in 1–3 days';
-          recommendation = '⚠️ Might be overripe. Eat it soon.';
-        } else {
+          recommendation = '⚠️ Eat soon. May be slightly overripe.';
+        } else if (effectiveVqr >= 1) {
           shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Throw it away if soft or smelly.';
+          recommendation = '❌ Spoiled. Throw away if soft or smelly.';
+        } else {
+          shelfLife = '📆 Shelf life could not be assessed';
+          recommendation = '❓ Retake photo. Ensure good lighting and focus.';
         }
         break;
 
       case 'potato':
-        if (effectiveVqr >= 7) {
+        if (effectiveVqr >= 8) {
           shelfLife = '📆 1–2 months (cool, dark place)';
-          recommendation = '✅ Keep in paper bag. Don’t put in fridge.';
-        } else if (effectiveVqr >= 4) {
-          shelfLife = '📆 Use in 1–2 weeks';
-          recommendation = '⚠️ Use soon. Watch out for sprouts or soft spots.';
-        } else {
+          recommendation = '✅ Keep in paper bag. Do not refrigerate.';
+        } else if (effectiveVqr >= 5) {
+          shelfLife = '📆 Use within 1–2 weeks';
+          recommendation = '⚠️ Use soon. Watch for sprouts or soft spots.';
+        } else if (effectiveVqr >= 1) {
           shelfLife = '📆 Not safe to keep';
-          recommendation = '❌ Might be bad. Discard if green or sprouting.';
+          recommendation =
+              '❌ May be bad. Discard if green, sprouting, or mushy.';
+        } else {
+          shelfLife = '📆 Shelf life could not be assessed';
+          recommendation = '❓ Try retaking the image under better conditions.';
         }
         break;
 
       default:
-        shelfLife = '📆 Shelf life info not available';
-        recommendation = '📌 No advice available.';
+        shelfLife = '📆 Shelf life could not be assessed';
+        recommendation =
+            '📌 Unknown item. Please retake photo or try another item.';
     }
 
     return {
@@ -383,11 +407,6 @@ Map<String, String> getShelfLifeAndRecommendation(
       'recommendation': recommendation,
     };
   }
-
-
-
-
-
 
 
   double _calculateAverageBrightness(Uint8List imageBytes) {

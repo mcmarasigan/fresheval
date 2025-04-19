@@ -1,1 +1,15 @@
-invalid
+Arm
+BellPepper
+Bread
+Face
+Furniture
+Garlic
+Ginger
+Hair
+Hand
+KitchenTool
+Kiwi
+Legs
+Okara-plant
+Onion
+Strawberry

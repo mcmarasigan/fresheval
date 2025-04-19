@@ -64,10 +64,27 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
         for (var res in combinedResults) {
           log("📸 MULTI-ANGLE RESULT:");
-          log("🫲 Front: ${res['front']['vqr'] ?? res['front']['freshness']} (${res['front']['freshnessConfidence']?.toStringAsFixed(2)}%)");
-          log("🫱 Back:  ${res['back']?['vqr'] ?? res['back']?['freshness'] ?? 'N/A'} (${res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--'}%)");
-          log("✅ Merged: ${res['mergedFreshness']} (${res['mergedConfidence'].toStringAsFixed(2)}%) => ${res['mergedStatus']}");
+
+          final frontVQR =
+              res['front']?['vqr'] ?? res['front']?['freshness'] ?? 'None';
+          final frontConf =
+              res['front']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--';
+
+          final backVQR =
+              res['back']?['vqr'] ?? res['back']?['freshness'] ?? 'None';
+          final backConf =
+              res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--';
+
+          final mergedFreshness = res['mergedFreshness'] ?? 'Unknown';
+          final mergedConf =
+              res['mergedConfidence']?.toStringAsFixed(2) ?? '--';
+          final mergedStatus = res['mergedStatus'] ?? 'No Status';
+
+          log("🫲 Front: $frontVQR ($frontConf%)");
+          log("🫱 Back:  $backVQR ($backConf%)");
+          log("✅ Merged: $mergedFreshness ($mergedConf%) => $mergedStatus");
         }
+
 
         setState(() {
           _detectedObjects = combinedResults.map((res) {
@@ -79,25 +96,30 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
             );
 
-            return {
+           return {
               'label': res['object'],
               'confidence': res['mergedConfidence'],
               'mergedFreshness': freshnessLabel,
               'vqr': res['mergedVQR'] ?? 'VQR-0',
               'freshnessConfidence': res['mergedConfidence'],
               'freshnessStatus': res['mergedStatus'],
-              'explanation': res['front']['explanation'] ?? 'No explanation',
-              'bbox': res['front']['bbox'],
-              'originalWidth': res['front']['originalWidth'],
-              'originalHeight': res['front']['originalHeight'],
-              'frontConfidence': res['front']['freshnessConfidence'],
+              'explanation': res['front']?['explanation'] ??
+                  res['back']?['explanation'] ??
+                  'No explanation',
+              'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
+              'originalWidth': res['front']?['originalWidth'] ??
+                  res['back']?['originalWidth'],
+              'originalHeight': res['front']?['originalHeight'] ??
+                  res['back']?['originalHeight'],
+              'frontConfidence': res['front']?['freshnessConfidence'],
               'backConfidence': res['back']?['freshnessConfidence'],
               'shelfLife': shelfInfo['shelfLife'],
               'recommendation': shelfInfo['recommendation'],
-              'frontFreshnessConfidence': res['front']['freshnessConfidence'],
+              'frontFreshnessConfidence': res['front']?['freshnessConfidence'],
               'backFreshnessConfidence': res['back']?['freshnessConfidence'],
               'mergedConfidence': res['mergedConfidence'],
             };
+
           }).toList();
           _isLoading = false;
         });
@@ -332,7 +354,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                   Row(
                     children: [
                       if (_detectedObjects.isNotEmpty &&
-                          _detectedObjects[0]['label'] != 'None')
+                          _detectedObjects[0]['label'] != 'None' &&
+                          (_detectedObjects[0]['frontConfidence'] != null ||
+                              _detectedObjects[0]['backConfidence'] != null))
                         IconButton(
                           icon: Icon(
                             Icons.save,
@@ -352,6 +376,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         },
                       ),
                     ],
+
                   ),
                 ],
               ),
