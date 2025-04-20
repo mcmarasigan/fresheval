@@ -140,7 +140,7 @@ class ModelService {
       log("🔍 YOLOv8 Raw Detections: $detections");
 
       if (detections.isEmpty) {
-        log("⚠️ No objects detected.");
+        log("⚠️ No object detected.");
         return [];
       }
 
@@ -514,18 +514,18 @@ class ModelService {
 
     // Check if objects are detected in both images
     if (frontTop == null || backTop == null) {
-      log("⚠️ No objects detected in one or both images: front=${frontTop != null}, back=${backTop != null}");
+      log("⚠️ No object detected in one or both images: front=${frontTop != null}, back=${backTop != null}");
       return [
         {
           'object': 'None',
           'front': null,
           'back': null,
           'mergedFreshness': 'Unknown',
-          'mergedStatus': '⚠️ No objects detected – Try scanning again',
+          'mergedStatus': '⚠️ No object detected – Try scanning again',
           'mergedVQR': 'VQR-0',
           'mergedConfidence': 0.0,
           'error':
-              'No objects detected in ${frontTop == null ? "front" : "back"} image',
+              'No object detected in ${frontTop == null ? "front" : "back"} image',
         }
       ];
     }
