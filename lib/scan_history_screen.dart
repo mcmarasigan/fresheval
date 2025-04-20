@@ -24,6 +24,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
   bool showDeleteMode = false;
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
+  
 
   @override
   void initState() {
@@ -297,7 +298,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    ScanDetailScreen(scan: scan),
+                                    ScanDetailScreen(scan: scan, localizations: widget.localizations,),
                               ),
                             );
                           }
@@ -510,7 +511,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Camera",
+                    widget.localizations.getTranslation('camera'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/camera')
@@ -535,7 +536,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Scan History",
+                    widget.localizations.getTranslation('scan history'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/history')
@@ -561,7 +562,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Settings",
+                    widget.localizations.getTranslation('settings'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/settings')
@@ -587,7 +588,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Help",
+                    widget.localizations.getTranslation('help'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/help')
@@ -612,7 +613,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Developers",
+                    widget.localizations.getTranslation('developers'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/developers')
@@ -641,8 +642,9 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
 
 class ScanDetailScreen extends StatelessWidget {
   final Map<String, dynamic> scan;
+  final AppLocalizations localizations;
 
-  const ScanDetailScreen({super.key, required this.scan});
+  const ScanDetailScreen({super.key, required this.scan, required this.localizations});
 
   Color _getBoxColor(String label) {
     switch (label.toLowerCase()) {
@@ -668,7 +670,9 @@ class ScanDetailScreen extends StatelessWidget {
     final imageFile = imagePath != null ? File(imagePath) : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Scan Details")),
+      appBar: AppBar(
+        title: Text(localizations.getTranslation('scan details')),
+        backgroundColor: Colors.green),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

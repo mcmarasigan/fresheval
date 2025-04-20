@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/src/widgets/framework.dart';
 
 class AppLocalizations {
   final String languageCode;
@@ -12,6 +13,9 @@ class AppLocalizations {
       'language': 'Language',
       'clear scan history': 'Clear Scan History',
       'clear cache': 'Clear Cache',
+      'cache': 'Cache',
+      'camera': 'Camera',
+      'developers': 'Developers',
       'scan history': 'Scan History',
       'no scans available': 'No scan history available.',
       'recent scans': 'List of recent scans:',
@@ -32,6 +36,7 @@ class AppLocalizations {
       'failed_to_save_scan': 'Failed to save scan.',
       'camera_permission_denied': 'Camera permission denied.',
       'search': 'Search',
+      'delete': 'Delete',
       'delete scans': 'Delete Scans',
       'confirm_delete_selected_scans':
           'Are you sure you want to delete the selected scans?',
@@ -39,6 +44,25 @@ class AppLocalizations {
       'scans_deleted': 'Selected scans deleted.', // Added
       'all_scans': 'All Scans', // Added
       'bookmarks': 'Bookmarks', // Added
+      'clean your camera': 'Clean Your Camera',
+      'clean camera desc': 'Wipe your camera lens with a soft cloth to remove smudges and dust for clearer photos.',
+      'good lighting': 'Good Lighting',
+      'good lighting desc': 'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows.',
+      'steady and clear': 'Steady & Clear',
+      'steady and clear desc': 'Hold your phone steady to avoid blurry images. Tap to focus on the vegetables.',
+      'full view': 'Full View',
+      'full view desc': 'Capture the entire vegetable in the frame. Avoid cutting off parts of it.',
+      'dont show again': "Don't show again",
+      'got it': 'Got It',
+      'upload front title': 'Upload Front Image',
+      'upload front desc': 'Please select the FRONT view of the vegetable.',
+      'upload back title': 'Upload Back Title',
+      'upload back desc': 'Now select the BACK view of the vegetable.',
+      'front captured': '✅ Front side captured. Now take the back side of the vegetable.',
+      'no front selected': '❌ No front image selected from gallery',
+      'no back selected': '❌ No back image selected from gallery',
+      'scan results': 'Scan Results',
+      'scan details': 'Scan Details',
 
       // Confirmation Dialogs
       'confirm_clear_history':
@@ -46,6 +70,7 @@ class AppLocalizations {
       'confirm_clear_cache': 'Are you sure you want to clear the cache?',
       'cancel': 'Cancel',
       'confirm': 'Confirm',
+      'pick image': 'Pick Image',
 
       // Settings Page
       'settings_description':
@@ -115,8 +140,11 @@ class AppLocalizations {
       'language': 'Wika',
       'clear scan history': 'Burahin ang Kasaysayan ng Scan',
       'clear cache': 'Burahin ang Cache',
-      'scan history': 'Kasaysayan ng Scan',
-      'no scans available': 'Walang kasaysayan ng scan.',
+      'cache': 'Nabura ang Cache',
+      'camera': 'Kamera',
+      'developers': 'Mga nag-develop',
+      'scan history': 'Kasaysayan ng pag-iskan',
+      'no scans available': 'Walang kasaysayan ng pag-iskan.',
       'recent scans': 'Listahan ng mga kamakailang scan:',
       'upload image': 'Mag-upload ng Larawan',
       'scan now': 'I-scan Ngayon',
@@ -133,8 +161,9 @@ class AppLocalizations {
       'save': 'I-save',
       'scan_saved_successfully': 'Matagumpay na nai-save ang scan!',
       'failed_to_save_scan': 'Hindi nai-save ang scan.',
-      'camera_permission_denied': 'Hindi pinayagan ang permiso ng camera.',
+      'camera_permission_denied': 'Tinanggihan ng pahintulot para sa kamera.',
       'search': 'Maghanap',
+      'delete': 'Burahin',
       'delete scans': 'Burahin ang Mga Scan',
       'confirm_delete_selected_scans':
           'Sigurado ka bang nais mong burahin ang mga napiling scan?',
@@ -142,6 +171,25 @@ class AppLocalizations {
       'scans_deleted': 'Nabura ang mga napiling scan.', // Added
       'all_scans': 'Lahat ng Scan', // Added
       'bookmarks': 'Mga Bookmark', // Added
+      'clean your camera': 'Linisin ang iyong Kamera',
+      'clean camera desc': 'Punasan ang lens ng iyong camera gamit ang malambot na tela upang alisin ang mga mantsa at alikabok para sa mas malinaw na mga larawan.',
+      'good lighting': 'Magandang Ilaw',
+      'good lighting desc': 'Kumuha ng mga larawas sa maayos na kondisyon. Iwasan ang direktang sikat ng araw o madilim na anino.',
+      'steady and clear': 'Matatag at Malinaw',
+      'steady and clear desc': 'Hawakan nang matatag ang iyong telepono upang maiwasan ang malabong mga imahe. Mag-tap upang magpokus sa mga gulay.',
+      'full view': 'Buong tanaw',
+      'full view desc': 'Kunin ang buong gulay sa frame. Iwasan ang pagputol ng mga bahagi nito.',
+      'dont show again': "Huwag nang ipakita",
+      'got it': 'Naunawaan',
+      'upload front title': 'Mag-upload ng harapang larawan',
+      'upload front desc': 'Maaaring piliin ang harapang bahagi ng gulay.',
+      'upload back title': 'Mag-upload ng likod na larawan',
+      'upload back desc': 'Ngayon, piliin ang likod na bahagi ng gulay.',
+      'front captured': '✅ Nakuha ang harapang bahagi. Ngayon ay kunin ang likod na bahagi ng gulay.',
+      'no front selected': '❌ Walang napiling harap na larawan mula sa gallery.',
+      'no back selected': '❌ Walang napiling likod na larawan mula sa gallery.',
+      'scan results': 'Mga resulta ng pag-scan',
+      'scan details': 'Mga detalye ng scan',
 
       // Confirmation Dialogs
       'confirm_clear_history':
@@ -149,6 +197,7 @@ class AppLocalizations {
       'confirm_clear_cache': 'Sigurado ka bang nais mong burahin ang cache?',
       'cancel': 'Kanselahin',
       'confirm': 'Kumpirmahin',
+      'pick image': 'Mamili ng Larawan',
 
       // Settings Page
       'settings_description':
@@ -224,4 +273,6 @@ class AppLocalizations {
     }
     return translation;
   }
+
+  static of(BuildContext context) {}
 }
