@@ -23,7 +23,7 @@ plugins {
 }
 
 include ":app"
-project(':flutter_vision').projectDir = new File("C:/Users/Me/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_vision-1.1.4/android")
+project(':flutter_vision').projectDir = new File("C:/Users/Clark/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_vision-1.1.4/android")
 
 dependencyResolutionManagement {
     repositories {

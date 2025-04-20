@@ -357,7 +357,7 @@ class _CameraScreenState extends State<CameraScreen> {
             _isCapturingBack = true;
           });
 
-          _showFloatingPrompt("✅ Front image captured. Now take the back image.");
+          _showFloatingPrompt("✅ Front side captured. Now take the back side of the vegetable.");
         } else {
         setState(() {
           _backImage = resizedFile;
@@ -421,6 +421,7 @@ class _CameraScreenState extends State<CameraScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Upload Front Image'),
         content: const Text('Please select the FRONT view of the vegetable.'),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -428,7 +429,9 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Pick Image'),
+            child: Text('Pick Image', style: GoogleFonts.poppins(
+                      color: Colors.white,
+                    ),),
           ),
         ],
       ),
@@ -447,6 +450,7 @@ class _CameraScreenState extends State<CameraScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Upload Back Image'),
         content: const Text('Now select the BACK view of the vegetable.'),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -454,7 +458,8 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Pick Image'),
+            child: Text('Pick Image', style: GoogleFonts.poppins(
+                      color: Colors.white,),)
           ),
         ],
       ),

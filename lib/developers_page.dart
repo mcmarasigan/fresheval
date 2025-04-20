@@ -11,11 +11,27 @@ class DevelopersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color greenColor = Color(0xFF059212);
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.getTranslation('developers_title')),
-        backgroundColor: const Color(0xFF00BFA6),
+        title: Text(localizations.getTranslation('developers_title'),
+        style: TextStyle(color: greenColor),),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: Icon(
+                Icons.menu,
+                color: greenColor,
+                size: 30,
+              ),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
       ),
       drawer: _buildDrawer(context), 
       body: SingleChildScrollView(
@@ -29,13 +45,14 @@ class DevelopersPage extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF00BFA6),
+                  color: greenColor,
                 ),
               ),
               const SizedBox(height: 20),
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
+                  side: BorderSide(color: greenColor, width: 1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Padding(
@@ -98,17 +115,17 @@ class DevelopersPage extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF00BFA6),
+                  color: greenColor,
                 ),
               ),
               const SizedBox(height: 10),
               ListTile(
-                leading: const Icon(Icons.email, color: Color(0xFF009688)),
+                leading: const Icon(Icons.email, color: greenColor),
                 title: Text(localizations.getTranslation('email_label')),
                 subtitle: const Text('fresheval@xai.com'),
               ),
               ListTile(
-                leading: const Icon(Icons.web, color: Color(0xFF009688)),
+                leading: const Icon(Icons.web, color: greenColor),
                 title: Text(localizations.getTranslation('website_label')),
                 subtitle: const Text('www.fresheval.com'),
               ),
@@ -148,7 +165,7 @@ class DevelopersPage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
           children: [
-            const Icon(Icons.person, color: Color(0xFF009688), size: 20),
+            const Icon(Icons.person, color: Color(0xFF059212), size: 20),
             const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,48 +187,183 @@ class DevelopersPage extends StatelessWidget {
   }
 
    Widget _buildDrawer(BuildContext context) {
+    const Color selectedColor = Color(0xFF059212);
+    const Color unselectedColor = Color(0xFF787878);
+    const Color greenColor = Color(0xFF059212);
+
+    bool isRouteActive(String routeName) {
+      return ModalRoute.of(context)?.settings.name == routeName;
+    }
+
     return Drawer(
       child: Column(
         children: [
-          const UserAccountsDrawerHeader(
-            accountName: Text("FreshEval"),
-            accountEmail: Text("Scan and evaluate freshness"),
-            decoration: BoxDecoration(color: Colors.green),
+          Container(
+            height: 120,
+            width: double.infinity,
+            color: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FRESHEVAL',
+                    style: GoogleFonts.poppins(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.camera),
-            title: const Text("Camera"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/camera');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text("Scan History"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/history');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text("Settings"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/settings');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.help),
-            title: const Text("Help"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/help');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.info),
-            title: const Text("Developers"),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/developers');
-            },
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    Icons.camera,
+                    color: isRouteActive('/camera')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Camera",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/camera')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/camera')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/camera');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.history,
+                    color: isRouteActive('/history')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Scan History",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/history')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/history')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/history') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/history');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.settings,
+                    color: isRouteActive('/settings')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Settings",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/settings')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/settings')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/settings') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/settings');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.help,
+                    color: isRouteActive('/help')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Help",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/help')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/help')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor: isRouteActive('/help') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/help');
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.info,
+                    color: isRouteActive('/developers')
+                        ? selectedColor
+                        : unselectedColor,
+                  ),
+                  title: Text(
+                    "Developers",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: isRouteActive('/developers')
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                      color: isRouteActive('/developers')
+                          ? selectedColor
+                          : unselectedColor,
+                    ),
+                  ),
+                  tileColor:
+                      isRouteActive('/developers') ? Colors.grey[200] : null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacementNamed(context, '/developers');
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
