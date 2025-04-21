@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fresheval/l10n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -13,7 +14,8 @@ import 'settings.dart';
 import 'help_screen.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final AppLocalizations localizations;
+  const CameraScreen({super.key, required this.localizations});
 
   @override
   _CameraScreenState createState() => _CameraScreenState();
@@ -256,7 +258,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       },
                     ),
                     Text(
-                      "Don't show again",
+                      widget.localizations.getTranslation('dont show again'),
                       style: GoogleFonts.poppins(fontSize: 14),
                     ),
                   ],
@@ -278,7 +280,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         horizontal: 32, vertical: 16),
                   ),
                   child: Text(
-                    'Got It',
+                    widget.localizations.getTranslation('got it'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       color: Colors.white,
@@ -419,17 +421,17 @@ class _CameraScreenState extends State<CameraScreen> {
     final frontConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Upload Front Image'),
-        content: const Text('Please select the FRONT view of the vegetable.'),
+        title: Text(widget.localizations.getTranslation('upload front title')),
+        content: Text(widget.localizations.getTranslation('upload front desc')),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(widget.localizations.getTranslation('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Pick Image', style: GoogleFonts.poppins(
+            child: Text(widget.localizations.getTranslation('pick image'), style: GoogleFonts.poppins(
                       color: Colors.white,
                     ),),
           ),
@@ -448,17 +450,17 @@ class _CameraScreenState extends State<CameraScreen> {
     final backConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Upload Back Image'),
-        content: const Text('Now select the BACK view of the vegetable.'),
+        title: Text(widget.localizations.getTranslation('upload back title')),
+        content: Text(widget.localizations.getTranslation('upload back desc')),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(widget.localizations.getTranslation('cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Pick Image', style: GoogleFonts.poppins(
+            child: Text(widget.localizations.getTranslation('pick image'), style: GoogleFonts.poppins(
                       color: Colors.white,),)
           ),
         ],
@@ -762,7 +764,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Camera",
+                    widget.localizations.getTranslation('camera'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/camera')
@@ -776,7 +778,12 @@ class _CameraScreenState extends State<CameraScreen> {
                   tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    Navigator.pushReplacementNamed(context, '/camera');
+                    if(!isRouteActive('/camera')) { //Solved issue, white screen if clicking the camera again
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => CameraScreen(localizations: widget.localizations,)),
+                      );
+                    }
                   },
                 ),
                 ListTile(
@@ -787,7 +794,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Scan History",
+                    widget.localizations.getTranslation('scan history'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/history')
@@ -813,7 +820,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Settings",
+                    widget.localizations.getTranslation('settings'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/settings')
@@ -839,7 +846,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Help",
+                    widget.localizations.getTranslation('help'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/help')
@@ -864,7 +871,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Developers",
+                    widget.localizations.getTranslation('developers'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/developers')

@@ -279,7 +279,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text ('Ok'),)
         ],
-      ));
+      ),);
   }
 
   Future<Size> _getImageSize(File imageFile) async {

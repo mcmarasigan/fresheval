@@ -110,6 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     const Color greenColor = Color(0xFF059212);
     const Color grayColor = Color(0xFF787878);
+    final AppLocalizations localizations;
 
     if (_selectedLanguage == null) {
       return Scaffold(
@@ -269,6 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildDrawer(BuildContext context) {
     const Color selectedColor = Color(0xFF059212);
     const Color unselectedColor = Color(0xFF787878);
+    const Color greenColor = Color(0xFF059212);
 
     bool isRouteActive(String routeName) {
       return ModalRoute.of(context)?.settings.name == routeName;
@@ -321,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Camera",
+                    _localization.getTranslation('camera'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/camera')
@@ -346,7 +348,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Scan History",
+                    _localization.getTranslation('scan history'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/history')
@@ -372,7 +374,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Settings",
+                    _localization.getTranslation('settings'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/settings')
@@ -398,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Help",
+                    _localization.getTranslation('help'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/help')
@@ -423,7 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Developers",
+                    _localization.getTranslation('developers'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/developers')

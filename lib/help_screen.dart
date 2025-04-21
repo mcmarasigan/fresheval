@@ -156,7 +156,7 @@ class HelpScreen extends StatelessWidget {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Camera",
+                    localizations.getTranslation('camera'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/camera')
@@ -181,7 +181,7 @@ class HelpScreen extends StatelessWidget {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Scan History",
+                    localizations.getTranslation('scan history'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/history')
@@ -207,7 +207,7 @@ class HelpScreen extends StatelessWidget {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Settings",
+                    localizations.getTranslation('settings'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/settings')
@@ -233,7 +233,7 @@ class HelpScreen extends StatelessWidget {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Help",
+                    localizations.getTranslation('help'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/help')
@@ -258,7 +258,7 @@ class HelpScreen extends StatelessWidget {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Developers",
+                    localizations.getTranslation('developers'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/developers')
