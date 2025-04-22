@@ -1,4 +1,5 @@
 import 'package:flutter_vision/flutter_vision.dart';
+import 'package:fresheval/l10n.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter/services.dart';
@@ -496,6 +497,7 @@ class ModelService {
     required Uint8List backImage,
     required double imageWidth,
     required double imageHeight,
+    required AppLocalizations localizations,
   }) async {
     final frontDetections =
         await detectObjects(frontImage, imageWidth, imageHeight);
@@ -515,6 +517,12 @@ class ModelService {
     // Check if objects are detected in both images
     if (frontTop == null || backTop == null) {
       log("⚠️ No objects detected in one or both images: front=${frontTop != null}, back=${backTop != null}");
+
+      final missingSide = frontTop == null ? 'front' : 'back';
+      final localizedSide = localizations.getTranslation(missingSide);
+      final errorMessage = localizations
+          .getTranslation('no objects detected')
+          .replaceAll('{side}', localizedSide);
       return [
         {
           'object': 'None',
@@ -525,14 +533,17 @@ class ModelService {
           'mergedVQR': 'VQR-0',
           'mergedConfidence': 0.0,
           'error':
-              'No objects detected in ${frontTop == null ? "front" : "back"} image',
+              errorMessage,
         }
       ];
     }
 
     // Compare labels to ensure the same vegetable
-    final frontLabel = frontTop['label'].toString().toLowerCase().trim();
-    final backLabel = backTop['label'].toString().toLowerCase().trim();
+    final frontLabelRaw = frontTop['label'].toString().toLowerCase().trim();
+    final backLabelRaw = backTop['label'].toString().toLowerCase().trim();
+    final frontLabel = localizations.getTranslation(frontLabelRaw);
+    final backLabel = localizations.getTranslation(backLabelRaw);
+
     if (frontLabel != backLabel) {
       log("❌ Different vegetables detected: front=$frontLabel, back=$backLabel");
       return [
@@ -544,8 +555,9 @@ class ModelService {
           'mergedStatus': '❌ Error – Different vegetables detected',
           'mergedVQR': 'VQR-0',
           'mergedConfidence': 0.0,
-          'error':
-              'Different vegetables detected: Front ($frontLabel) vs. Back ($backLabel). Please scan the same vegetable.',
+          'error': localizations.getTranslation('different vegetable error')
+              .replaceAll('{front}', frontLabel)
+              .replaceAll('{back}', backLabel),
         }
       ];
     }

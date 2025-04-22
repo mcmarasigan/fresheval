@@ -77,9 +77,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
         final date = scan['date'].toLowerCase();
         final time = scan['time'].toLowerCase();
         final objectLabels = scan['objects']
-            .map<String>((obj) => obj['label'].toString().toLowerCase())
+            .map<String>((obj) {
+              final rawLabel = obj['label'].toString().toLowerCase();
+              return widget.localizations.getTranslation(rawLabel).toLowerCase();
+            })
             .join(" ");
-
+            
         if (_tabController.index == 1) {
           return scan['bookmarked'] == true &&
               (date.contains(query) ||
@@ -258,7 +261,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
             child: filteredScanHistory.isEmpty
                 ? Center(
                     child: Text(
-                      widget.localizations.getTranslation('no scans available'),
+                      widget.localizations.getTranslation(
+                        _tabController.index == 1 ? 'no bookmarked scans'
+                            : 'no scans available',
+                      ),
                       style: TextStyle(color: grayColor),
                     ),
                   )
@@ -277,10 +283,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                       final objectCount =
                           (scan['objects'] as List?)?.length ?? 0;
                       final firstObjectLabel = objectCount > 0
-                          ? scan['objects'][0]['label']
-                          : 'Unknown';
+                          ? widget.localizations.getTranslation(scan['objects'][0]['label'])
+                          : widget.localizations.getTranslation('unknown');
                       final freshness = objectCount > 0
-                          ? scan['objects'][0]['freshness']
+                          ? widget.localizations.getTranslation(scan['objects'][0]['freshness'])
                           : 'N/A';
                       final vqr = objectCount > 0
                           ? (scan['objects'][0]['vqr'] ?? 8)
@@ -690,8 +696,8 @@ class ScanDetailScreen extends StatelessWidget {
                             children: [
                               Text(
                                 path == scan['frontImagePath']
-                                    ? 'Front View'
-                                    : 'Back View',
+                                    ? localizations.getTranslation('front view')
+                                    : localizations.getTranslation('back view'),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -840,7 +846,7 @@ class ScanDetailScreen extends StatelessWidget {
                                                   padding:
                                                       const EdgeInsets.all(2),
                                                   child: Text(
-                                                    "${index + 1}. ${obj['label']} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
+                                                    "${index + 1}. ${localizations.getTranslation((obj['label'] ?? '').toLowerCase())} (${(obj['confidence'] as num?)?.toStringAsFixed(2) ?? '0.00'}%)",
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 12,
@@ -919,7 +925,7 @@ class ScanDetailScreen extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "${obj['label']} - ${obj['freshness'] ?? 'Unknown'}",
+                                        "${localizations.getTranslation((obj['label'] ?? '').toLowerCase())} - ${obj['freshness'] ?? localizations.getTranslation('unknown')}",
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,

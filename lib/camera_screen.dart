@@ -32,29 +32,25 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _showTips = true;
   int _currentTipIndex = 0;
 
-  final List<Map<String, String>> _photoTips = [
+  late List<Map<String, String>> _photoTips = [
     {
-      'title': 'Clean Your Camera',
-      'description':
-          'Wipe your camera lens with a soft cloth to remove smudges and dust for clearer photos.',
+      'title': widget.localizations.getTranslation('clean your camera'),
+      'description': widget.localizations.getTranslation('clean camera desc'),
       'image': 'assets/img/clean_cam.png',
     },
     {
-      'title': 'Good Lighting',
-      'description':
-          'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows.',
+      'title': widget.localizations.getTranslation('good lighting'),
+      'description': widget.localizations.getTranslation('good lighting desc'),
       'image': 'assets/img/good_lighting.png',
     },
     {
-      'title': 'Steady & Clear',
-      'description':
-          'Hold your phone steady to avoid blurry images. Tap to focus on the vegetables.',
+      'title': widget.localizations.getTranslation('steady and clear'),
+      'description': widget.localizations.getTranslation('steady and clear desc'),
       'image': 'assets/img/steady_clear.png',
     },
     {
-      'title': 'Full View',
-      'description':
-          'Capture the entire vegetable in the frame. Avoid cutting off parts of it.',
+      'title': widget.localizations.getTranslation('full view'),
+      'description': widget.localizations.getTranslation('full view desc'),
       'image': 'assets/img/full_view.png',
     },
   ];
@@ -330,6 +326,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 isMultiAngle: true,
                 isUploadedImage: false,
                 userFlashPreference: _userFlashPreference,
+                localizations: widget.localizations,
               ),
             ),
           );
@@ -427,6 +424,7 @@ class _CameraScreenState extends State<CameraScreen> {
           isUploadedImage: true,
           isMultiAngle: true,
           userFlashPreference: _userFlashPreference,
+          localizations: widget.localizations,
         ),
       ),
     );
