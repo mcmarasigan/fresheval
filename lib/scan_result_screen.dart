@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:fresheval/l10n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ class ScanResultScreen extends StatefulWidget {
   final bool isUploadedImage;
   final Function(String imagePath, String name)? onSave;
   final bool userFlashPreference;
+  final AppLocalizations localizations;
 
   const ScanResultScreen({
     super.key,
@@ -27,6 +29,7 @@ class ScanResultScreen extends StatefulWidget {
     this.backImagePath,
     required this.isMultiAngle,
     required this.isUploadedImage,
+    required this.localizations,
     this.onSave,
     this.userFlashPreference = false,
   });
@@ -68,6 +71,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           backImage: backBytes,
           imageWidth: _originalWidth,
           imageHeight: _originalHeight,
+          localizations: widget.localizations,
         );
 
         for (var res in combinedResults) {
@@ -102,7 +106,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               );
 
               return {
-                'label': res['object'],
+                'label': (res['object'] ?? '').toLowerCase(),
                 'confidence': res['mergedConfidence'],
                 'mergedFreshness': freshnessLabel,
                 'vqr': res['mergedVQR'] ?? 'VQR-0',
@@ -256,8 +260,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Save Successful'),
-        content: const Text('Scan results have been saved successfully!'),
+        title: Text(widget.localizations.getTranslation('save successful')),
+        content: Text(widget.localizations.getTranslation('save successful desc')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -272,8 +276,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     showDialog(
       context: context, 
       builder: (context) => AlertDialog(
-        title: const Text('Already Saved'),
-        content: const Text('This scan result has already been saved to scan history.'),
+        title: Text(widget.localizations.getTranslation('already save')),
+        content: Text(widget.localizations.getTranslation('already save desc')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -394,7 +398,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               color: boxColor.withOpacity(0.7),
               padding: const EdgeInsets.all(2),
               child: Text(
-                '${index + 1}. ${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)',
+                '${index + 1}. ${widget.localizations.getTranslation((detected['label'] ?? '').toLowerCase())} (${(detected['confidence'] as num?)?.toStringAsFixed(2) ?? '--'}%)',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -449,9 +453,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       );
                     },
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Scan Results',
+                      widget.localizations.getTranslation('scan results'),
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -511,8 +515,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                             children: [
                                               Text(
                                                 path == widget.frontImagePath
-                                                    ? 'Front View'
-                                                    : 'Back View',
+                                                    ? widget.localizations.getTranslation('front view')
+                                                    : widget.localizations.getTranslation('back view'),
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 16,
@@ -724,7 +728,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Scan Error',
+                                        widget.localizations.getTranslation('scan error'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -868,7 +872,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
-                                              "${detected['label'] ?? 'Unknown'} - ${detected['mergedFreshness'] ?? 'Unknown'}",
+                                              "${widget.localizations.getTranslation((detected['label'] ?? '').toLowerCase())} - ${detected['mergedFreshness'] ?? widget.localizations.getTranslation('unknown')}",
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
@@ -980,7 +984,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Camera",
+                    widget.localizations.getTranslation('camera'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/camera')
@@ -1005,7 +1009,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Scan History",
+                    widget.localizations.getTranslation('scan history'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/history')
@@ -1031,7 +1035,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Settings",
+                    widget.localizations.getTranslation('settings'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/settings')
@@ -1057,7 +1061,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Help",
+                    widget.localizations.getTranslation('help'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/help')
@@ -1082,7 +1086,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                         : unselectedColor,
                   ),
                   title: Text(
-                    "Developers",
+                    widget.localizations.getTranslation('developers'),
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: isRouteActive('/developers')

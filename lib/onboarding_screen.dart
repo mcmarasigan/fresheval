@@ -5,9 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
-  Future<void> _completeOnboarding(BuildContext context) async {
+  Future<void> _completeOnboarding(BuildContext context, {required bool showTips}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isFirstTime', false);
+    await prefs.setBool('showCameraTips', showTips);
     Navigator.of(context).pushReplacementNamed('/camera');
   }
 
@@ -47,7 +48,7 @@ class OnboardingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                onPressed: () => _completeOnboarding(context),
+                onPressed: () => _completeOnboarding(context, showTips: true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   padding:
@@ -64,7 +65,7 @@ class OnboardingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => _completeOnboarding(context),
+                onPressed: () => _completeOnboarding(context, showTips: false),
                 child: Text(
                   'Skip',
                   style: GoogleFonts.poppins(

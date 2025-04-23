@@ -41,6 +41,7 @@ class _LoadingScreenState extends State<LoadingScreen>
 
   @override
   Widget build(BuildContext context) {
+    const Color greenColor = Color(0xFF059212);
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB), // Matches app background
       body: Center(
@@ -50,10 +51,11 @@ class _LoadingScreenState extends State<LoadingScreen>
             // Animated Logo/Icon
             ScaleTransition(
               scale: _animation,
-              child: const Icon(
-                Icons.local_florist, // Nature-inspired icon
-                size: 100,
-                color: Color(0xFF00BFA6), // Teal primary color
+              child: Image.asset(
+                'assets/img/logo2.png', //logo without 'fresheval'
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 20),
@@ -63,7 +65,7 @@ class _LoadingScreenState extends State<LoadingScreen>
               style: GoogleFonts.poppins(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF00BFA6),
+                color: greenColor,
               ),
             ),
             const SizedBox(height: 10),
@@ -72,7 +74,7 @@ class _LoadingScreenState extends State<LoadingScreen>
               'Evaluating Vegetable Freshness',
               style: GoogleFonts.poppins(
                 fontSize: 18,
-                color: const Color(0xFF009688), // Accent color
+                color: Colors.green, // Accent color
               ),
             ),
             const SizedBox(height: 30),

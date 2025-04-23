@@ -18,6 +18,7 @@ class AppLocalizations {
       'developers': 'Developers',
       'scan history': 'Scan History',
       'no scans available': 'No scan history available.',
+      'no bookmarked scans': 'No bookmarked scans yet.',
       'recent scans': 'List of recent scans:',
       'upload image': 'Upload Image',
       'scan now': 'Scan Now',
@@ -63,14 +64,24 @@ class AppLocalizations {
       'no back selected': '❌ No back image selected from gallery',
       'scan results': 'Scan Results',
       'scan details': 'Scan Details',
+      'front view': 'Front view',
+      'back view': 'Back view',
+      'eggplant': 'Eggplant',
+      'tomato': 'Tomato',
+      'potato': 'Potato',
+      'unknown': 'Unknown',
 
-      // Confirmation Dialogs
+      // Confirmation Dialogs & Popup Dialogs
       'confirm_clear_history':
           'Are you sure you want to clear the scan history?',
       'confirm_clear_cache': 'Are you sure you want to clear the cache?',
       'cancel': 'Cancel',
       'confirm': 'Confirm',
       'pick image': 'Pick Image',
+      'save successful': 'Save Successful',
+      'save successful desc': 'Scan results have been saved successfully!',
+      'already save': 'Already Save',
+      'already save desc':'This scan result has already been saved to scan history.',
 
       // Settings Page
       'settings_description':
@@ -118,12 +129,16 @@ class AppLocalizations {
       'team_members': 'Team Members',
       'member1_name': 'Ma. Clarissa Marasigan',
       'member1_role': 'Main Programmer',
+      'member1_about': 'Clarissa serves as the Main Programmer for FreshEval, orchestrating the core functionality and developed the robust logic that powers the camera, image processing, and data management, making FreshEval a reliable tool for freshness evaluation.',
       'member2_name': 'Vhon Joshua Agbayani',
       'member2_role': 'AI Specialist',
+      'member2_about': 'Vhon is an AI expert and the Model Trainer behind the cutting-edge freshness detection of the application',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
+      'member3_about': 'Krysteen is a skilled Front End Developer with a passion for crafting responsive and visually appealing interfaces',
       'member4_name': 'Clark Czedrick Limson',
       'member4_role': 'UI/UX Designer',
+      'member4_about': 'Clark designs intuitive user interfaces and ensures a seamless user experience for FreshEval.',
       'contact_us': 'Contact Us',
       'website_label': 'Website',
 
@@ -133,6 +148,13 @@ class AppLocalizations {
       'role_label': 'Role',
       'about_label': 'About',
       'email_label': 'Email:',
+
+      // Errors
+      'scan error': 'Scan Error',
+      'different vegetable error': 'Different vegetables detected: Front ({front}) vs. Back({back}). Please scan the same vegetable.',
+      'no objects detected': 'No objects detected in the {side} image',
+      'front': 'front',
+      'back': 'back',
     },
     'tl': {
       // General
@@ -142,9 +164,10 @@ class AppLocalizations {
       'clear cache': 'Burahin ang Cache',
       'cache': 'Nabura ang Cache',
       'camera': 'Kamera',
-      'developers': 'Mga nag-develop',
-      'scan history': 'Kasaysayan ng pag-iskan',
-      'no scans available': 'Walang kasaysayan ng pag-iskan.',
+      'developers': 'Mga Developer',
+      'scan history': 'Kasaysayan ng Scan',
+      'no scans available': 'Walang kasaysayan ng Scan.',
+      'no bookmarked scans': 'Wala pang naka-bookmark na Scan',
       'recent scans': 'Listahan ng mga kamakailang scan:',
       'upload image': 'Mag-upload ng Larawan',
       'scan now': 'I-scan Ngayon',
@@ -188,16 +211,27 @@ class AppLocalizations {
       'front captured': '✅ Nakuha ang harapang bahagi. Ngayon ay kunin ang likod na bahagi ng gulay.',
       'no front selected': '❌ Walang napiling harap na larawan mula sa gallery.',
       'no back selected': '❌ Walang napiling likod na larawan mula sa gallery.',
-      'scan results': 'Mga resulta ng pag-scan',
-      'scan details': 'Mga detalye ng scan',
+      'scan results': 'Resulta ng Scan',
+      'scan details': 'Mga Detalye ng Scan',
+      'front view': 'Harapan na bahagi',
+      'back view': 'Likod na bahagi',
+      'eggplant': 'Talong',
+      'tomato': 'Kamatis',
+      'potato': 'Patatas',
+      'unknown': 'Hindi Kilala',
 
-      // Confirmation Dialogs
+      // Confirmation Dialogs & Popup Dialogs
       'confirm_clear_history':
           'Sigurado ka bang nais mong burahin ang kasaysayan ng scan?',
       'confirm_clear_cache': 'Sigurado ka bang nais mong burahin ang cache?',
       'cancel': 'Kanselahin',
       'confirm': 'Kumpirmahin',
       'pick image': 'Mamili ng Larawan',
+      'save successful': 'Matagumpay na i-save',
+      'save successful desc': 'Matagumpay na na-save ang mga resulta ng pag-scan!',
+      'already save': 'Naka-save na',
+      'already save desc': 'Ang resulta ng pag-scan na ito ay nai-save na sa kasaysayan ng pag-scan', 
+
 
       // Settings Page
       'settings_description':
@@ -245,12 +279,16 @@ class AppLocalizations {
       'team_members': 'Mga Miyembro ng Koponan',
       'member1_name': 'Ma. Clarissa Marasigan',
       'member1_role': 'Pangunahing Programmer',
+      'member1_about': 'Si Clarissa ang nagsisilbing pangunahing programmer para sa Fresheval, na nag-aayos ng pangunahing pag-andar at bumuo ng matibay na lohika na nagpapatakbo sa kamera, pagproseso ng larawan, at pamamahala ng datos, na ginagawang isang maaasahang kagamitan para sa pagsusuri ng kasariwaan.',
       'member2_name': 'Vhon Joshua Agbayani',
+      'member2_about': 'Si Vhon ay isang eksperto sa AI at ang tagapagsanay ng modelo sa likod ng makabagong sistema ng pagtukoy sa kasariwaan ng aplikasyon.',
       'member2_role': 'Eksperto sa AI',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
+      'member3_about': 'Si Krysteen ay isang bihasang Front End Developer na may pagkahilig sa paglikha ng mga tumutugon at kaakit-akit na interface.',
       'member4_name': 'Clark Czedrick Limson',
       'member4_role': 'Designer ng UI/UX',
+      'member4_about': 'Taga-disenyo si Clark ng mga makatuwiran na interface ng mga gumagamit at tinitiyak ang isang maayos na karanasan ng mga gumagamit para sa FreshEval.',
       'contact_us': 'Makipag-ugnayan Sa Amin',
       'website_label': 'Website',
 
@@ -260,6 +298,13 @@ class AppLocalizations {
       'role_label': 'Tungkulin',
       'about_label': 'Tungkol Sa',
       'email_label': 'Email:',
+
+      //Errors
+      'scan error': 'Error sa Scan',
+      'different vegetable error': 'Magkaiba ang gulay: Harap ({front}) kumpara sa Likod ({back}). Paki-scan ang parehong gulay.',
+      'no objects detected': 'Walang bagay na nakita sa {side} ng imahe',
+      'front': 'harap',
+      'back': 'likod',
     },
   };
 
@@ -273,6 +318,15 @@ class AppLocalizations {
     }
     return translation;
   }
+ 
+ String getVegetableLabel(String key) {
+    final labelMap = {
+        'eggplant': getTranslation('eggplant'),
+        'tomato': getTranslation('tomato'),
+        'potato': getTranslation('potato'),
+    };
 
+    return labelMap[key.toLowerCase()] ?? key;
+ }
   static of(BuildContext context) {}
 }
