@@ -80,7 +80,7 @@ class _LoadingScreenState extends State<LoadingScreen>
             const SizedBox(height: 30),
             // Loading Indicator
             const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00BFA6)),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF059212)),
             ),
           ],
         ),

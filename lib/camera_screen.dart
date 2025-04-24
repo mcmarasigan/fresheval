@@ -138,7 +138,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
                                       color:
-                                          Theme.of(context).colorScheme.primary,
+                                          const Color(0xFF059212),
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -167,7 +167,7 @@ class _CameraScreenState extends State<CameraScreen> {
                             height: 8,
                             decoration: BoxDecoration(
                               color: _currentTipIndex == index
-                                  ? Theme.of(context).colorScheme.primary
+                                  ? Color(0xFF059212)
                                   : Colors.grey[300],
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -179,7 +179,19 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
                 Row(
                   children: [
-                    Checkbox(
+                    Theme (
+                      data: Theme.of(context).copyWith(
+                        checkboxTheme: CheckboxThemeData(
+                          fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return const Color(0xFF059212);
+                            }
+                            return Colors.transparent;
+                          }),
+                          checkColor: WidgetStateProperty.all<Color>(Colors.white),
+                        ),
+                      ),
+                    child: Checkbox(
                       value: dontShowAgain,
                       onChanged: (value) {
                         setModalState(() {
@@ -187,6 +199,8 @@ class _CameraScreenState extends State<CameraScreen> {
                         });
                       },
                     ),
+                    ),
+                    const SizedBox(width: 8,),
                     Text(
                       widget.localizations.getTranslation('dont show again'),
                       style: GoogleFonts.poppins(fontSize: 14),
@@ -205,7 +219,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    backgroundColor: Color(0xFF059212),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 16),
                   ),
@@ -391,10 +405,17 @@ class _CameraScreenState extends State<CameraScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(widget.localizations.getTranslation('cancel')),
+            child: Text(
+              widget.localizations.getTranslation('cancel'), 
+              style: GoogleFonts.poppins(
+                color: Colors.green,
+            ),),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
             child: Text(widget.localizations.getTranslation('pick image'), style: GoogleFonts.poppins(
                       color: Colors.white,),)
           ),

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:fresheval/carousel_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
-  Future<void> _completeOnboarding(BuildContext context, {required bool showTips}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isFirstTime', false);
-    await prefs.setBool('showCameraTips', showTips);
-    Navigator.of(context).pushReplacementNamed('/camera');
-  }
+  // Future<void> _completeOnboarding(BuildContext context, {required bool showTips}) async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setBool('isFirstTime', false);
+  //   await prefs.setBool('showCameraTips', showTips);
+  //   Navigator.of(context).pushReplacementNamed('/camera');
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class OnboardingScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/img/logo.png', // Your app logo
+                'assets/img/welcome.png', 
                 width: 300,
                 height: 300,
                 fit: BoxFit.contain,
@@ -33,13 +34,13 @@ class OnboardingScreen extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: const Color(0xFF059212),
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               Text(
-                'FreshEval helps you keep your vegetables fresh! Scan tomatoes, eggplants, or potatoes to instantly check their freshness. Get smart storage tips and recommendations to reduce waste and enjoy healthier meals.',
+                'Instantly check if your eggplant, tomato, or potato is fresh or rotten using AI-powered image scanning on your phone.',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   color: Colors.black87,
@@ -48,9 +49,15 @@ class OnboardingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                onPressed: () => _completeOnboarding(context, showTips: true),
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('isFirstTime', false); {  
+                  Navigator.pushReplacement(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const CarouselScreen()));}
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: const Color(0xFF059212),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 ),
@@ -63,17 +70,17 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => _completeOnboarding(context, showTips: false),
-                child: Text(
-                  'Skip',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-              ),
+              // const SizedBox(height: 16),
+              // TextButton(
+              //   onPressed: () => _completeOnboarding(context, showTips: false),
+              //   child: Text(
+              //     'Skip',
+              //     style: GoogleFonts.poppins(
+              //       fontSize: 14,
+              //       color: Theme.of(context).colorScheme.secondary,
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ),
