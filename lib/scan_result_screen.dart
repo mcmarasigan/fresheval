@@ -129,6 +129,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 'backFreshnessConfidence': res['back']?['freshnessConfidence'],
                 'mergedConfidence': res['mergedConfidence'],
                 'error': res['error'],
+                'source': res['front']?['bbox'] != null ? 'front' : 'back',
               };
             }).toList();
             _isLoading = false;
@@ -226,6 +227,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           'recommendation': obj['recommendation'],
           'front': obj['front'],
           'back': obj['back'],
+          'source': obj['source'],
           if (widget.isMultiAngle) ...{
             'frontFreshnessConfidence':
                 obj['frontFreshnessConfidence'] ?? obj['freshnessConfidence'],
@@ -888,26 +890,39 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               const SizedBox(height: 8),
-                                              Text(
-                                                detected['freshnessStatus'] ??
-                                                    'Condition unknown',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
+
+                                              // Merged
+                                              if (detected['vqr'] != null &&
+                                                  detected[
+                                                          'mergedConfidence'] !=
+                                                      null &&
+                                                  detected['mergedFreshness'] !=
+                                                      null &&
+                                                  detected['freshnessStatus'] !=
+                                                      null)
+                                                Text(
+                                                  "${detected['vqr']} (${(detected['mergedConfidence'] as num).toStringAsFixed(2)}%) => ${detected['freshnessStatus']}",
                                                 ),
-                                              ),
-                                              Text(
-                                                detected['explanation'] ??
-                                                    'No explanation available.',
-                                                style: const TextStyle(
-                                                    fontStyle:
-                                                        FontStyle.italic),
-                                              ),
+
                                               const SizedBox(height: 8),
+
+                                              // Explanation
+                                              if (detected['explanation'] !=
+                                                  null)
+                                                Text(
+                                                  detected['explanation'],
+                                                  style: const TextStyle(
+                                                      fontStyle:
+                                                          FontStyle.italic),
+                                                ),
+
+                                              const SizedBox(height: 8),
+
+                                              // Shelf life and recommendation
                                               Text(
-                                                  "📆 Shelf Life: ${detected['shelfLife']}"),
+                                                  "📆 Shelf Life: ${detected['shelfLife'] ?? 'N/A'}"),
                                               Text(
-                                                  "📌 Recommendation: ${detected['recommendation']}"),
+                                                  "📌 Recommendation: ${detected['recommendation'] ?? 'N/A'}"),
                                             ],
                                           ),
                                         )
