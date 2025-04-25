@@ -47,5 +47,11 @@ flutter:
     - assets/img/full_view.png
     - assets/img/logo.png
     - assets/img/logo2.png
+    - assets/img/welcome.png
+    - assets/img/what.png
+    - assets/img/detects.png
+    - assets/img/classifies.png
+    - assets/img/reduces.png
+
 
 
