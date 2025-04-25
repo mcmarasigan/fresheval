@@ -1071,18 +1071,40 @@ class ScanDetailScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 15),
 
-
-                                      // Merged VQR + Confidence + Status
+                                      // 🫲 Front VQR + Confidence
                                       if (obj['vqr'] != null &&
-                                          obj['mergedConfidence'] != null &&
-                                          obj['freshnessStatus'] != null)
+                                          obj['frontFreshnessConfidence'] !=
+                                              null)
                                         Text(
-                                          "${obj['vqr']} (${(obj['mergedConfidence'] as num).toStringAsFixed(2)}%) => ${obj['freshnessStatus']}",
+                                          "🫲 Front: ${obj['vqr']} "
+                                          "(${(obj['frontFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
+                                        ),
+
+                                      // 🫱 Back VQR + Confidence
+                                      if (obj['vqr'] != null &&
+                                          obj['backFreshnessConfidence'] !=
+                                              null)
+                                        Text(
+                                          "🫱 Back:  ${obj['vqr']} "
+                                          "(${(obj['backFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
                                         ),
 
                                       const SizedBox(height: 6),
 
-                                      // Explanation
+                                      // ✅ Merged VQR + Confidence + Status
+                                      if (obj['vqr'] != null &&
+                                          obj['mergedConfidence'] != null &&
+                                          obj['freshnessStatus'] != null)
+                                        Text(
+                                          "✅ Overall: ${obj['vqr']} "
+                                          "(${(obj['mergedConfidence'] as num).toStringAsFixed(2)}%) => ${obj['freshnessStatus']}",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+
+                                      const SizedBox(height: 6),
+
+                                      // 📝 Explanation
                                       Text(
                                         obj['explanation'] ??
                                             'No explanation available.',
@@ -1092,7 +1114,7 @@ class ScanDetailScreen extends StatelessWidget {
 
                                       const SizedBox(height: 6),
 
-                                      // Shelf life and recommendation
+                                      // 📆 Shelf life & 📌 Recommendation
                                       Text(
                                           "📆 Shelf Life: ${obj['shelfLife'] ?? 'N/A'}"),
                                       Text(
@@ -1100,6 +1122,7 @@ class ScanDetailScreen extends StatelessWidget {
                                     ],
                                   ),
                                 )
+
 
                               ],
                             ),

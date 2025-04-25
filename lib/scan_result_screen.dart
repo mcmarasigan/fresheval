@@ -891,7 +891,29 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                             children: [
                                               const SizedBox(height: 8),
 
-                                              // Merged
+                                              // 🫲 Front
+                                              if (detected['vqr'] != null &&
+                                                  detected[
+                                                          'frontFreshnessConfidence'] !=
+                                                      null)
+                                                Text(
+                                                  "🫲 Front: ${detected['vqr']} "
+                                                  "(${(detected['frontFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
+                                                ),
+
+                                              // 🫱 Back
+                                              if (detected['vqr'] != null &&
+                                                  detected[
+                                                          'backFreshnessConfidence'] !=
+                                                      null)
+                                                Text(
+                                                  "🫱 Back: ${detected['vqr']} "
+                                                  "(${(detected['backFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
+                                                ),
+
+                                              const SizedBox(height: 8),
+
+                                              // ✅ Merged
                                               if (detected['vqr'] != null &&
                                                   detected[
                                                           'mergedConfidence'] !=
@@ -901,12 +923,16 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                   detected['freshnessStatus'] !=
                                                       null)
                                                 Text(
-                                                  "${detected['vqr']} (${(detected['mergedConfidence'] as num).toStringAsFixed(2)}%) => ${detected['freshnessStatus']}",
+                                                  "✅ Overall: ${detected['vqr']} "
+                                                  "(${(detected['mergedConfidence'] as num).toStringAsFixed(2)}%) => ${detected['freshnessStatus']}",
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
                                                 ),
 
                                               const SizedBox(height: 8),
 
-                                              // Explanation
+                                              // 📝 Explanation
                                               if (detected['explanation'] !=
                                                   null)
                                                 Text(
@@ -918,13 +944,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
                                               const SizedBox(height: 8),
 
-                                              // Shelf life and recommendation
+                                              // 📆 Shelf Life & 📌 Recommendation
                                               Text(
                                                   "📆 Shelf Life: ${detected['shelfLife'] ?? 'N/A'}"),
                                               Text(
                                                   "📌 Recommendation: ${detected['recommendation'] ?? 'N/A'}"),
                                             ],
                                           ),
+
                                         )
                                       ],
                                     ),
