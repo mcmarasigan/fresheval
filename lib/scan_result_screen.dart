@@ -54,7 +54,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   Future<void> _runInference() async {
     try {
-      log("🟢 Starting model inference...");
+      
       await _modelService.loadModels();
 
       if (widget.isMultiAngle) {
@@ -75,25 +75,11 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         );
 
         for (var res in combinedResults) {
-          log("📸 MULTI-ANGLE RESULT:");
-          final frontVQR =
-              res['front']?['vqr'] ?? res['front']?['freshness'] ?? 'None';
-          final frontConf =
-              res['front']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--';
-          final backVQR =
-              res['back']?['vqr'] ?? res['back']?['freshness'] ?? 'None';
-          final backConf =
-              res['back']?['freshnessConfidence']?.toStringAsFixed(2) ?? '--';
-          final mergedFreshness = res['mergedFreshness'] ?? 'Unknown';
-          final mergedConf =
-              res['mergedConfidence']?.toStringAsFixed(2) ?? '--';
-          final mergedStatus = res['mergedStatus'] ?? 'No Status';
+          
           final error = res['error'];
-          log("🫲 Front: $frontVQR ($frontConf%)");
-          log("🫱 Back:  $backVQR ($backConf%)");
-          log("✅ Merged: $mergedFreshness ($mergedConf%) => $mergedStatus");
+         
           if (error != null) {
-            log("❌ Error: $error");
+            
           }
 
           setState(() {
@@ -149,7 +135,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         );
 
         if (detections.isEmpty) {
-          log("❌ No objects detected.");
+          
           setState(() {
             _isLoading = false;
             _detectedObjects = [];
@@ -170,9 +156,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           classified['vqr'] ?? 'VQR-0',
         );
 
-        log("📸 SINGLE IMAGE RESULT:");
-        log("✅ ${classified['object']} - ${classified['vqr']} (${classified['freshnessConfidence'].toStringAsFixed(2)}%) => ${classified['freshnessStatus']}");
-
         setState(() {
           _detectedObjects = [
             {
@@ -185,7 +168,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         });
       }
     } catch (e) {
-      log("⚠️ Error during inference: $e");
+      
       setState(() {
         _isLoading = false;
         _detectedObjects = [];
@@ -302,7 +285,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final bbox = detected['bbox'];
 
       if (bbox == null || bbox.isEmpty || bbox.length < 4) {
-        log("⚠️ Invalid bounding box for object ${detected['label']}: $bbox");
+       
         return const SizedBox();
       }
 
@@ -312,7 +295,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final double originalHeight =
           (detected['originalHeight'] ?? _originalHeight).toDouble();
       if (originalWidth <= 0 || originalHeight <= 0) {
-        log("⚠️ Invalid original dimensions for object ${detected['label']}: ${originalWidth}x${originalHeight}");
+       
         return const SizedBox();
       }
 
@@ -335,13 +318,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ? bbox[3].toDouble()
             : double.tryParse(bbox[3].toString()) ?? 0.0);
       } catch (e) {
-        log("⚠️ Error parsing bbox for ${detected['label']}: $bbox, error: $e");
+        
         return const SizedBox();
       }
-
-      // Log raw bbox values for debugging
-      log("📍 Raw bbox for ${detected['label']}: $bbox, types: ${bbox.map((e) => e.runtimeType).toList()}");
-      log("📍 Parsed bbox values: xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax");
 
       // Clamp coordinates to image boundaries
       xMin = xMin < 0.0 ? 0.0 : (xMin > originalWidth ? originalWidth : xMin);
@@ -378,9 +357,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           (scaledXMax - scaledXMin).clamp(0.0, displayWidth);
       final double boxHeight =
           (scaledYMax - scaledYMin).clamp(0.0, displayHeight);
-
-      log("📏 Bounding box for ${detected['label']} (pixel coords): xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax");
-      log("📏 Scaled box: xMin=$scaledXMin, yMin=$scaledYMin, width=$boxWidth, height=$boxHeight, scaleX=$scaleX, scaleY=$scaleY, xOffset=$xOffset, yOffset=$yOffset");
 
       // Use original box color
       final boxColor = _getBoxColor(detected['label']);

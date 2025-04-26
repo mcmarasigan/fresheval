@@ -39,9 +39,9 @@ class ModelService {
       );
 
       _modelsLoaded = true;
-      log("✅ YOLOv8 & EfficientNetB7 models loaded successfully.");
+      
     } catch (e) {
-      log("⚠️ Error loading models: $e");
+      
     }
   }
 
@@ -53,14 +53,14 @@ class ModelService {
           .where((s) => s.isNotEmpty)
           .toList();
     } catch (e) {
-      log("⚠️ Error loading labels from $assetPath: $e");
+      
       return [];
     }
   }
 
   Future<Map<String, dynamic>> classifyInvalid(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
-      log("⚠️ Models not loaded yet.");
+      
       return {'label': 'Unknown', 'confidence': 0.0};
     }
 
@@ -81,7 +81,7 @@ class ModelService {
         'confidence': softmaxScores[predictedIndex] * 100,
       };
     } catch (e) {
-      log("⚠️ Error during Invalid model classification: $e");
+      
       return {'label': 'Unknown', 'confidence': 0.0};
     }
   }
@@ -89,14 +89,14 @@ class ModelService {
   Future<List<Map<String, dynamic>>> detectObjects(
       Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
-      log("⚠️ Models not loaded yet.");
+      
       return [];
     }
 
     try {
       final img.Image? originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) {
-        log("⚠️ Failed to decode image.");
+        
         return [];
       }
 
@@ -127,9 +127,7 @@ class ModelService {
 
       final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(canvas));
 
-      log("📏 Original Image: ${originalWidth}x${originalHeight}");
-      log("📏 YOLO Input Image: 640x640 (resized: ${newWidth}x${newHeight}, offset: ${offsetX}x${offsetY})");
-
+    
       final detections = await _flutterVision.yoloOnImage(
         bytesList: resizedBytes,
         imageHeight: _yoloInputSize.toInt(),
@@ -138,10 +136,10 @@ class ModelService {
         confThreshold: 0.5,
       );
 
-      log("🔍 YOLOv8 Raw Detections: $detections");
+      
 
       if (detections.isEmpty) {
-        log("⚠️ No object detected.");
+        
         return [];
       }
 
@@ -150,7 +148,7 @@ class ModelService {
           .map((detection) {
             final bbox = detection['box'];
             if (bbox.length < 5) {
-              log("⚠️ Invalid bbox format: $bbox");
+              
               return null;
             }
 
@@ -167,12 +165,12 @@ class ModelService {
             xMax = ((xMax - offsetX) / scale).clamp(0.0, originalWidth);
             yMax = ((yMax - offsetY) / scale).clamp(0.0, originalHeight);
 
-            // Log adjusted coordinates
-            log("📍 Adjusted bbox for ${detection['tag']}: [xMin=$xMin, yMin=$yMin, xMax=$xMax, yMax=$yMax], confidence=$confidence");
+            
+          
 
             // Ensure valid bounding box
             if (xMin >= xMax || yMin >= yMax) {
-              log("⚠️ Invalid bbox dimensions: xMin=$xMin, xMax=$xMax, yMin=$yMin, yMax=$yMax");
+              
               return null;
             }
 
@@ -187,7 +185,7 @@ class ModelService {
           .whereType<Map<String, dynamic>>()
           .toList();
     } catch (e) {
-      log("⚠️ Error during YOLO inference: $e");
+      
       return [];
     }
   }
@@ -237,7 +235,7 @@ class ModelService {
 
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
-      log("⚠️ Models not loaded yet.");
+      
       return {'label': 'Unknown', 'confidence': 0.0};
     }
 
@@ -258,7 +256,7 @@ class ModelService {
         'confidence': softmaxScores[predictedIndex] * 100,
       };
     } catch (e) {
-      log("⚠️ Error during EfficientNet classification: $e");
+      
       return {'label': 'Unknown', 'confidence': 0.0};
     }
   }
@@ -463,7 +461,7 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
   double _calculateAverageBrightness(Uint8List imageBytes) {
     final img.Image? image = img.decodeImage(imageBytes);
     if (image == null) {
-      log("⚠️ Failed to decode image for brightness check.");
+      
       return 128.0;
     }
 
@@ -483,14 +481,14 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
     }
 
     final averageBrightness = totalLuminance / pixelCount;
-    log("💡 Average Brightness: $averageBrightness");
+    
     return averageBrightness;
   }
 
   double _calculateBlurVariance(Uint8List imageBytes) {
     final img.Image? image = img.decodeImage(imageBytes);
     if (image == null) {
-      log("⚠️ Failed to decode image for blur check.");
+      
       return 1000.0; // Default high value (not blurry) if decoding fails
     }
 
@@ -519,7 +517,7 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
     }
 
     final avgGradient = count > 0 ? totalGradient / count : 0.0;
-    log("🌫️ Blur Check - Avg Gradient: $avgGradient, Max Gradient: $maxGradient, Pixels Processed: $count");
+    
     return avgGradient;
   }
 
@@ -547,7 +545,6 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
 
     // Check if objects are detected in both images
     if (frontTop == null || backTop == null) {
-      log("⚠️ No objects detected in one or both images: front=${frontTop != null}, back=${backTop != null}");
 
       final missingSide = frontTop == null ? 'front' : 'back';
       final localizedSide = localizations.getTranslation(missingSide);
@@ -576,7 +573,7 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
     final backLabel = localizations.getTranslation(backLabelRaw);
 
     if (frontLabel != backLabel) {
-      log("❌ Different vegetables detected: front=$frontLabel, back=$backLabel");
+      
       return [
         {
           'object': 'None',
@@ -628,11 +625,6 @@ String getPredictionExplanation(String vqrLabel, double confidence) {
     final mergedVQR = "VQR-$mergedVQRNum";
     final mergedFreshness = getFreshnessLabel(mergedVQR);
     final mergedStatus = interpretFreshness(avgConf, mergedVQR);
-
-    log("✅ Same vegetable detected: $frontLabel");
-    log("🫲 Front: $frontVQR ($frontConf%)");
-    log("🫱 Back: $backVQR ($backConf%)");
-    log("✅ Merged: $mergedFreshness ($avgConf%) => $mergedStatus");
 
     return [
       {

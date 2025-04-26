@@ -346,7 +346,7 @@ class _CameraScreenState extends State<CameraScreen> {
         });
       }
     } catch (e) {
-      print('📷 Error initializing camera: $e');
+     
       setState(() {
         _isCameraInitialized = false;
       });
@@ -355,7 +355,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _captureMultiAngleImage() async {
     if (!_isCameraInitialized || _cameraController == null) {
-      print('📷 Camera not initialized for capture');
+     
+      return;
+    }
+
+    if (_frontImage != null && !_isCapturingBack) {
+      _showErrorDialog(
+          'Cannot capture a photo because an upload is in progress. Please reset first.');
       return;
     }
 
@@ -391,8 +397,7 @@ class _CameraScreenState extends State<CameraScreen> {
             });
           }
 
-          print(
-              "📸 Navigating to ScanResultScreen with front: $frontPath, back: $backPath");
+
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
@@ -418,17 +423,22 @@ class _CameraScreenState extends State<CameraScreen> {
             );
           }
         } else {
-          print("❌ One of the images was null. Capture failed.");
+          
         }
       }
+    // ignore: empty_catches
     } catch (e) {
-      print("❌ Error during multi-angle capture: $e");
+     
     }
   }
 
   Future<void> _pickImageFromGallery() async {
     final picker = ImagePicker();
-
+    if (_frontImage != null || _isCapturingBack) {
+      _showErrorDialog(
+          'Cannot upload images while capturing. Please reset or finish capturing first.');
+      return;
+    }
     final frontConfirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -452,9 +462,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (frontConfirmed != true) return;
 
-    final frontImage = await picker.pickImage(source: ImageSource.gallery);
+    final frontImage = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
+      requestFullMetadata: true,
+    );
     if (frontImage == null) {
-      print("❌ No front image selected from gallery");
+     
       return;
     }
 
@@ -487,17 +501,18 @@ class _CameraScreenState extends State<CameraScreen> {
 
     if (backConfirmed != true) return;
 
-    final backImage = await picker.pickImage(source: ImageSource.gallery);
+    final backImage = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
+      requestFullMetadata: true,
+    );
     if (backImage == null) {
-      print("❌ No back image selected from gallery");
       return;
     }
 
     final resizedFront = frontImage.path;
     final resizedBack = backImage.path;
 
-    print(
-        "📸 Navigating to ScanResultScreen with front: $resizedFront, back: $resizedBack");
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -517,6 +532,21 @@ class _CameraScreenState extends State<CameraScreen> {
   void dispose() {
     _cameraController?.dispose();
     super.dispose();
+  }
+void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Action Not Allowed'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
