@@ -1,6 +1,7 @@
 Arm
 BellPepper
 Bread
+ChiliPepper
 Face
 Furniture
 Garlic
@@ -10,6 +11,8 @@ Hand
 KitchenTool
 Kiwi
 Legs
+Mouse
 Okara-plant
 Onion
+Sticker
 Strawberry
