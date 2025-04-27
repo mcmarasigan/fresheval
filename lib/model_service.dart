@@ -235,7 +235,6 @@ class ModelService {
 
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
-      
       return {'label': 'Unknown', 'confidence': 0.0};
     }
 
@@ -247,19 +246,30 @@ class ModelService {
 
       _efficientNetInterpreter.run(input, output);
       final predictions = List<double>.from(output[0]);
+
+      // Fallback protection against NaN or bad outputs
+      if (predictions.isEmpty || predictions.any((e) => e.isNaN)) {
+        return {'label': 'Unknown', 'confidence': 0.0};
+      }
+
       final softmaxScores = _softmax(predictions);
-      final predictedIndex = softmaxScores
-          .indexWhere((val) => val == softmaxScores.reduce(math.max));
+      final predictedIndex =
+          softmaxScores.indexOf(softmaxScores.reduce(math.max));
+
+      // Protection against empty label list
+      if (predictedIndex < 0 || predictedIndex >= _efficientNetLabels.length) {
+        return {'label': 'Unknown', 'confidence': 0.0};
+      }
 
       return {
         'label': _efficientNetLabels[predictedIndex],
         'confidence': softmaxScores[predictedIndex] * 100,
       };
     } catch (e) {
-      
       return {'label': 'Unknown', 'confidence': 0.0};
     }
   }
+
 
   Uint8List cropObject(
       Uint8List imageBytes, List bbox, double imageWidth, double imageHeight) {
@@ -307,15 +317,16 @@ class ModelService {
     return [
       List.generate(_efficientNetInputSize.toInt(), (y) {
         return List.generate(_efficientNetInputSize.toInt(), (x) {
-          final int pixel = resizedImage.getPixel(x, y);
-          final r = ((pixel >> 16) & 0xFF) / 255.0;
-          final g = ((pixel >> 8) & 0xFF) / 255.0;
-          final b = (pixel & 0xFF) / 255.0;
+          final pixel = resizedImage.getPixel(x, y);
+          final r = ((pixel >> 16) & 0xFF) / 127.5 - 1.0;
+          final g = ((pixel >> 8) & 0xFF) / 127.5 - 1.0;
+          final b = (pixel & 0xFF) / 127.5 - 1.0;
           return [r, g, b];
         });
       })
     ];
   }
+
 
 
   List<double> _softmax(List<double> scores) {
