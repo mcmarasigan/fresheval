@@ -308,15 +308,15 @@ class ModelService {
       List.generate(_efficientNetInputSize.toInt(), (y) {
         return List.generate(_efficientNetInputSize.toInt(), (x) {
           final int pixel = resizedImage.getPixel(x, y);
-          return [
-            ((pixel >> 16) & 0xFF) / 127.5 - 1.0,
-            ((pixel >> 8) & 0xFF) / 127.5 - 1.0,
-            (pixel & 0xFF) / 127.5 - 1.0,
-          ];
+          final r = ((pixel >> 16) & 0xFF) / 255.0;
+          final g = ((pixel >> 8) & 0xFF) / 255.0;
+          final b = (pixel & 0xFF) / 255.0;
+          return [r, g, b];
         });
       })
     ];
   }
+
 
   List<double> _softmax(List<double> scores) {
     final expScores = scores.map(math.exp).toList();
