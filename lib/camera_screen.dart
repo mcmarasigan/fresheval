@@ -45,13 +45,20 @@ class _CameraScreenState extends State<CameraScreen> {
     },
     {
       'title': widget.localizations.getTranslation('steady and clear'),
-      'description': widget.localizations.getTranslation('steady and clear desc'),
+      'description':
+          widget.localizations.getTranslation('steady and clear desc'),
       'image': 'assets/img/steady_clear.png',
     },
     {
       'title': widget.localizations.getTranslation('full view'),
       'description': widget.localizations.getTranslation('full view desc'),
       'image': 'assets/img/full_view.png',
+    },
+    {
+      'title': widget.localizations.getTranslation('one object'),
+      'description': widget.localizations.getTranslation(
+          'Scan one object at a time. It can be eggplant, tomato, or potato'),
+      'image': 'assets/img/one_object.png',
     },
   ];
 
@@ -142,7 +149,6 @@ class _CameraScreenState extends State<CameraScreen> {
     _showFloatingPrompt("🔄 Front image reset. You can retake.");
   }
 
-
   Future<void> _showInstructionPrompt() async {
     final prefs = await SharedPreferences.getInstance();
     bool dontShowAgain = !(prefs.getBool('showCameraTips') ?? true);
@@ -203,8 +209,7 @@ class _CameraScreenState extends State<CameraScreen> {
                                     style: GoogleFonts.poppins(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
-                                      color:
-                                          const Color(0xFF059212),
+                                      color: const Color(0xFF059212),
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -245,28 +250,32 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
                 Row(
                   children: [
-                    Theme (
+                    Theme(
                       data: Theme.of(context).copyWith(
                         checkboxTheme: CheckboxThemeData(
-                          fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+                          fillColor:
+                              WidgetStateProperty.resolveWith<Color>((states) {
                             if (states.contains(WidgetState.selected)) {
                               return const Color(0xFF059212);
                             }
                             return Colors.transparent;
                           }),
-                          checkColor: WidgetStateProperty.all<Color>(Colors.white),
+                          checkColor:
+                              WidgetStateProperty.all<Color>(Colors.white),
                         ),
                       ),
-                    child: Checkbox(
-                      value: dontShowAgain,
-                      onChanged: (value) {
-                        setModalState(() {
-                          dontShowAgain = value ?? false;
-                        });
-                      },
+                      child: Checkbox(
+                        value: dontShowAgain,
+                        onChanged: (value) {
+                          setModalState(() {
+                            dontShowAgain = value ?? false;
+                          });
+                        },
+                      ),
                     ),
+                    const SizedBox(
+                      width: 8,
                     ),
-                    const SizedBox(width: 8,),
                     Text(
                       widget.localizations.getTranslation('dont show again'),
                       style: GoogleFonts.poppins(fontSize: 14),
@@ -346,7 +355,6 @@ class _CameraScreenState extends State<CameraScreen> {
         });
       }
     } catch (e) {
-     
       setState(() {
         _isCameraInitialized = false;
       });
@@ -355,7 +363,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _captureMultiAngleImage() async {
     if (!_isCameraInitialized || _cameraController == null) {
-     
       return;
     }
 
@@ -370,13 +377,14 @@ class _CameraScreenState extends State<CameraScreen> {
       final resizedFile = File(image.path);
 
       if (!_isCapturingBack) {
-          setState(() {
-            _frontImage = resizedFile;
-            _isCapturingBack = true;
-          });
+        setState(() {
+          _frontImage = resizedFile;
+          _isCapturingBack = true;
+        });
 
-          _showFloatingPrompt("✅ Front side captured. Now take the back side of the vegetable.");
-        } else {
+        _showFloatingPrompt(
+            "✅ Front side captured. Now take the back side of the vegetable.");
+      } else {
         setState(() {
           _backImage = resizedFile;
           _isCapturingBack = false;
@@ -396,7 +404,6 @@ class _CameraScreenState extends State<CameraScreen> {
               _isFlashOn = false;
             });
           }
-
 
           final result = await Navigator.push(
             context,
@@ -422,14 +429,10 @@ class _CameraScreenState extends State<CameraScreen> {
               result ? FlashMode.torch : FlashMode.off,
             );
           }
-        } else {
-          
-        }
+        } else {}
       }
-    // ignore: empty_catches
-    } catch (e) {
-     
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
   Future<void> _pickImageFromGallery() async {
@@ -452,9 +455,12 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(widget.localizations.getTranslation('pick image'), style: GoogleFonts.poppins(
-                      color: Colors.white,
-                    ),),
+            child: Text(
+              widget.localizations.getTranslation('pick image'),
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -468,7 +474,6 @@ class _CameraScreenState extends State<CameraScreen> {
       requestFullMetadata: true,
     );
     if (frontImage == null) {
-     
       return;
     }
 
@@ -482,19 +487,23 @@ class _CameraScreenState extends State<CameraScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              widget.localizations.getTranslation('cancel'), 
+              widget.localizations.getTranslation('cancel'),
               style: GoogleFonts.poppins(
                 color: Colors.green,
-            ),),
+              ),
+            ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
-            child: Text(widget.localizations.getTranslation('pick image'), style: GoogleFonts.poppins(
-                      color: Colors.white,),)
-          ),
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+              ),
+              child: Text(
+                widget.localizations.getTranslation('pick image'),
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                ),
+              )),
         ],
       ),
     );
@@ -533,7 +542,8 @@ class _CameraScreenState extends State<CameraScreen> {
     _cameraController?.dispose();
     super.dispose();
   }
-void _showErrorDialog(String message) {
+
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -721,7 +731,7 @@ void _showErrorDialog(String message) {
               ],
             ),
           ),
-                    // Retake Button (shows after front image is taken)
+          // Retake Button (shows after front image is taken)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -747,7 +757,6 @@ void _showErrorDialog(String message) {
               ),
             ),
           ),
-
         ],
       ),
     );
@@ -827,10 +836,14 @@ void _showErrorDialog(String message) {
                   tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
                   onTap: () {
                     Navigator.pop(context); // Close drawer
-                    if(!isRouteActive('/camera')) { //Solved issue, white screen if clicking the camera again
+                    if (!isRouteActive('/camera')) {
+                      //Solved issue, white screen if clicking the camera again
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (context) => CameraScreen(localizations: widget.localizations,)),
+                        MaterialPageRoute(
+                            builder: (context) => CameraScreen(
+                                  localizations: widget.localizations,
+                                )),
                       );
                     }
                   },

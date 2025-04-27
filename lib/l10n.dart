@@ -42,24 +42,32 @@ class AppLocalizations {
       'confirm_delete_selected_scans':
           'Are you sure you want to delete the selected scans?',
       'deleted': 'deleted',
-      'scans_deleted': 'Selected scans deleted.', // Added
-      'all_scans': 'All Scans', // Added
-      'bookmarks': 'Bookmarks', // Added
+      'scans_deleted': 'Selected scans deleted.',
+      'all_scans': 'All Scans',
+      'bookmarks': 'Bookmarks',
       'clean your camera': 'Clean Your Camera',
-      'clean camera desc': 'Wipe your camera lens with a soft cloth to remove smudges and dust for clearer photos.',
+      'clean camera desc':
+          'Wipe your camera lens with a soft cloth to remove smudges and dust for clearer photos.',
       'good lighting': 'Good Lighting',
-      'good lighting desc': 'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows.',
+      'good lighting desc':
+          'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows.',
       'steady and clear': 'Steady & Clear',
-      'steady and clear desc': 'Hold your phone steady to avoid blurry images. Tap to focus on the vegetables.',
+      'steady and clear desc':
+          'Hold your phone steady to avoid blurry images. Tap to focus on the vegetables.',
       'full view': 'Full View',
-      'full view desc': 'Capture the entire vegetable in the frame. Avoid cutting off parts of it.',
+      'full view desc':
+          'Capture the entire vegetable in the frame. Avoid cutting off parts of it.',
+      'one object': 'One Object', // Added
+      'Scan one object at a time. It can be eggplant, tomato, or potato':
+          'Scan one object at a time. It can be eggplant, tomato, or potato', // Added
       'dont show again': "Don't show again",
       'got it': 'Got It',
       'upload front title': 'Upload Front Image',
       'upload front desc': 'Please select the FRONT view of the vegetable.',
       'upload back title': 'Upload Back Title',
       'upload back desc': 'Now select the BACK view of the vegetable.',
-      'front captured': '✅ Front side captured. Now take the back side of the vegetable.',
+      'front captured':
+          '✅ Front side captured. Now take the back side of the vegetable.',
       'no front selected': '❌ No front image selected from gallery',
       'no back selected': '❌ No back image selected from gallery',
       'scan results': 'Scan Results',
@@ -81,7 +89,8 @@ class AppLocalizations {
       'save successful': 'Save Successful',
       'save successful desc': 'Scan results have been saved successfully!',
       'already save': 'Already Save',
-      'already save desc':'This scan result has already been saved to scan history.',
+      'already save desc':
+          'This scan result has already been saved to scan history.',
 
       // Settings Page
       'settings_description':
@@ -129,16 +138,20 @@ class AppLocalizations {
       'team_members': 'Team Members',
       'member1_name': 'Ma. Clarissa Marasigan',
       'member1_role': 'Main Programmer',
-      'member1_about': 'Clarissa serves as the Main Programmer for FreshEval, orchestrating the core functionality and developed the robust logic that powers the camera, image processing, and data management, making FreshEval a reliable tool for freshness evaluation.',
+      'member1_about':
+          'Clarissa serves as the Main Programmer for FreshEval, orchestrating the core functionality and developed the robust logic that powers the camera, image processing, and data management, making FreshEval a reliable tool for freshness evaluation.',
       'member2_name': 'Vhon Joshua Agbayani',
       'member2_role': 'AI Specialist',
-      'member2_about': 'Vhon is an AI expert and the Model Trainer behind the cutting-edge freshness detection of the application',
+      'member2_about':
+          'Vhon is an AI expert and the Model Trainer behind the cutting-edge freshness detection of the application',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
-      'member3_about': 'Krysteen is a skilled Front End Developer with a passion for crafting responsive and visually appealing interfaces',
+      'member3_about':
+          'Krysteen is a skilled Front End Developer with a passion for crafting responsive and visually appealing interfaces',
       'member4_name': 'Clark Czedrick Limson',
       'member4_role': 'UI/UX Designer',
-      'member4_about': 'Clark designs intuitive user interfaces and ensures a seamless user experience for FreshEval.',
+      'member4_about':
+          'Clark designs intuitive user interfaces and ensures a seamless user experience for FreshEval.',
       'contact_us': 'Contact Us',
       'website_label': 'Website',
 
@@ -151,7 +164,8 @@ class AppLocalizations {
 
       // Errors
       'scan error': 'Scan Error',
-      'different vegetable error': 'Different vegetables detected: Front ({front}) vs. Back({back}). Please scan the same vegetable.',
+      'different vegetable error':
+          'Different vegetables detected: Front ({front}) vs. Back({back}). Please scan the same vegetable.',
       'no objects detected': 'No objects detected in the {side} image',
       'front': 'front',
       'back': 'back',
@@ -191,25 +205,34 @@ class AppLocalizations {
       'confirm_delete_selected_scans':
           'Sigurado ka bang nais mong burahin ang mga napiling scan?',
       'deleted': 'nabura',
-      'scans_deleted': 'Nabura ang mga napiling scan.', // Added
-      'all_scans': 'Lahat ng Scan', // Added
-      'bookmarks': 'Mga Bookmark', // Added
+      'scans_deleted': 'Nabura ang mga napiling scan.',
+      'all_scans': 'Lahat ng Scan',
+      'bookmarks': 'Mga Bookmark',
       'clean your camera': 'Linisin ang iyong Kamera',
-      'clean camera desc': 'Punasan ang lens ng iyong camera gamit ang malambot na tela upang alisin ang mga mantsa at alikabok para sa mas malinaw na mga larawan.',
+      'clean camera desc':
+          'Punasan ang lens ng iyong camera gamit ang malambot na tela upang alisin ang mga mantsa at alikabok para sa mas malinaw na mga larawan.',
       'good lighting': 'Magandang Ilaw',
-      'good lighting desc': 'Kumuha ng mga larawas sa maayos na kondisyon. Iwasan ang direktang sikat ng araw o madilim na anino.',
+      'good lighting desc':
+          'Kumuha ng mga larawas sa maayos na kondisyon. Iwasan ang direktang sikat ng araw o madilim na anino.',
       'steady and clear': 'Matatag at Malinaw',
-      'steady and clear desc': 'Hawakan nang matatag ang iyong telepono upang maiwasan ang malabong mga imahe. Mag-tap upang magpokus sa mga gulay.',
+      'steady and clear desc':
+          'Hawakan nang matatag ang iyong telepono upang maiwasan ang malabong mga imahe. Mag-tap upang magpokus sa mga gulay.',
       'full view': 'Buong tanaw',
-      'full view desc': 'Kunin ang buong gulay sa frame. Iwasan ang pagputol ng mga bahagi nito.',
+      'full view desc':
+          'Kunin ang buong gulay sa frame. Iwasan ang pagputol ng mga bahagi nito.',
+      'one object': 'Isang Bagay', // Added
+      'Scan one object at a time. It can be eggplant, tomato, or potato':
+          'I-scan ang isang bagay sa isang pagkakataon. Maaaring ito ay talong, kamatis, o patatas', // Added
       'dont show again': "Huwag nang ipakita",
       'got it': 'Naunawaan',
       'upload front title': 'Mag-upload ng harapang larawan',
       'upload front desc': 'Maaaring piliin ang harapang bahagi ng gulay.',
       'upload back title': 'Mag-upload ng likod na larawan',
       'upload back desc': 'Ngayon, piliin ang likod na bahagi ng gulay.',
-      'front captured': '✅ Nakuha ang harapang bahagi. Ngayon ay kunin ang likod na bahagi ng gulay.',
-      'no front selected': '❌ Walang napiling harap na larawan mula sa gallery.',
+      'front captured':
+          '✅ Nakuha ang harapang bahagi. Ngayon ay kunin ang likod na bahagi ng gulay.',
+      'no front selected':
+          '❌ Walang napiling harap na larawan mula sa gallery.',
       'no back selected': '❌ Walang napiling likod na larawan mula sa gallery.',
       'scan results': 'Resulta ng Scan',
       'scan details': 'Mga Detalye ng Scan',
@@ -228,10 +251,11 @@ class AppLocalizations {
       'confirm': 'Kumpirmahin',
       'pick image': 'Mamili ng Larawan',
       'save successful': 'Matagumpay na i-save',
-      'save successful desc': 'Matagumpay na na-save ang mga resulta ng pag-scan!',
+      'save successful desc':
+          'Matagumpay na na-save ang mga resulta ng pag-scan!',
       'already save': 'Naka-save na',
-      'already save desc': 'Ang resulta ng pag-scan na ito ay nai-save na sa kasaysayan ng pag-scan', 
-
+      'already save desc':
+          'Ang resulta ng pag-scan na ito ay nai-save na sa kasaysayan ng pag-scan',
 
       // Settings Page
       'settings_description':
@@ -279,16 +303,20 @@ class AppLocalizations {
       'team_members': 'Mga Miyembro ng Koponan',
       'member1_name': 'Ma. Clarissa Marasigan',
       'member1_role': 'Pangunahing Programmer',
-      'member1_about': 'Si Clarissa ang nagsisilbing pangunahing programmer para sa Fresheval, na nag-aayos ng pangunahing pag-andar at bumuo ng matibay na lohika na nagpapatakbo sa kamera, pagproseso ng larawan, at pamamahala ng datos, na ginagawang isang maaasahang kagamitan para sa pagsusuri ng kasariwaan.',
+      'member1_about':
+          'Si Clarissa ang nagsisilbing pangunahing programmer para sa Fresheval, na nag-aayos ng pangunahing pag-andar at bumuo ng matibay na lohika na nagpapatakbo sa kamera, pagproseso ng larawan, at pamamahala ng datos, na ginagawang isang maaasahang kagamitan para sa pagsusuri ng kasariwaan.',
       'member2_name': 'Vhon Joshua Agbayani',
-      'member2_about': 'Si Vhon ay isang eksperto sa AI at ang tagapagsanay ng modelo sa likod ng makabagong sistema ng pagtukoy sa kasariwaan ng aplikasyon.',
       'member2_role': 'Eksperto sa AI',
+      'member2_about':
+          'Si Vhon ay isang eksperto sa AI at ang tagapagsanay ng modelo sa likod ng makabagong sistema ng pagtukoy sa kasariwaan ng aplikasyon.',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
-      'member3_about': 'Si Krysteen ay isang bihasang Front End Developer na may pagkahilig sa paglikha ng mga tumutugon at kaakit-akit na interface.',
+      'member3_about':
+          'Si Krysteen ay isang bihasang Front End Developer na may pagkahilig sa paglikha ng mga tumutugon at kaakit-akit na interface.',
       'member4_name': 'Clark Czedrick Limson',
       'member4_role': 'Designer ng UI/UX',
-      'member4_about': 'Taga-disenyo si Clark ng mga makatuwiran na interface ng mga gumagamit at tinitiyak ang isang maayos na karanasan ng mga gumagamit para sa FreshEval.',
+      'member4_about':
+          'Taga-disenyo si Clark ng mga makatuwiran na interface ng mga gumagamit at tinitiyak ang isang maayos na karanasan ng mga gumagamit para sa FreshEval.',
       'contact_us': 'Makipag-ugnayan Sa Amin',
       'website_label': 'Website',
 
@@ -299,9 +327,10 @@ class AppLocalizations {
       'about_label': 'Tungkol Sa',
       'email_label': 'Email:',
 
-      //Errors
+      // Errors
       'scan error': 'Error sa Scan',
-      'different vegetable error': 'Magkaiba ang gulay: Harap ({front}) kumpara sa Likod ({back}). Paki-scan ang parehong gulay.',
+      'different vegetable error':
+          'Magkaiba ang gulay: Harap ({front}) kumpara sa Likod ({back}). Paki-scan ang parehong gulay.',
       'no objects detected': 'Walang bagay na nakita sa {side} ng imahe',
       'front': 'harap',
       'back': 'likod',
@@ -314,19 +343,21 @@ class AppLocalizations {
         '';
     if (translation.isEmpty) {
       debugPrint(
-          'Translation missing for key: $key in language: $languageCode');
+        'Translation missing for key: $key in language: $languageCode',
+      );
     }
     return translation;
   }
- 
- String getVegetableLabel(String key) {
+
+  String getVegetableLabel(String key) {
     final labelMap = {
-        'eggplant': getTranslation('eggplant'),
-        'tomato': getTranslation('tomato'),
-        'potato': getTranslation('potato'),
+      'eggplant': getTranslation('eggplant'),
+      'tomato': getTranslation('tomato'),
+      'potato': getTranslation('potato'),
     };
 
     return labelMap[key.toLowerCase()] ?? key;
- }
+  }
+
   static of(BuildContext context) {}
 }
