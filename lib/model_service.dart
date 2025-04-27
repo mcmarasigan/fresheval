@@ -11,6 +11,7 @@ class ModelService {
   late FlutterVision _flutterVision;
   late Interpreter _efficientNetInterpreter;
   late List<String> _yoloLabels;
+  late FlutterVision _invalidVision;
   late List<String> _efficientNetLabels;
   bool _modelsLoaded = false;
 
@@ -25,6 +26,7 @@ class ModelService {
       _efficientNetLabels =
           await _loadLabels("assets/efficientnetb7_label.txt");
 
+       // primary YOLO (valid vegetables)
       await _flutterVision.loadYoloModel(
         modelPath: "assets/yolov8_best.tflite",
         labels: "assets/yolov8_label.txt",
@@ -32,7 +34,15 @@ class ModelService {
         quantization: false,
         numThreads: 2,
       );
-
+       // invalid YOLO (Arm, BellPepper, Bread… Strawberry)
+      await _invalidVision.loadYoloModel(
+        modelPath: "assets/invalid_yolov8.tflite",
+        labels: "assets/invalid_labels.txt",
+        modelVersion: "yolov8",
+        quantization: false,
+        numThreads: 2,
+      );
+      // EfficientNet model for freshness classification
       _efficientNetInterpreter = await Interpreter.fromAsset(
         "assets/efficientnetb7_fixed.tflite",
         options: InterpreterOptions()..threads = 2,
@@ -86,109 +96,103 @@ class ModelService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> detectObjects(
-      Uint8List imageBytes, double imageWidth, double imageHeight) async {
-    if (!_modelsLoaded) {
-      
-      return [];
-    }
+ Future<List<Map<String, dynamic>>> detectObjects(
+      Uint8List imageBytes, double imageW, double imageH) async {
+    if (!_modelsLoaded) return [];
 
-    try {
-      final img.Image? originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) {
-        
-        return [];
-      }
+    // 1) build 640×640 canvas exactly as you already do…
+    final img.Image original = img.decodeImage(imageBytes)!;
+    final double scale = math.min(
+        _yoloInputSize / original.width, _yoloInputSize / original.height);
+    final int newW = (original.width * scale).round();
+    final int newH = (original.height * scale).round();
+    final img.Image resized =
+        img.copyResize(original, width: newW, height: newH);
+    final img.Image canvas =
+        img.Image(_yoloInputSize.toInt(), _yoloInputSize.toInt());
+    img.fill(canvas, img.getColor(0, 0, 0));
+    final int offX = ((_yoloInputSize - newW) / 2).round();
+    final int offY = ((_yoloInputSize - newH) / 2).round();
+    img.copyInto(canvas, resized, dstX: offX, dstY: offY);
+    final Uint8List canvasBytes = Uint8List.fromList(img.encodeJpg(canvas));
 
-      final double originalWidth = originalImage.width.toDouble();
-      final double originalHeight = originalImage.height.toDouble();
+    // 2) run your valid-classes YOLO on full canvas
+    final validRaw = await _flutterVision.yoloOnImage(
+      bytesList: canvasBytes,
+      imageHeight: _yoloInputSize.toInt(),
+      imageWidth: _yoloInputSize.toInt(),
+      iouThreshold: 0.4,
+      confThreshold: 0.5,
+    );
+    if (validRaw.isEmpty) return [];
 
-      // Calculate scaling to fit 640x640 while preserving aspect ratio
-      final double scale = math.min(
-          _yoloInputSize / originalWidth, _yoloInputSize / originalHeight);
-      final int newWidth = (originalWidth * scale).round();
-      final int newHeight = (originalHeight * scale).round();
+    // prepare img.Image for cropping
+    final img.Image canvasImg = img.decodeImage(canvasBytes)!;
+    const double invalidThreshold = 0.6; // 60% conf for invalid
 
-      // Resize the image
-      final img.Image resizedImage =
-          img.copyResize(originalImage, width: newWidth, height: newHeight);
+    List<Map<String, dynamic>> kept = [];
 
-      // Create a 640x640 canvas
-      final img.Image canvas =
-          img.Image(_yoloInputSize.toInt(), _yoloInputSize.toInt());
-      img.fill(canvas, img.getColor(0, 0, 0));
+    // 3) for each valid detection, crop & check invalid
+    for (final det in validRaw) {
+      final List<double> box = List<double>.from(det['box']);
+      final int x1 = box[0].round(), y1 = box[1].round();
+      final int w = (box[2] - box[0]).round();
+      final int h = (box[3] - box[1]).round();
 
-      // Calculate offsets to center the image
-      final int offsetX = ((_yoloInputSize - newWidth) / 2).round();
-      final int offsetY = ((_yoloInputSize - newHeight) / 2).round();
+      // crop region out of canvas
+      img.Image win = img.copyCrop(
+        canvasImg,
+        x1.clamp(0, 639),
+        y1.clamp(0, 639),
+        w.clamp(1, 640 - x1),
+        h.clamp(1, 640 - y1),
+      );
+      // resize crop back to 640×640 for invalid YOLO
+      win = img.copyResize(
+        win,
+        width: _yoloInputSize.toInt(),
+        height: _yoloInputSize.toInt(),
+      );
+      final Uint8List winBytes = Uint8List.fromList(img.encodeJpg(win));
 
-      // Copy the resized image onto the canvas
-      img.copyInto(canvas, resizedImage, dstX: offsetX, dstY: offsetY);
-
-      final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(canvas));
-
-    
-      final detections = await _flutterVision.yoloOnImage(
-        bytesList: resizedBytes,
+      // 4) run invalid YOLO on _that_ crop
+      final invRaw = await _invalidVision.yoloOnImage(
+        bytesList: winBytes,
         imageHeight: _yoloInputSize.toInt(),
         imageWidth: _yoloInputSize.toInt(),
         iouThreshold: 0.4,
-        confThreshold: 0.5,
+        confThreshold: invalidThreshold,
       );
 
-      
+      // keep only if invalid model found NOTHING
+      if (invRaw.isEmpty) {
+        // scale box back to original image coords
+        double xMin =
+            ((box[0] - offX) / scale).clamp(0.0, original.width.toDouble());
+        double yMin =
+            ((box[1] - offY) / scale).clamp(0.0, original.height.toDouble());
+        double xMax =
+            ((box[2] - offX) / scale).clamp(0.0, original.width.toDouble());
+        double yMax =
+            ((box[3] - offY) / scale).clamp(0.0, original.height.toDouble());
+        final double conf = box[4] * 100;
 
-      if (detections.isEmpty) {
-        
-        return [];
+        if (xMax > xMin && yMax > yMin) {
+          kept.add({
+            'label': det['tag'],
+            'confidence': conf,
+            'bbox': [xMin, yMin, xMax, yMax],
+            'originalWidth': original.width.toDouble(),
+            'originalHeight': original.height.toDouble(),
+          });
+        }
       }
-
-      // Scale bounding box coordinates back to original dimensions
-      return detections
-          .map((detection) {
-            final bbox = detection['box'];
-            if (bbox.length < 5) {
-              
-              return null;
-            }
-
-            // YOLOv8 outputs [xMin, yMin, xMax, yMax, confidence]
-            double xMin = bbox[0].toDouble();
-            double yMin = bbox[1].toDouble();
-            double xMax = bbox[2].toDouble();
-            double yMax = bbox[3].toDouble();
-            final double confidence = bbox[4].toDouble() * 100;
-
-            // Adjust for padding and scaling
-            xMin = ((xMin - offsetX) / scale).clamp(0.0, originalWidth);
-            yMin = ((yMin - offsetY) / scale).clamp(0.0, originalHeight);
-            xMax = ((xMax - offsetX) / scale).clamp(0.0, originalWidth);
-            yMax = ((yMax - offsetY) / scale).clamp(0.0, originalHeight);
-
-            
-          
-
-            // Ensure valid bounding box
-            if (xMin >= xMax || yMin >= yMax) {
-              
-              return null;
-            }
-
-            return {
-              'label': detection['tag'],
-              'confidence': confidence,
-              'bbox': [xMin, yMin, xMax, yMax],
-              'originalWidth': originalWidth,
-              'originalHeight': originalHeight,
-            };
-          })
-          .whereType<Map<String, dynamic>>()
-          .toList();
-    } catch (e) {
-      
-      return [];
+      // else: drop this valid det because invalid YOLO said “that’s a Kiwi/Furniture/etc”
     }
+
+    return kept;
   }
+
 
   Future<Map<String, dynamic>> classifyDetection({
     required Uint8List imageBytes,
