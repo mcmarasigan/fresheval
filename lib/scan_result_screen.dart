@@ -98,9 +98,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 'vqr': res['mergedVQR'] ?? 'VQR-0',
                 'freshnessConfidence': res['mergedConfidence'],
                 'freshnessStatus': res['mergedStatus'],
-                'explanation': res['front']?['explanation'] ??
-                    res['back']?['explanation'] ??
-                    'No explanation',
+                'explanation': _modelService.getPredictionExplanation(
+                  res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
+                  res['mergedConfidence'] ?? 0.0,
+                ),
                 'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
                 'originalWidth': res['front']?['originalWidth'] ??
                     res['back']?['originalWidth'],
