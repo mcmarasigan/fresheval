@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'l10n.dart';
 import 'dart:ui';
+import 'package:intl/intl.dart';
 
 class ScanHistoryScreen extends StatefulWidget {
   final AppLocalizations localizations;
@@ -24,7 +25,6 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
   bool showDeleteMode = false;
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
-  
 
   @override
   void initState() {
@@ -40,8 +40,31 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
     final prefs = await SharedPreferences.getInstance();
     final scanData = prefs.getStringList('recent_scans') ?? [];
 
+    // Date formats for parsing
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final timeFormat = DateFormat.jm(); // e.g., '3:45 PM'
+
     scanHistory = scanData.map((scan) {
       final decoded = json.decode(scan) as Map<String, dynamic>;
+
+      // Parse date and time into DateTime
+      DateTime? scanDateTime;
+      try {
+        final dateStr = decoded['date']?.toString() ?? '1970-01-01';
+        final timeStr = decoded['time']?.toString() ?? '12:00 AM';
+        final date = dateFormat.parse(dateStr);
+        final time = timeFormat.parse(timeStr);
+        scanDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+      } catch (e) {
+        // Fallback to epoch if parsing fails
+        scanDateTime = DateTime(1970, 1, 1);
+      }
 
       return {
         'imagePath': decoded['imagePath']?.toString(),
@@ -62,8 +85,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
         'time': decoded.containsKey('time')
             ? decoded['time'].toString()
             : "Unknown",
+        'dateTime': scanDateTime, // Store parsed DateTime
       };
     }).toList();
+
+    // Sort scanHistory by dateTime in descending order (latest first)
+    scanHistory.sort((a, b) => b['dateTime'].compareTo(a['dateTime']));
 
     _filterScanHistory('');
   }
@@ -76,13 +103,11 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
       filteredScanHistory = scanHistory.where((scan) {
         final date = scan['date'].toLowerCase();
         final time = scan['time'].toLowerCase();
-        final objectLabels = scan['objects']
-            .map<String>((obj) {
-              final rawLabel = obj['label'].toString().toLowerCase();
-              return widget.localizations.getTranslation(rawLabel).toLowerCase();
-            })
-            .join(" ");
-            
+        final objectLabels = scan['objects'].map<String>((obj) {
+          final rawLabel = obj['label'].toString().toLowerCase();
+          return widget.localizations.getTranslation(rawLabel).toLowerCase();
+        }).join(" ");
+
         if (_tabController.index == 1) {
           return scan['bookmarked'] == true &&
               (date.contains(query) ||
@@ -114,8 +139,13 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
         _filterScanHistory(_searchController.text);
       });
 
-      await prefs.setStringList('recent_scans',
-          scanHistory.map((scan) => json.encode(scan)).toList());
+      // Update shared preferences with sorted scanHistory
+      final scanData = scanHistory.map((scan) {
+        // Exclude dateTime from saved data
+        final scanCopy = Map<String, dynamic>.from(scan)..remove('dateTime');
+        return json.encode(scanCopy);
+      }).toList();
+      await prefs.setStringList('recent_scans', scanData);
     }
   }
 
@@ -161,8 +191,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
       showDeleteMode = false;
     });
 
-    await prefs.setStringList(
-        'recent_scans', scanHistory.map((scan) => json.encode(scan)).toList());
+    // Update shared preferences with sorted scanHistory
+    final scanData = scanHistory.map((scan) {
+      final scanCopy = Map<String, dynamic>.from(scan)..remove('dateTime');
+      return json.encode(scanCopy);
+    }).toList();
+    await prefs.setStringList('recent_scans', scanData);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -262,7 +296,8 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                 ? Center(
                     child: Text(
                       widget.localizations.getTranslation(
-                        _tabController.index == 1 ? 'no bookmarked scans'
+                        _tabController.index == 1
+                            ? 'no bookmarked scans'
                             : 'no scans available',
                       ),
                       style: TextStyle(color: grayColor),
@@ -283,15 +318,19 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                       final objectCount =
                           (scan['objects'] as List?)?.length ?? 0;
                       final firstObjectLabel = objectCount > 0
-                          ? widget.localizations.getTranslation(scan['objects'][0]['label'])
+                          ? widget.localizations
+                              .getTranslation(scan['objects'][0]['label'])
                           : widget.localizations.getTranslation('unknown');
                       final freshness = objectCount > 0
-                          ? widget.localizations.getTranslation(scan['objects'][0]['freshness'])
+                          ? scan['objects'][0]['freshness']?.toString() ?? 'N/A'
                           : 'N/A';
                       final vqr = objectCount > 0
                           ? (scan['objects'][0]['vqr'] ?? 8)
                           : 8;
                       final isBookmarked = scan['bookmarked'] ?? false;
+                      final title = objectCount > 0
+                          ? "$firstObjectLabel($freshness)"
+                          : "Unknown(N/A)";
 
                       return GestureDetector(
                         onTap: () {
@@ -303,8 +342,10 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    ScanDetailScreen(scan: scan, localizations: widget.localizations,),
+                                builder: (context) => ScanDetailScreen(
+                                  scan: scan,
+                                  localizations: widget.localizations,
+                                ),
                               ),
                             );
                           }
@@ -358,7 +399,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "$firstObjectLabel (VQR: $vqr)",
+                                          title,
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.w600,
                                             fontSize: 14,
@@ -650,7 +691,8 @@ class ScanDetailScreen extends StatelessWidget {
   final Map<String, dynamic> scan;
   final AppLocalizations localizations;
 
-  const ScanDetailScreen({super.key, required this.scan, required this.localizations});
+  const ScanDetailScreen(
+      {super.key, required this.scan, required this.localizations});
 
   Color _getBoxColor(String label) {
     switch (label.toLowerCase()) {
@@ -677,8 +719,8 @@ class ScanDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.getTranslation('scan details')),
-        backgroundColor: Colors.green),
+          title: Text(localizations.getTranslation('scan details')),
+          backgroundColor: Colors.green),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -880,7 +922,6 @@ class ScanDetailScreen extends StatelessWidget {
                         ),
                     ],
                   )
-
                 : ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: imageFile == null
@@ -962,7 +1003,6 @@ class ScanDetailScreen extends StatelessWidget {
                                                       .toDouble() -
                                                   (bbox[1] as num).toDouble()) *
                                               scaleY;
-
 
                                           final color = _getBoxColor(
                                               obj['label'] ?? 'unknown');
@@ -1122,8 +1162,6 @@ class ScanDetailScreen extends StatelessWidget {
                                     ],
                                   ),
                                 )
-
-
                               ],
                             ),
                           ),
