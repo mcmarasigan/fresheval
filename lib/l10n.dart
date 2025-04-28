@@ -163,7 +163,7 @@ class AppLocalizations {
       'email_label': 'Email:',
 
       // Errors
-      'scan error': 'Scan Error',
+      'scan error': 'Oops! Something went wrong. Want to try again?',
       'different vegetable error':
           'Different vegetables detected: Front ({front}) vs. Back({back}). Please scan the same vegetable.',
       'no objects detected': 'No objects detected in the {side} image',
@@ -328,7 +328,7 @@ class AppLocalizations {
       'email_label': 'Email:',
 
       // Errors
-      'scan error': 'Error sa Scan',
+      'scan error': 'Ay, may aberya sa pag-scan. Subukan ulit natin?',
       'different vegetable error':
           'Magkaiba ang gulay: Harap ({front}) kumpara sa Likod ({back}). Paki-scan ang parehong gulay.',
       'no objects detected': 'Walang bagay na nakita sa {side} ng imahe',
