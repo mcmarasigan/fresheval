@@ -53,9 +53,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   }
 
   Future<void> _runInference() async {
+    imageCache.clear(); // ✅ Clear Flutter image cache
+    setState(() {
+      _detectedObjects = []; // ✅ Clear previous detections
+      _isLoading = true;
+    });
+
     try {
-      
-      await _modelService.loadModels();
+      await _modelService.loadModels(); // ✅ loadModels handles internal check
 
       if (widget.isMultiAngle) {
         final frontBytes = await File(widget.frontImagePath!).readAsBytes();
@@ -75,57 +80,52 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         );
 
         for (var res in combinedResults) {
-          
-          final error = res['error'];
-         
-          if (error != null) {
-            
-          }
-
-          setState(() {
-            _detectedObjects = combinedResults.map((res) {
-              final freshnessLabel = _modelService
-                  .getFreshnessLabel(res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0');
-              final shelfInfo = _modelService.getShelfLifeAndRecommendation(
-                res['object'] ?? res['label'] ?? 'unknown',
-                res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
-              );
-
-              return {
-                'label': (res['object'] ?? '').toLowerCase(),
-                'confidence': res['mergedConfidence'],
-                'mergedFreshness': freshnessLabel,
-                'vqr': res['mergedVQR'] ?? 'VQR-0',
-                'freshnessConfidence': res['mergedConfidence'],
-                'freshnessStatus': res['mergedStatus'],
-                'explanation': _modelService.getPredictionExplanation(
-                  res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
-                  res['mergedConfidence'] ?? 0.0,
-                ),
-                'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
-                'originalWidth': res['front']?['originalWidth'] ??
-                    res['back']?['originalWidth'],
-                'originalHeight': res['front']?['originalHeight'] ??
-                    res['back']?['originalHeight'],
-                'frontConfidence': res['front']?['freshnessConfidence'],
-                'backConfidence': res['back']?['freshnessConfidence'],
-                'shelfLife': shelfInfo['shelfLife'],
-                'recommendation': shelfInfo['recommendation'],
-                'frontFreshnessConfidence': res['front']
-                    ?['freshnessConfidence'],
-                'backFreshnessConfidence': res['back']?['freshnessConfidence'],
-                'mergedConfidence': res['mergedConfidence'],
-                'error': res['error'],
-                'source': res['front']?['bbox'] != null ? 'front' : 'back',
-              };
-            }).toList();
-            _isLoading = false;
-          });
+          log("🧪 Multi-angle Result: ${res['label']} - ${res['mergedConfidence'] ?? res['confidence']}");
         }
+
+        setState(() {
+          _detectedObjects = combinedResults.map((res) {
+            final freshnessLabel = _modelService
+                .getFreshnessLabel(res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0');
+            final shelfInfo = _modelService.getShelfLifeAndRecommendation(
+              res['object'] ?? res['label'] ?? 'unknown',
+              res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
+            );
+
+            return {
+              'label': (res['object'] ?? '').toLowerCase(),
+              'confidence': res['mergedConfidence'],
+              'mergedFreshness': freshnessLabel,
+              'vqr': res['mergedVQR'] ?? 'VQR-0',
+              'freshnessConfidence': res['mergedConfidence'],
+              'freshnessStatus': res['mergedStatus'],
+              'explanation': _modelService.getPredictionExplanation(
+                res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
+                res['mergedConfidence'] ?? 0.0,
+              ),
+              'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
+              'originalWidth': res['front']?['originalWidth'] ??
+                  res['back']?['originalWidth'],
+              'originalHeight': res['front']?['originalHeight'] ??
+                  res['back']?['originalHeight'],
+              'frontConfidence': res['front']?['freshnessConfidence'],
+              'backConfidence': res['back']?['freshnessConfidence'],
+              'shelfLife': shelfInfo['shelfLife'],
+              'recommendation': shelfInfo['recommendation'],
+              'frontFreshnessConfidence': res['front']?['freshnessConfidence'],
+              'backFreshnessConfidence': res['back']?['freshnessConfidence'],
+              'mergedConfidence': res['mergedConfidence'],
+              'error': res['error'],
+              'source': res['front']?['bbox'] != null ? 'front' : 'back',
+            };
+          }).toList();
+          _isLoading = false;
+        });
       } else {
         final imageBytes = await File(widget.imagePath!).readAsBytes();
         final decoded = img.decodeImage(imageBytes);
         if (decoded == null) throw Exception("Failed to decode image");
+
         _originalWidth = decoded.width.toDouble();
         _originalHeight = decoded.height.toDouble();
 
@@ -135,13 +135,17 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           _originalHeight,
         );
 
-        if (detections.isEmpty) {
-          
+        if (detections.isEmpty || (detections[0]['error'] != null)) {
+          log("⚠️ No valid objects detected or error: ${detections[0]['error']}");
           setState(() {
             _isLoading = false;
-            _detectedObjects = [];
+            _detectedObjects = detections;
           });
           return;
+        }
+
+        for (var det in detections) {
+          log("✅ Detected: ${det['label']} (${det['confidence'].toStringAsFixed(2)}%)");
         }
 
         final topDetection = detections
@@ -169,7 +173,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         });
       }
     } catch (e) {
-      
+      log("❌ Error in _runInference: $e");
       setState(() {
         _isLoading = false;
         _detectedObjects = [];

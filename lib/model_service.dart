@@ -414,23 +414,52 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     }
   }
 
-  String getPredictionExplanation(String vqrLabel, double confidence) {
+  String getPredictionExplanation(String vqrLabel, double confidence,
+      [String label = '']) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
+    final vegetable = label.toLowerCase();
 
-    if (vqr >= 8) {
-      return "Firm texture, vibrant color, and no visible damage.";
-    } else if (vqr >= 6) {
-      return "Slight signs of aging, but still looks edible and safe.";
-    } else if (vqr >= 4) {
-      return "Some softness or dullness visible — use as soon as possible.";
-    } else if (vqr == 3) {
-      return "Visible spoilage like dark spots or softness — risky to eat.";
-    } else if (vqr >= 1) {
-      return "Severe signs of decay. Not recommended for consumption.";
-    } else {
-      return "Image unclear. Try retaking the photo in better lighting.";
+    if (vegetable.contains('eggplant')) {
+      if (vqr >= 8) {
+        return "Looks fresh! Color is unchanged and the skin feels firm.";
+      } else if (vqr >= 6) {
+        return "Still good. Slightly soft when pressed, but color looks fine.";
+      } else if (vqr >= 4) {
+        return "Starting to age. Less shiny and beginning to shrivel.";
+      } else if (vqr == 3) {
+        return "Looks spoiled. Dark spots and wrinkled skin are showing.";
+      } else if (vqr >= 1) {
+        return "Severely rotten. Mold and discoloration are visible.";
+      }
+    } else if (vegetable.contains('tomato')) {
+      if (vqr >= 8) {
+        return "Fresh and firm! Color change is normal for ripening.";
+      } else if (vqr >= 6) {
+        return "Still good. Slightly soft to the touch, but looks okay.";
+      } else if (vqr >= 4) {
+        return "Losing quality. Less shine and slight shriveling.";
+      } else if (vqr == 3) {
+        return "Going bad. Spots are showing and it feels shriveled.";
+      } else if (vqr >= 1) {
+        return "Spoiled. Signs of rot and mold are clearly visible.";
+      }
+    } else if (vegetable.contains('potato')) {
+      if (vqr >= 8) {
+        return "Very fresh. Color is normal and it's firm to touch.";
+      } else if (vqr >= 6) {
+        return "Good condition. Still firm with no major issues.";
+      } else if (vqr >= 4) {
+        return "Not as firm. Starting to age, use soon.";
+      } else if (vqr == 3) {
+        return "Not looking good. May have green spots and feels soft.";
+      } else if (vqr >= 1) {
+        return "Rotten. Mold or dark spots are visible with wrinkled skin.";
+      }
     }
+
+    return "We couldn't analyze this clearly. Try scanning again in better lighting.";
   }
+
 
   Map<String, String> getShelfLifeAndRecommendation(
       String label, String vqrLabel) {
@@ -452,74 +481,80 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
       matchedLabel = 'unknown';
     }
 
-    String shelfLife = '📆 Shelf life info not available';
-    String recommendation = '📌 No advice available.';
+    String shelfLife = '📆 Info not available';
+    String recommendation = '📌 No recommendation yet.';
 
     switch (matchedLabel) {
       case 'eggplant':
         if (effectiveVqr >= 8) {
-          shelfLife = '🟢 5–6 days at room temperature';
-          recommendation =
-              '✅ Store in a cool spot. Do not wash until ready to use.';
+          shelfLife = '🟢 Good for 5–6 days';
+          recommendation = '✅ Keep in a cool, humid place. Handle gently.';
         } else if (effectiveVqr >= 6) {
-          shelfLife = '🟡 3–4 days';
-          recommendation = '⚠️ Use soon. Skin may begin softening.';
+          shelfLife = '🟡 Use within 3–4 days';
+          recommendation = '⚠️ Store properly and use soon.';
         } else if (effectiveVqr >= 4) {
-          shelfLife = '🟡 2 days';
-          recommendation = '⚠️ May be losing firmness. Cook immediately.';
+          shelfLife = '🟡 Use within 2 days';
+          recommendation = '⚠️ Use quickly. Not the best quality.';
         } else if (effectiveVqr == 3) {
-          shelfLife = '🔴 1 day';
-          recommendation = '❌ Almost spoiled. Only use if still firm.';
+          shelfLife = '🔴 Use today';
+          recommendation = '❌ Eat now and remove any damaged parts.';
+        } else if (effectiveVqr == 2) {
+          shelfLife = '🔴 Not good for selling';
+          recommendation = '❌ Throw away or give to animals.';
         } else {
-          shelfLife = '🔴 Not marketable';
-          recommendation = '❌ Discard. Not safe for use.';
+          shelfLife = '🔴 Spoiled';
+          recommendation = '❌ Compost or throw away.';
         }
         break;
 
       case 'tomato':
         if (effectiveVqr >= 8) {
-          shelfLife = '🟢 14 days at room temperature';
-          recommendation =
-              '✅ Store at room temp to ripen. Refrigerate when fully ripe.';
+          shelfLife = '🟢 Lasts 14 days';
+          recommendation = '✅ Keep in cool area. Handle with care.';
         } else if (effectiveVqr >= 6) {
-          shelfLife = '🟡 10–12 days';
-          recommendation =
-              '⚠️ Still fresh but may soften faster. Monitor daily.';
+          shelfLife = '🟡 Lasts 10–12 days';
+          recommendation = '⚠️ Store properly and monitor daily.';
         } else if (effectiveVqr >= 4) {
-          shelfLife = '🟡 4–9 days';
-          recommendation = '⚠️ Overripe signs may appear. Eat soon.';
+          shelfLife = '🟡 Lasts 4–9 days';
+          recommendation = '⚠️ May be overripe. Eat soon.';
         } else if (effectiveVqr == 3) {
-          shelfLife = '🔴 1–3 days';
-          recommendation = '❌ Likely overripe. Consume immediately or discard.';
+          shelfLife = '🔴 Eat within 1–3 days';
+          recommendation = '❌ Eat now. Cut off any bad parts.';
+        } else if (effectiveVqr == 2) {
+          shelfLife = '🔴 Not for sale';
+          recommendation = '❌ Feed animals or dispose.';
         } else {
-          shelfLife = '🔴 Not marketable';
-          recommendation = '❌ Discard. Not suitable for consumption.';
+          shelfLife = '🔴 Spoiled';
+          recommendation = '❌ Compost or throw away.';
         }
         break;
 
       case 'potato':
         if (effectiveVqr >= 8) {
-          shelfLife = '🟢 30–60 days (cool, dark place)';
-          recommendation = '✅ Very fresh. Store in a ventilated paper bag.';
-        } else if (effectiveVqr >= 6) {
-          shelfLife = '🟡 14–21 days';
+          shelfLife = '🟢 Lasts 1–2 months';
           recommendation =
-              '⚠️ Still acceptable. Monitor for sprouting or softness.';
+              '✅ Keep in a cool, dark place. Don’t expose to sunlight.';
+        } else if (effectiveVqr >= 6) {
+          shelfLife = '🟡 Lasts about 1 month';
+          recommendation = '⚠️ Store in a dark, cool place.';
         } else if (effectiveVqr >= 4) {
-          shelfLife = '🟡 7–13 days';
-          recommendation = '⚠️ Aging. Use quickly and check for spoilage.';
+          shelfLife = '🟡 Use within 1–2 weeks';
+          recommendation = '⚠️ Getting old. Use soon.';
         } else if (effectiveVqr == 3) {
-          shelfLife = '🔴 1–6 days';
-          recommendation = '❌ At risk. Use immediately or discard.';
+          shelfLife = '🔴 Less than 3 days';
+          recommendation = '❌ Eat now. Check for soft or bad spots.';
+        } else if (effectiveVqr == 2) {
+          shelfLife = '🔴 Not safe to sell';
+          recommendation = '❌ Feed to animals or discard.';
         } else {
-          shelfLife = '🔴 Not marketable';
-          recommendation = '❌ Discard. May be unsafe to eat.';
+          shelfLife = '🔴 Spoiled';
+          recommendation = '❌ Compost or throw away.';
         }
         break;
 
       default:
-        shelfLife = '📆 Shelf life info not available';
-        recommendation = '📌 No advice available.';
+        shelfLife = '📆 Info not available';
+        recommendation = '📌 No recommendation yet.';
     }
 
     return {
@@ -527,6 +562,7 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
       'recommendation': recommendation,
     };
   }
+
 
   double _calculateAverageBrightness(Uint8List imageBytes) {
     final img.Image? image = img.decodeImage(imageBytes);
