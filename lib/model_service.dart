@@ -39,7 +39,9 @@ class ModelService {
       );
 
       _modelsLoaded = true;
-    } catch (e) {}
+    } catch (e) {
+      log("❌ Error loading models: $e");
+    }
   }
 
   Future<List<String>> _loadLabels(String assetPath) async {
@@ -50,6 +52,7 @@ class ModelService {
           .where((s) => s.isNotEmpty)
           .toList();
     } catch (e) {
+      log("❌ Error loading labels: $e");
       return [];
     }
   }
@@ -76,11 +79,12 @@ class ModelService {
         'confidence': softmaxScores[predictedIndex] * 100,
       };
     } catch (e) {
+      log("❌ Error classifying invalid: $e");
       return {'label': 'Unknown', 'confidence': 0.0};
     }
   }
 
- Future<List<Map<String, dynamic>>> detectObjects(
+  Future<List<Map<String, dynamic>>> detectObjects(
       Uint8List imageBytes, double imageWidth, double imageHeight) async {
     if (!_modelsLoaded) {
       return [];
@@ -144,7 +148,6 @@ class ModelService {
 
             log("✅ Detected: $tag (${(confidence * 100).toStringAsFixed(2)}%)");
 
-
             return {
               'tag': tag,
               'box': [xMin, yMin, xMax, yMax, confidence],
@@ -167,8 +170,7 @@ class ModelService {
     }
   }
 
-
-List<Map<String, dynamic>> _filterDetectionsSmartly({
+  List<Map<String, dynamic>> _filterDetectionsSmartly({
     required List<Map<String, dynamic>> detections,
     required Uint8List originalImageBytes,
     required double imageWidth,
@@ -243,7 +245,7 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
         filtered.add({
           'label': detection['tag'],
           'confidence': confidence,
-          'bbox': [xMin, yMin, xMax, yMax], // ✅ scaled bbox
+          'bbox': [xMin, yMin, xMax, yMax], // scaled bbox
           'originalWidth': imageWidth,
           'originalHeight': imageHeight,
         });
@@ -253,10 +255,10 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     return filtered;
   }
 
-
   Future<Map<String, dynamic>> classifyDetection({
     required Uint8List imageBytes,
     required Map<String, dynamic> detection,
+    required AppLocalizations localizations,
   }) async {
     final cropped = cropObject(
       imageBytes,
@@ -269,13 +271,15 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     final interpretation = interpretFreshness(
       freshness['confidence'],
       freshness['label'],
+      localizations,
     );
     final explanation = getPredictionExplanation(
       freshness['label'],
       freshness['confidence'],
       detection['label'],
+      localizations,
     );
-    final freshnessLabel = getFreshnessLabel(freshness['label']);
+    final freshnessLabel = getFreshnessLabel(freshness['label'], localizations);
 
     return {
       'object': detection['label'],
@@ -291,11 +295,11 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     };
   }
 
-  String getFreshnessLabel(String vqrLabel) {
+  String getFreshnessLabel(String vqrLabel, AppLocalizations localizations) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
-    if (vqr >= 4) return "Fresh";
-    if (vqr >= 1) return "Rotten";
-    return "Unknown";
+    if (vqr >= 4) return localizations.getTranslation('freshness_label_fresh');
+    if (vqr >= 1) return localizations.getTranslation('freshness_label_rotten');
+    return localizations.getTranslation('freshness_label_unknown');
   }
 
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
@@ -331,6 +335,7 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
         'confidence': softmaxScores[predictedIndex] * 100,
       };
     } catch (e) {
+      log("❌ Error classifying freshness: $e");
       return {'label': 'Unknown', 'confidence': 0.0};
     }
   }
@@ -397,75 +402,73 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     return expScores.map((score) => score / sumExpScores).toList();
   }
 
-  String interpretFreshness(double confidence, String vqrLabel) {
+  String interpretFreshness(
+      double confidence, String vqrLabel, AppLocalizations localizations) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
 
     if (vqr >= 8) {
-      return "🟢 Fresh (Excellent)";
+      return localizations.getTranslation('freshness_excellent');
     } else if (vqr >= 6) {
-      return "🟡 Fresh (Good)";
+      return localizations.getTranslation('freshness_good');
     } else if (vqr >= 4) {
-      return "🟡 Fresh (Fair)";
+      return localizations.getTranslation('freshness_fair');
     } else if (vqr == 3) {
-      return "🔴 Rotten (Spoiling)";
+      return localizations.getTranslation('rotten_spoiling');
     } else if (vqr >= 1) {
-      return "🔴 Rotten";
+      return localizations.getTranslation('rotten');
     } else {
-      return "⚠️ Unknown";
+      return localizations.getTranslation('unknown_status');
     }
   }
 
-String getPredictionExplanation(String vqrLabel, double confidence,
-      [String label = '']) {
+  String getPredictionExplanation(String vqrLabel, double confidence,
+      String label, AppLocalizations localizations) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
     final vegetable = label.toLowerCase();
 
     if (vegetable.contains('eggplant')) {
       if (vqr >= 8) {
-        return "The skin looks shiny and smooth, with a healthy color — very fresh.";
+        return localizations.getTranslation('explanation_eggplant_vqr_8');
       } else if (vqr >= 6) {
-        return "Slightly soft and less shiny — still okay to use.";
+        return localizations.getTranslation('explanation_eggplant_vqr_6');
       } else if (vqr >= 4) {
-        return "Skin is getting dull and may have slight wrinkling — use soon.";
+        return localizations.getTranslation('explanation_eggplant_vqr_4');
       } else if (vqr == 3) {
-        return "Has wrinkles and dark spots — might be starting to spoil.";
+        return localizations.getTranslation('explanation_eggplant_vqr_3');
       } else if (vqr >= 1) {
-        return "Very soft or wrinkled with spots — not good for eating.";
+        return localizations.getTranslation('explanation_eggplant_vqr_1');
       }
     } else if (vegetable.contains('tomato')) {
       if (vqr >= 8) {
-        return "Firm and smooth with a natural color — perfectly fresh.";
+        return localizations.getTranslation('explanation_tomato_vqr_8');
       } else if (vqr >= 6) {
-        return "A little soft when touched, but still looks fine.";
+        return localizations.getTranslation('explanation_tomato_vqr_6');
       } else if (vqr >= 4) {
-        return "Feels softer and skin is dull — best eaten soon.";
+        return localizations.getTranslation('explanation_tomato_vqr_4');
       } else if (vqr == 3) {
-        return "Has soft spots and may look darker — might not be safe.";
+        return localizations.getTranslation('explanation_tomato_vqr_3');
       } else if (vqr >= 1) {
-        return "Very soft or looks damaged — not safe to eat.";
+        return localizations.getTranslation('explanation_tomato_vqr_1');
       }
     } else if (vegetable.contains('potato')) {
       if (vqr >= 8) {
-        return "Very firm and clean — fresh and ready to use.";
+        return localizations.getTranslation('explanation_potato_vqr_8');
       } else if (vqr >= 6) {
-        return "Still firm but may have small marks or soft areas.";
+        return localizations.getTranslation('explanation_potato_vqr_6');
       } else if (vqr >= 4) {
-        return "Getting softer — use soon before it gets worse.";
+        return localizations.getTranslation('explanation_potato_vqr_4');
       } else if (vqr == 3) {
-        return "Feels soft and may have green or dark spots — almost spoiled.";
+        return localizations.getTranslation('explanation_potato_vqr_3');
       } else if (vqr >= 1) {
-        return "Very soft or damaged — better to throw away.";
+        return localizations.getTranslation('explanation_potato_vqr_1');
       }
     }
 
-    return "We couldn't get a clear result. Try scanning again with better lighting.";
+    return localizations.getTranslation('explanation_fallback');
   }
 
-
-
-
   Map<String, String> getShelfLifeAndRecommendation(
-      String label, String vqrLabel) {
+      String label, String vqrLabel, AppLocalizations localizations) {
     String originalLabel = label.toLowerCase().trim();
     final RegExp vqrMatch = RegExp(r"(\d+)");
     final int vqr =
@@ -484,80 +487,98 @@ String getPredictionExplanation(String vqrLabel, double confidence,
       matchedLabel = 'unknown';
     }
 
-    String shelfLife = '📆 Info not available';
-    String recommendation = '📌 No recommendation yet.';
+    String shelfLife = localizations.getTranslation('shelf_life_unknown');
+    String recommendation =
+        localizations.getTranslation('recommendation_unknown');
 
     switch (matchedLabel) {
       case 'eggplant':
         if (effectiveVqr >= 8) {
-          shelfLife = '🟢 Good for 5–6 days';
-          recommendation = '✅ Keep in a cool, humid place. Handle gently.';
+          shelfLife = localizations.getTranslation('shelf_life_eggplant_vqr_8');
+          recommendation =
+              localizations.getTranslation('recommendation_eggplant_vqr_8');
         } else if (effectiveVqr >= 6) {
-          shelfLife = '🟡 Use within 3–4 days';
-          recommendation = '⚠️ Store properly and use soon.';
+          shelfLife = localizations.getTranslation('shelf_life_eggplant_vqr_6');
+          recommendation =
+              localizations.getTranslation('recommendation_eggplant_vqr_6');
         } else if (effectiveVqr >= 4) {
-          shelfLife = '🟡 Use within 2 days';
-          recommendation = '⚠️ Use quickly. Not the best quality.';
+          shelfLife = localizations.getTranslation('shelf_life_eggplant_vqr_4');
+          recommendation =
+              localizations.getTranslation('recommendation_eggplant_vqr_4');
         } else if (effectiveVqr == 3) {
-          shelfLife = '🔴 Use today';
-          recommendation = '❌ Eat now and remove any damaged parts.';
+          shelfLife = localizations.getTranslation('shelf_life_eggplant_vqr_3');
+          recommendation =
+              localizations.getTranslation('recommendation_eggplant_vqr_3');
         } else if (effectiveVqr == 2) {
-          shelfLife = '🔴 Not good for selling';
-          recommendation = '❌ Throw away or give to animals.';
+          shelfLife = localizations.getTranslation('shelf_life_eggplant_vqr_2');
+          recommendation =
+              localizations.getTranslation('recommendation_eggplant_vqr_2');
         } else {
-          shelfLife = '🔴 Spoiled';
-          recommendation = '❌ Compost or throw away.';
+          shelfLife = localizations.getTranslation('shelf_life_eggplant_vqr_1');
+          recommendation =
+              localizations.getTranslation('recommendation_eggplant_vqr_1');
         }
         break;
 
       case 'tomato':
         if (effectiveVqr >= 8) {
-          shelfLife = '🟢 Lasts 14 days';
-          recommendation = '✅ Keep in cool area. Handle with care.';
+          shelfLife = localizations.getTranslation('shelf_life_tomato_vqr_8');
+          recommendation =
+              localizations.getTranslation('recommendation_tomato_vqr_8');
         } else if (effectiveVqr >= 6) {
-          shelfLife = '🟡 Lasts 10–12 days';
-          recommendation = '⚠️ Store properly and monitor daily.';
+          shelfLife = localizations.getTranslation('shelf_life_tomato_vqr_6');
+          recommendation =
+              localizations.getTranslation('recommendation_tomato_vqr_6');
         } else if (effectiveVqr >= 4) {
-          shelfLife = '🟡 Lasts 4–9 days';
-          recommendation = '⚠️ May be overripe. Eat soon.';
+          shelfLife = localizations.getTranslation('shelf_life_tomato_vqr_4');
+          recommendation =
+              localizations.getTranslation('recommendation_tomato_vqr_4');
         } else if (effectiveVqr == 3) {
-          shelfLife = '🔴 Eat within 1–3 days';
-          recommendation = '❌ Eat now. Cut off any bad parts.';
+          shelfLife = localizations.getTranslation('shelf_life_tomato_vqr_3');
+          recommendation =
+              localizations.getTranslation('recommendation_tomato_vqr_3');
         } else if (effectiveVqr == 2) {
-          shelfLife = '🔴 Not for sale';
-          recommendation = '❌ Feed animals or dispose.';
+          shelfLife = localizations.getTranslation('shelf_life_tomato_vqr_2');
+          recommendation =
+              localizations.getTranslation('recommendation_tomato_vqr_2');
         } else {
-          shelfLife = '🔴 Spoiled';
-          recommendation = '❌ Compost or throw away.';
+          shelfLife = localizations.getTranslation('shelf_life_tomato_vqr_1');
+          recommendation =
+              localizations.getTranslation('recommendation_tomato_vqr_1');
         }
         break;
 
       case 'potato':
         if (effectiveVqr >= 8) {
-          shelfLife = '🟢 Lasts 1–2 months';
+          shelfLife = localizations.getTranslation('shelf_life_potato_vqr_8');
           recommendation =
-              '✅ Keep in a cool, dark place. Don’t expose to sunlight.';
+              localizations.getTranslation('recommendation_potato_vqr_8');
         } else if (effectiveVqr >= 6) {
-          shelfLife = '🟡 Lasts about 1 month';
-          recommendation = '⚠️ Store in a dark, cool place.';
+          shelfLife = localizations.getTranslation('shelf_life_potato_vqr_6');
+          recommendation =
+              localizations.getTranslation('recommendation_potato_vqr_6');
         } else if (effectiveVqr >= 4) {
-          shelfLife = '🟡 Use within 1–2 weeks';
-          recommendation = '⚠️ Getting old. Use soon.';
+          shelfLife = localizations.getTranslation('shelf_life_potato_vqr_4');
+          recommendation =
+              localizations.getTranslation('recommendation_potato_vqr_4');
         } else if (effectiveVqr == 3) {
-          shelfLife = '🔴 Less than 3 days';
-          recommendation = '❌ Eat now. Check for soft or bad spots.';
+          shelfLife = localizations.getTranslation('shelf_life_potato_vqr_3');
+          recommendation =
+              localizations.getTranslation('recommendation_potato_vqr_3');
         } else if (effectiveVqr == 2) {
-          shelfLife = '🔴 Not safe to sell';
-          recommendation = '❌ Feed to animals or discard.';
+          shelfLife = localizations.getTranslation('shelf_life_potato_vqr_2');
+          recommendation =
+              localizations.getTranslation('recommendation_potato_vqr_2');
         } else {
-          shelfLife = '🔴 Spoiled';
-          recommendation = '❌ Compost or throw away.';
+          shelfLife = localizations.getTranslation('shelf_life_potato_vqr_1');
+          recommendation =
+              localizations.getTranslation('recommendation_potato_vqr_1');
         }
         break;
 
       default:
-        shelfLife = '📆 Info not available';
-        recommendation = '📌 No recommendation yet.';
+        shelfLife = localizations.getTranslation('shelf_life_unknown');
+        recommendation = localizations.getTranslation('recommendation_unknown');
     }
 
     return {
@@ -565,7 +586,6 @@ String getPredictionExplanation(String vqrLabel, double confidence,
       'recommendation': recommendation,
     };
   }
-
 
   double _calculateAverageBrightness(Uint8List imageBytes) {
     final img.Image? image = img.decodeImage(imageBytes);
@@ -603,9 +623,8 @@ String getPredictionExplanation(String vqrLabel, double confidence,
     final resized = img.copyResize(image, width: 320, height: 320);
     final grayscale = img.grayscale(resized);
 
-    // Calculate gradient magnitude with more detailed logging
+    // Calculate gradient magnitude
     double totalGradient = 0.0;
-    double maxGradient = 0.0;
     int count = 0;
 
     for (int y = 1; y < grayscale.height - 1; y++) {
@@ -618,7 +637,6 @@ String getPredictionExplanation(String vqrLabel, double confidence,
         final magnitude =
             math.sqrt(gradientX * gradientX + gradientY * gradientY);
         totalGradient += magnitude;
-        maxGradient = math.max(maxGradient, magnitude);
         count++;
       }
     }
@@ -655,18 +673,20 @@ String getPredictionExplanation(String vqrLabel, double confidence,
       final missingSide = frontTop == null ? 'front' : 'back';
       final localizedSide = localizations.getTranslation(missingSide);
       final errorMessage = localizations
-          .getTranslation('no objects detected')
+          .getTranslation('no_objects_detected')
           .replaceAll('{side}', localizedSide);
       return [
         {
           'object': 'None',
           'front': null,
           'back': null,
-          'mergedFreshness': 'Unknown',
-          'mergedStatus': '⚠️ No object detected – Try scanning again',
-          'mergedVQR': 'VQR-0',
+          'mergedFreshness':
+              localizations.getTranslation('freshness_label_unknown'),
+          'mergedStatus': localizations.getTranslation('scan error'),
+          'mergedVQR': 'VQR-wastage',
           'mergedConfidence': 0.0,
-          'error': errorMessage,
+          'error':
+              '$errorMessage\n${localizations.getTranslation('no_valid_vegetable_detected')}',
         }
       ];
     }
@@ -674,8 +694,8 @@ String getPredictionExplanation(String vqrLabel, double confidence,
     // Compare labels to ensure the same vegetable
     final frontLabelRaw = frontTop['label'].toString().toLowerCase().trim();
     final backLabelRaw = backTop['label'].toString().toLowerCase().trim();
-    final frontLabel = localizations.getTranslation(frontLabelRaw);
-    final backLabel = localizations.getTranslation(backLabelRaw);
+    final frontLabel = localizations.getVegetableLabel(frontLabelRaw);
+    final backLabel = localizations.getVegetableLabel(backLabelRaw);
 
     if (frontLabel != backLabel) {
       return [
@@ -683,12 +703,14 @@ String getPredictionExplanation(String vqrLabel, double confidence,
           'object': 'None',
           'front': null,
           'back': null,
-          'mergedFreshness': 'Unknown',
-          'mergedStatus': '❌ Error – Different vegetables detected',
+          'mergedFreshness':
+              localizations.getTranslation('freshness_label_unknown'),
+          'mergedStatus':
+              localizations.getTranslation('error_different_vegetables'),
           'mergedVQR': 'VQR-0',
           'mergedConfidence': 0.0,
           'error': localizations
-              .getTranslation('different vegetable error')
+              .getTranslation('different_vegetable_error')
               .replaceAll('{front}', frontLabel)
               .replaceAll('{back}', backLabel),
         }
@@ -698,11 +720,13 @@ String getPredictionExplanation(String vqrLabel, double confidence,
     final frontClassified = await classifyDetection(
       imageBytes: frontImage,
       detection: frontTop,
+      localizations: localizations,
     );
 
     final backClassified = await classifyDetection(
       imageBytes: backImage,
       detection: backTop,
+      localizations: localizations,
     );
 
     final String frontVQR = frontClassified['vqr'] ?? 'VQR-0';
@@ -718,34 +742,76 @@ String getPredictionExplanation(String vqrLabel, double confidence,
 
     if (frontConf >= threshold && backConf >= threshold) {
       mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
+      avgConf = (frontConf + backConf) / 2;
     } else if (frontConf >= threshold) {
       mergedVQRNum = frontVQRNum;
+      avgConf = frontConf;
     } else if (backConf >= threshold) {
       mergedVQRNum = backVQRNum;
+      avgConf = backConf;
     } else {
       mergedVQRNum = ((frontVQRNum + backVQRNum) / 2).round();
+      avgConf = (frontConf + backConf) / 2;
     }
-    avgConf = (frontConf + backConf) / 2;
 
     final mergedVQR = "VQR-$mergedVQRNum";
-    final mergedFreshness = getFreshnessLabel(mergedVQR);
-    final mergedStatus = interpretFreshness(avgConf, mergedVQR);
+    final mergedFreshness = getFreshnessLabel(mergedVQR, localizations);
+    final mergedStatus = interpretFreshness(avgConf, mergedVQR, localizations);
+    final mergedExplanation = getPredictionExplanation(
+      mergedVQR,
+      avgConf,
+      frontClassified['object'],
+      localizations,
+    );
+    final shelfLifeAndRecommendation = getShelfLifeAndRecommendation(
+      frontClassified['object'],
+      mergedVQR,
+      localizations,
+    );
 
-    return [
-      {
-        'object': frontClassified['object'],
-        'front': frontClassified,
-        'back': backClassified,
-        'mergedFreshness': mergedFreshness,
-        'mergedStatus': mergedStatus,
-        'mergedVQR': mergedVQR,
-        'mergedConfidence': avgConf,
-      }
-    ];
+    // Check image quality
+    final frontBrightness = _calculateAverageBrightness(frontImage);
+    final backBrightness = _calculateAverageBrightness(backImage);
+    final frontBlur = _calculateBlurVariance(frontImage);
+    final backBlur = _calculateBlurVariance(backImage);
+
+    final List<String> imageIssues = [];
+    if (frontBrightness < 50 || backBrightness < 50) {
+      imageIssues.add(localizations.getTranslation('image_too_dark'));
+    } else if (frontBrightness > 200 || backBrightness > 200) {
+      imageIssues.add(localizations.getTranslation('image_too_bright'));
+    }
+    if (frontBlur < 2.0 || backBlur < 2.0) {
+      imageIssues.add(localizations.getTranslation('image_too_blurry'));
+    }
+
+    final Map<String, dynamic> result = {
+      'object': frontClassified['object'],
+      'front': frontClassified,
+      'back': backClassified,
+      'mergedFreshness': mergedFreshness,
+      'mergedStatus': mergedStatus,
+      'mergedVQR': mergedVQR,
+      'mergedConfidence': avgConf,
+      'explanation': mergedExplanation,
+      'shelfLife': shelfLifeAndRecommendation['shelfLife'],
+      'recommendation': shelfLifeAndRecommendation['recommendation'],
+      'imageIssues': imageIssues,
+    };
+
+    return [result];
   }
 
   void close() {
-    _flutterVision.closeYoloModel();
-    _efficientNetInterpreter.close();
+    if (_modelsLoaded) {
+      try {
+        _flutterVision.closeYoloModel();
+        _efficientNetInterpreter.close();
+        _modelsLoaded = false;
+        log("✅ Model resources released successfully");
+      } catch (e) {
+        log("❌ Error closing models: $e");
+      }
+    }
   }
 }

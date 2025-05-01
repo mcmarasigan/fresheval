@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/src/widgets/framework.dart';
+import 'package:flutter/widgets.dart';
 
 class AppLocalizations {
   final String languageCode;
@@ -57,14 +57,14 @@ class AppLocalizations {
       'full view': 'Full View',
       'full view desc':
           'Capture the entire vegetable in the frame. Avoid cutting off parts of it.',
-      'one object': 'One Object', // Added
-      'Scan one object at a time. It can be eggplant, tomato, or potato':
-          'Scan one object at a time. It can be eggplant, tomato, or potato', // Added
+      'one vegetable': 'One Vegetable at a time',
+      'Scan one vegetable at a time. It can be eggplant, tomato, or potato':
+          'Scan one vegetable at a time. It can be eggplant, tomato, or potato',
       'dont show again': "Don't show again",
       'got it': 'Got It',
       'upload front title': 'Upload Front Image',
       'upload front desc': 'Please select the FRONT view of the vegetable.',
-      'upload back title': 'Upload Back Title',
+      'upload back title': 'Upload Back Image',
       'upload back desc': 'Now select the BACK view of the vegetable.',
       'front captured':
           '✅ Front side captured. Now take the back side of the vegetable.',
@@ -88,7 +88,7 @@ class AppLocalizations {
       'pick image': 'Pick Image',
       'save successful': 'Save Successful',
       'save successful desc': 'Scan results have been saved successfully!',
-      'already save': 'Already Save',
+      'already save': 'Already Saved',
       'already save desc':
           'This scan result has already been saved to scan history.',
 
@@ -166,9 +166,121 @@ class AppLocalizations {
       'scan error': 'Oops! Something went wrong. Want to try again?',
       'different vegetable error':
           'Different vegetables detected: Front ({front}) vs. Back({back}). Please scan the same vegetable.',
-      'no objects detected': 'No objects detected in the {side} image',
+      'error_different_vegetables': '❌ Error – Different vegetables detected',
+      'no_objects_detected': 'No objects detected in the {side} image',
+      'no_valid_vegetable_detected':
+          'No valid vegetable detected in the image. Please scan only eggplant, tomato, or potato. Ensure good lighting and a clear, non-blurry image.',
       'front': 'front',
       'back': 'back',
+
+      // VQR Dialog
+      'vqr_title': 'Visual Quality Rating (VQR)',
+      'vqr_9_8': '9,8 - Excellent quality, field fresh',
+      'vqr_7_6': '7,6 - Good quality; minor defects',
+      'vqr_5_4':
+          '5,4 - Fair quality; moderate defects; limit of marketability (supermarket condition)',
+      'vqr_3': '3 - Poor quality; serious defects',
+      'vqr_2': '2 - Limit of edibility',
+      'vqr_1': '1 - Non-edible',
+      'ok': 'OK',
+
+      // Image Status Messages
+      'image_too_dark': 'Image Too Dark',
+      'image_too_bright': 'Image Too Bright',
+      'image_too_blurry': 'Image Too Blurry',
+
+      // Camera Screen Specific
+      'cannot_capture_while_uploading':
+          'Cannot capture a photo because an upload is in progress. Please reset first.',
+      'cannot_upload_while_capturing':
+          'Cannot upload images while capturing. Please reset or finish capturing first.',
+      'front_image_reset': '🔄 Front image reset. You can retake.',
+
+      // Freshness Status (from ModelService.interpretFreshness)
+      'freshness_excellent': '🟢 Fresh (Excellent)',
+      'freshness_good': '🟡 Fresh (Good)',
+      'freshness_fair': '🟡 Fresh (Fair)',
+      'rotten_spoiling': '🔴 Rotten (Spoiling)',
+      'rotten': '🔴 Rotten',
+      'unknown_status': '⚠️ Unknown',
+
+      // Freshness Labels (from ModelService.getFreshnessLabel)
+      'freshness_label_fresh': 'Fresh',
+      'freshness_label_rotten': 'Rotten',
+      'freshness_label_unknown': 'Unknown',
+
+      // Explanations (from ModelService.getPredictionExplanation)
+      'explanation_eggplant_vqr_8':
+          'The skin looks shiny and smooth, with a healthy color — very fresh.',
+      'explanation_eggplant_vqr_6':
+          'Slightly soft and less shiny — still okay to use.',
+      'explanation_eggplant_vqr_4':
+          'Skin is getting dull and may have slight wrinkling — use soon.',
+      'explanation_eggplant_vqr_3':
+          'Has wrinkles and dark spots — might be starting to spoil.',
+      'explanation_eggplant_vqr_1':
+          'Very soft or wrinkled with spots — not good for eating.',
+      'explanation_tomato_vqr_8':
+          'Firm and smooth with a natural color — perfectly fresh.',
+      'explanation_tomato_vqr_6':
+          'A little soft when touched, but still looks fine.',
+      'explanation_tomato_vqr_4':
+          'Feels softer and skin is dull — best eaten soon.',
+      'explanation_tomato_vqr_3':
+          'Has soft spots and may look darker — might not be safe.',
+      'explanation_tomato_vqr_1':
+          'Very soft or looks damaged — not safe to eat.',
+      'explanation_potato_vqr_8':
+          'Very firm and clean — fresh and ready to use.',
+      'explanation_potato_vqr_6':
+          'Still firm but may have small marks or soft areas.',
+      'explanation_potato_vqr_4':
+          'Getting softer — use soon before it gets worse.',
+      'explanation_potato_vqr_3':
+          'Feels soft and may have green or dark spots — almost spoiled.',
+      'explanation_potato_vqr_1':
+          'Very soft or damaged — better to throw away.',
+      'explanation_fallback':
+          'We couldn\'t get a clear result. Try scanning again with better lighting.',
+
+      // Shelf Life and Recommendations (from ModelService.getShelfLifeAndRecommendation)
+      'shelf_life_eggplant_vqr_8': '🟢 Good for 5–6 days',
+      'recommendation_eggplant_vqr_8':
+          '✅ Keep in a cool, humid place. Handle gently.',
+      'shelf_life_eggplant_vqr_6': '🟡 Use within 3–4 days',
+      'recommendation_eggplant_vqr_6': '⚠️ Store properly and use soon.',
+      'shelf_life_eggplant_vqr_4': '🟡 Use within 2 days',
+      'recommendation_eggplant_vqr_4': '⚠️ Use quickly. Not the best quality.',
+      'shelf_life_eggplant_vqr_3': '🔴 Use today',
+      'recommendation_eggplant_vqr_3':
+          '❌ Use now and remove any damaged parts.',
+      'shelf_life_eggplant_vqr_2': '🔴 Not good for selling',
+      'recommendation_eggplant_vqr_2': '❌ Throw away or give to animals.',
+      'shelf_life_eggplant_vqr_1': '🔴 Spoiled',
+      'recommendation_eggplant_vqr_1': '❌ Compost or throw away.',
+      'shelf_life_tomato_vqr_8': '🟢 Lasts 14 days',
+      'recommendation_tomato_vqr_8': '✅ Keep in cool area. Handle with care.',
+      'shelf_life_tomato_vqr_6': '🟡 Lasts 10–12 days',
+      'recommendation_tomato_vqr_6': '⚠️ Store properly and monitor daily.',
+      'shelf_life_tomato_vqr_4': '🟡 Lasts 4–9 days',
+      'recommendation_tomato_vqr_4': '⚠️ May be overripe. Use soon.',
+      'shelf_life_tomato_vqr_3': '🔴 Use within 1–3 days',
+      'recommendation_tomato_vqr_3': '❌ Use now. Cut off any bad parts.',
+      'shelf_life_tomato_vqr_2': '🔴 Not for sale or human consumption',
+      'recommendation_tomato_vqr_2': '❌ Feed to animals or dispose.',
+      'shelf_life_potato_vqr_8': '🟢 Lasts 1–2 months',
+      'recommendation_potato_vqr_8':
+          '✅ Keep in a cool, dark place. Don’t expose to sunlight.',
+      'shelf_life_potato_vqr_6': '🟡 Lasts about 1 month',
+      'recommendation_potato_vqr_6': '⚠️ Store in a dark, cool place.',
+      'shelf_life_potato_vqr_4': '🟡 Use within 1–2 weeks',
+      'recommendation_potato_vqr_4': '⚠️ Getting old. Use soon.',
+      'shelf_life_potato_vqr_3': '🔴 Less than 3 days',
+      'recommendation_potato_vqr_3': '❌ Use now. Check for soft or bad spots.',
+      'shelf_life_potato_vqr_2': '🔴 Not safe for human consumption',
+      'recommendation_potato_vqr_2': '❌ Feed to animals or discard.',
+      'shelf_life_unknown': '📆 Info not available',
+      'recommendation_unknown': '📌 No recommendation yet.',
     },
     'tl': {
       // General
@@ -213,22 +325,22 @@ class AppLocalizations {
           'Punasan ang lens ng iyong camera gamit ang malambot na tela upang alisin ang mga mantsa at alikabok para sa mas malinaw na mga larawan.',
       'good lighting': 'Magandang Ilaw',
       'good lighting desc':
-          'Kumuha ng mga larawas sa maayos na kondisyon. Iwasan ang direktang sikat ng araw o madilim na anino.',
+          'Kumuha ng mga larawan sa maayos na kondisyon. Iwasan ang direktang sikat ng araw o madilim na anino.',
       'steady and clear': 'Matatag at Malinaw',
       'steady and clear desc':
           'Hawakan nang matatag ang iyong telepono upang maiwasan ang malabong mga imahe. Mag-tap upang magpokus sa mga gulay.',
-      'full view': 'Buong tanaw',
+      'full view': 'Buong Tanaw',
       'full view desc':
           'Kunin ang buong gulay sa frame. Iwasan ang pagputol ng mga bahagi nito.',
-      'one object': 'Isang Bagay', // Added
-      'Scan one object at a time. It can be eggplant, tomato, or potato':
-          'I-scan ang isang bagay sa isang pagkakataon. Maaaring ito ay talong, kamatis, o patatas', // Added
-      'dont show again': "Huwag nang ipakita",
+      'one vegetable': 'Isang Gulay kada Scan',
+      'Scan one vegetable at a time. It can be eggplant, tomato, or potato':
+          'I-scan ang isang gulay lamang. Maaaring ito ay talong, kamatis, o patatas',
+      'dont show again': 'Huwag nang ipakita',
       'got it': 'Naunawaan',
-      'upload front title': 'Mag-upload ng harapang larawan',
-      'upload front desc': 'Maaaring piliin ang harapang bahagi ng gulay.',
-      'upload back title': 'Mag-upload ng likod na larawan',
-      'upload back desc': 'Ngayon, piliin ang likod na bahagi ng gulay.',
+      'upload front title': 'Mag-upload ng Harapang Larawan',
+      'upload front desc': 'Piliin ang harapang bahagi ng gulay.',
+      'upload back title': 'Mag-upload ng Likod na Larawan',
+      'upload back desc': 'Piliin ang likod na bahagi ng gulay.',
       'front captured':
           '✅ Nakuha ang harapang bahagi. Ngayon ay kunin ang likod na bahagi ng gulay.',
       'no front selected':
@@ -236,8 +348,8 @@ class AppLocalizations {
       'no back selected': '❌ Walang napiling likod na larawan mula sa gallery.',
       'scan results': 'Resulta ng Scan',
       'scan details': 'Mga Detalye ng Scan',
-      'front view': 'Harapan na bahagi',
-      'back view': 'Likod na bahagi',
+      'front view': 'Harapang Bahagi',
+      'back view': 'Likod na Bahagi',
       'eggplant': 'Talong',
       'tomato': 'Kamatis',
       'potato': 'Patatas',
@@ -250,12 +362,12 @@ class AppLocalizations {
       'cancel': 'Kanselahin',
       'confirm': 'Kumpirmahin',
       'pick image': 'Mamili ng Larawan',
-      'save successful': 'Matagumpay na i-save',
+      'save successful': 'Matagumpay na Nai-save',
       'save successful desc':
           'Matagumpay na na-save ang mga resulta ng pag-scan!',
       'already save': 'Naka-save na',
       'already save desc':
-          'Ang resulta ng pag-scan na ito ay nai-save na sa kasaysayan ng pag-scan',
+          'Ang resulta ng pag-scan na ito ay nai-save na sa kasaysayan ng pag-scan.',
 
       // Settings Page
       'settings_description':
@@ -304,7 +416,7 @@ class AppLocalizations {
       'member1_name': 'Ma. Clarissa Marasigan',
       'member1_role': 'Pangunahing Programmer',
       'member1_about':
-          'Si Clarissa ang nagsisilbing pangunahing programmer para sa Fresheval, na nag-aayos ng pangunahing pag-andar at bumuo ng matibay na lohika na nagpapatakbo sa kamera, pagproseso ng larawan, at pamamahala ng datos, na ginagawang isang maaasahang kagamitan para sa pagsusuri ng kasariwaan.',
+          'Si Clarissa ang nagsisilbing pangunahing programmer para sa FreshEval, na nag-aayos ng pangunahing pag-andar at bumuo ng matibay na lohika na nagpapatakbo sa kamera, pagproseso ng larawan, at pamamahala ng datos, na ginagawang isang maaasahang kagamitan para sa pagsusuri ng kasariwaan.',
       'member2_name': 'Vhon Joshua Agbayani',
       'member2_role': 'Eksperto sa AI',
       'member2_about':
@@ -331,9 +443,126 @@ class AppLocalizations {
       'scan error': 'Ay, may aberya sa pag-scan. Subukan ulit natin?',
       'different vegetable error':
           'Magkaiba ang gulay: Harap ({front}) kumpara sa Likod ({back}). Paki-scan ang parehong gulay.',
-      'no objects detected': 'Walang bagay na nakita sa {side} ng imahe',
+      'error_different_vegetables': '❌ Mali – Magkaibang gulay ang natukoy',
+      'no_objects_detected': 'Walang bagay na nakita sa {side} ng imahe',
+      'no_valid_vegetable_detected':
+          'Walang valid na gulay na nakita sa imahe. Paki-scan lamang ang talong, kamatis, o patatas. \n\nℹ️ Tiyaking may magandang ilaw at malinaw, hindi malabong imahe.',
       'front': 'harap',
       'back': 'likod',
+
+      // VQR Dialog
+      'vqr_title': 'Pagsusuri ng Kalidad ng Visual (VQR)',
+      'vqr_9_8': '9,8 - Napakahusay na kalidad, sariwa mula sa bukirin',
+      'vqr_7_6': '7,6 - Magandang kalidad; may kaunting depekto',
+      'vqr_5_4':
+          '5,4 - Katamtamang kalidad; may mga depekto; hangganan ng kakayahang maibenta (kundisyon sa supermarket)',
+      'vqr_3': '3 - Mahinang kalidad; malubhang depekto',
+      'vqr_2': '2 - Hangganan ng kakayahang kainin',
+      'vqr_1': '1 - Hindi na maaaring kainin',
+      'ok': 'OK',
+
+      // Image Status Messages
+      'image_too_dark': 'Masyadong Madilim ang Larawan',
+      'image_too_bright': 'Masyadong Maliwanag ang Larawan',
+      'image_too_blurry': 'Masyadong Malabo ang Larawan',
+
+      // Camera Screen Specific
+      'cannot_capture_while_uploading':
+          'Hindi makakakuha ng larawan dahil may isinasagawa nang pag-upload. Paki-reset muna.',
+      'cannot_upload_while_capturing':
+          'Hindi makakapag-upload ng mga larawan habang kumukuha. Paki-reset o tapusin muna ang pagkuha.',
+      'front_image_reset':
+          '🔄 Na-reset ang harapang larawan. Maaari kang kumuha ulit.',
+
+      // Freshness Status (from ModelService.interpretFreshness)
+      'freshness_excellent': '🟢 Sariwa (Napakahusay)',
+      'freshness_good': '🟡 Sariwa (Maganda)',
+      'freshness_fair': '🟡 Sariwa (Katamtaman)',
+      'rotten_spoiling': '🔴 Bulok (Nasisira)',
+      'rotten': '🔴 Bulok',
+      'unknown_status': '⚠️ Hindi Kilala',
+
+      // Freshness Labels (from ModelService.getFreshnessLabel)
+      'freshness_label_fresh': 'Sariwa',
+      'freshness_label_rotten': 'Bulok',
+      'freshness_label_unknown': 'Hindi Kilala',
+
+      // Explanations (from ModelService.getPredictionExplanation)
+      'explanation_eggplant_vqr_8':
+          'Makintab at makinis ang balat, na may malusog na kulay — napakasariwa.',
+      'explanation_eggplant_vqr_6':
+          'Medyo malambot at hindi na gaanong makintab — pwede pa ring gamitin.',
+      'explanation_eggplant_vqr_4':
+          'Kumukupas ang balat at may kaunting kunot — gamitin agad.',
+      'explanation_eggplant_vqr_3':
+          'May mga kunot at madilim na batik — baka nagsisimula nang masira.',
+      'explanation_eggplant_vqr_1':
+          'Napakalambot o kunot na may batik — hindi na maganda para kainin.',
+      'explanation_tomato_vqr_8':
+          'Matigas at makinis na may natural na kulay — perpektong sariwa.',
+      'explanation_tomato_vqr_6':
+          'Medyo malambot kapag hinawakan, pero mukha pa ring maayos.',
+      'explanation_tomato_vqr_4':
+          'Mas malambot at kupas ang balat — kainin agad.',
+      'explanation_tomato_vqr_3':
+          'May malalambot na bahagi at maaaring mas madilim — baka hindi ligtas.',
+      'explanation_tomato_vqr_1':
+          'Napakalambot o nasira — hindi ligtas kainin.',
+      'explanation_potato_vqr_8':
+          'Napakatigas at malinis — sariwa at handa nang gamitin.',
+      'explanation_potato_vqr_6':
+          'Matigas pa rin pero may maliliit na marka o malambot na bahagi.',
+      'explanation_potato_vqr_4': 'Lumalambot — gamitin agad bago lumala.',
+      'explanation_potato_vqr_3':
+          'Malambot at maaaring may berde o madilim na batik — halos masira na.',
+      'explanation_potato_vqr_1':
+          'Napakalambot o nasira — mas mabuting itapon.',
+      'explanation_fallback':
+          'Hindi namin maklaro ang resulta. Subukang i-scan muli gamit ang mas magandang ilaw.',
+
+      // Shelf Life and Recommendations (from ModelService.getShelfLifeAndRecommendation)
+      'shelf_life_eggplant_vqr_8': '🟢 Tatagal ng 5–6 na araw',
+      'recommendation_eggplant_vqr_8':
+          '✅ Itago sa malamig at mahalumigmig na lugar. Hawakan nang maingat.',
+      'shelf_life_eggplant_vqr_6': '🟡 Gamitin sa loob ng 3–4 na araw',
+      'recommendation_eggplant_vqr_6': '⚠️ Itago nang maayos at gamitin agad.',
+      'shelf_life_eggplant_vqr_4': '🟡 Gamitin sa loob ng 2 araw',
+      'recommendation_eggplant_vqr_4':
+          '⚠️ Gamitin agad. Hindi na pinakamaganda ang kalidad.',
+      'shelf_life_eggplant_vqr_3': '🔴 Gamitin ngayon',
+      'recommendation_eggplant_vqr_3':
+          '❌ Gamitin na at alisin ang mga nasirang bahagi.',
+      'shelf_life_eggplant_vqr_2': '🔴 Hindi maganda para ibenta',
+      'recommendation_eggplant_vqr_2': '❌ Itapon o ibigay sa mga hayop.',
+      'shelf_life_eggplant_vqr_1': '🔴 Nasira na',
+      'recommendation_eggplant_vqr_1': '❌ I-compost o itapon.',
+      'shelf_life_tomato_vqr_8': '🟢 Tatagal ng 14 na araw',
+      'recommendation_tomato_vqr_8':
+          '✅ Itago sa malamig na lugar. Hawakan nang maingat.',
+      'shelf_life_tomato_vqr_6': '🟡 Tatagal ng 10–12 araw',
+      'recommendation_tomato_vqr_6':
+          '⚠️ Itago nang maayos at bantayan araw-araw.',
+      'shelf_life_tomato_vqr_4': '🟡 Tatagal ng 4–9 na araw',
+      'recommendation_tomato_vqr_4': '⚠️ Maaaring sobrang hinog. Gamitin agad.',
+      'shelf_life_tomato_vqr_3': '🔴 Gamitin sa loob ng 1–3 araw',
+      'recommendation_tomato_vqr_3':
+          '❌ Gamitin na at putulin ang mga nasirang bahagi.',
+      'shelf_life_tomato_vqr_2': '🔴 Hindi para ibenta o kainin ng tao',
+      'recommendation_tomato_vqr_2': '❌ Ipapakain sa hayop o itapon.',
+      'shelf_life_potato_vqr_8': '🟢 Tatagal ng 1–2 buwan',
+      'recommendation_potato_vqr_8':
+          '✅ Itago sa malamig at madilim na lugar. Huwag ilantad sa araw.',
+      'shelf_life_potato_vqr_6': '🟡 Tatagal ng halos 1 buwan',
+      'recommendation_potato_vqr_6': '⚠️ Itago sa madilim at malamig na lugar.',
+      'shelf_life_potato_vqr_4': '🟡 Gamitin sa loob ng 1–2 linggo',
+      'recommendation_potato_vqr_4': '⚠️ Matanda na. Gamitin agad.',
+      'shelf_life_potato_vqr_3': '🔴 Mas mababa sa 3 araw',
+      'recommendation_potato_vqr_3':
+          '❌ Gamitin na at tingnan ang malalambot o masamang batik.',
+      'shelf_life_potato_vqr_2': '🔴 Hindi ligtas para kainin ng tao',
+      'recommendation_potato_vqr_2': '❌ Ipapakain sa hayop o itapon.',
+      'shelf_life_unknown': '📆 Walang impormasyon',
+      'recommendation_unknown': '📌 Wala pang rekomendasyon.',
     },
   };
 
@@ -359,5 +588,7 @@ class AppLocalizations {
     return labelMap[key.toLowerCase()] ?? key;
   }
 
-  static of(BuildContext context) {}
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
 }

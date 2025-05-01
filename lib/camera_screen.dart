@@ -25,7 +25,7 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
-  bool _userFlashPreference = false; // Tracks user's flash preference
+  bool _userFlashPreference = false;
   File? _frontImage;
   File? _backImage;
   bool _isCapturingBack = false;
@@ -55,9 +55,9 @@ class _CameraScreenState extends State<CameraScreen> {
       'image': 'assets/img/full_view.png',
     },
     {
-      'title': widget.localizations.getTranslation('one object'),
+      'title': widget.localizations.getTranslation('one vegetable'),
       'description': widget.localizations.getTranslation(
-          'Scan one object at a time. It can be eggplant, tomato, or potato'),
+          'Scan one vegetable at a time. It can be eggplant, tomato, or potato'),
       'image': 'assets/img/one_object.png',
     },
   ];
@@ -87,7 +87,7 @@ class _CameraScreenState extends State<CameraScreen> {
   void _showFloatingPrompt(String message) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
-    final opacityNotifier = ValueNotifier<double>(0.0); // For fade animation
+    final opacityNotifier = ValueNotifier<double>(0.0);
 
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -130,10 +130,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
     overlay.insert(overlayEntry);
 
-    // Fade in
     opacityNotifier.value = 1.0;
 
-    // Wait, then fade out
     Future.delayed(const Duration(seconds: 2), () async {
       opacityNotifier.value = 0.0;
       await Future.delayed(const Duration(milliseconds: 300));
@@ -320,7 +318,10 @@ class _CameraScreenState extends State<CameraScreen> {
       _initializeCamera();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera permission denied')),
+        SnackBar(
+          content: Text(
+              widget.localizations.getTranslation('camera_permission_denied')),
+        ),
       );
     }
   }
@@ -341,7 +342,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
       await _cameraController?.initialize();
 
-      // Set initial flash state based on user preference
       if (_userFlashPreference && _cameraController != null) {
         await _cameraController!.setFlashMode(FlashMode.torch);
         setState(() {
@@ -383,7 +383,7 @@ class _CameraScreenState extends State<CameraScreen> {
         });
 
         _showFloatingPrompt(
-            "✅ Front side captured. Now take the back side of the vegetable.");
+            widget.localizations.getTranslation('front captured'));
       } else {
         setState(() {
           _backImage = resizedFile;
@@ -397,7 +397,6 @@ class _CameraScreenState extends State<CameraScreen> {
           _frontImage = null;
           _backImage = null;
 
-          // Turn off flash before navigating to ScanResultScreen
           if (_isFlashOn) {
             await _cameraController!.setFlashMode(FlashMode.off);
             setState(() {
@@ -419,7 +418,6 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           );
 
-          // Restore flash state based on returned preference
           if (result is bool && _cameraController != null) {
             setState(() {
               _userFlashPreference = result;
@@ -429,9 +427,8 @@ class _CameraScreenState extends State<CameraScreen> {
               result ? FlashMode.torch : FlashMode.off,
             );
           }
-        } else {}
+        }
       }
-      // ignore: empty_catches
     } catch (e) {}
   }
 
@@ -474,6 +471,8 @@ class _CameraScreenState extends State<CameraScreen> {
       requestFullMetadata: true,
     );
     if (frontImage == null) {
+      _showFloatingPrompt(
+          widget.localizations.getTranslation('no front selected'));
       return;
     }
 
@@ -516,6 +515,8 @@ class _CameraScreenState extends State<CameraScreen> {
       requestFullMetadata: true,
     );
     if (backImage == null) {
+      _showFloatingPrompt(
+          widget.localizations.getTranslation('no back selected'));
       return;
     }
 
@@ -547,12 +548,12 @@ class _CameraScreenState extends State<CameraScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Action Not Allowed'),
+        title: Text(widget.localizations.getTranslation('scan error')),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(widget.localizations.getTranslation('ok')),
           ),
         ],
       ),
@@ -586,8 +587,6 @@ class _CameraScreenState extends State<CameraScreen> {
             )
           else
             const Center(child: CircularProgressIndicator()),
-
-          // Hamburger Menu Icon
           Positioned(
             top: 50,
             left: 16,
@@ -613,7 +612,6 @@ class _CameraScreenState extends State<CameraScreen> {
               },
             ),
           ),
-          // Flash and Question Mark Icons
           Positioned(
             top: 50,
             right: 16,
@@ -663,7 +661,6 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
-          // Gallery Button
           Positioned(
             bottom: 40,
             left: 50,
@@ -691,7 +688,6 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             ),
           ),
-          // Capture Button
           Positioned(
             bottom: 30,
             left: 0,
@@ -731,11 +727,10 @@ class _CameraScreenState extends State<CameraScreen> {
               ],
             ),
           ),
-          // Retake Button (shows after front image is taken)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            top: _isCapturingBack ? 120 : -100, // offscreen when false
+            top: _isCapturingBack ? 120 : -100,
             right: 20,
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 300),
@@ -749,7 +744,7 @@ class _CameraScreenState extends State<CameraScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.refresh, // or Icons.undo
+                    Icons.refresh,
                     color: Colors.white,
                     size: 28,
                   ),
@@ -763,12 +758,9 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Widget _buildDrawer(BuildContext context) {
-    // Define colors
-    const Color selectedColor = Color(0xFF059212); // Green for selected item
-    const Color unselectedColor =
-        Color(0xFF787878); // Gray for unselected items
+    const Color selectedColor = Color(0xFF059212);
+    const Color unselectedColor = Color(0xFF787878);
 
-    // Helper function to determine if a route is active
     bool isRouteActive(String routeName) {
       return ModalRoute.of(context)?.settings.name == routeName;
     }
@@ -776,7 +768,6 @@ class _CameraScreenState extends State<CameraScreen> {
     return Drawer(
       child: Column(
         children: [
-          // Custom Drawer Header
           Container(
             height: 120,
             width: double.infinity,
@@ -802,14 +793,13 @@ class _CameraScreenState extends State<CameraScreen> {
                       size: 28,
                     ),
                     onPressed: () {
-                      Navigator.pop(context); // Close the drawer
+                      Navigator.pop(context);
                     },
                   ),
                 ],
               ),
             ),
           ),
-          // Drawer Items
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -835,9 +825,8 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                   tileColor: isRouteActive('/camera') ? Colors.grey[200] : null,
                   onTap: () {
-                    Navigator.pop(context); // Close drawer
+                    Navigator.pop(context);
                     if (!isRouteActive('/camera')) {
-                      //Solved issue, white screen if clicking the camera again
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(

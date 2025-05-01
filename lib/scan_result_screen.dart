@@ -85,11 +85,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
         setState(() {
           _detectedObjects = combinedResults.map((res) {
-            final freshnessLabel = _modelService
-                .getFreshnessLabel(res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0');
+            final freshnessLabel = _modelService.getFreshnessLabel(
+                res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
+                widget.localizations);
             final shelfInfo = _modelService.getShelfLifeAndRecommendation(
               res['object'] ?? res['label'] ?? 'unknown',
               res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
+              widget.localizations,
             );
 
             return {
@@ -103,6 +105,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                 res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
                 res['mergedConfidence'] ?? 0.0,
                 res['object'] ?? res['label'] ?? '',
+                widget.localizations,
               ),
               'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
               'originalWidth': res['front']?['originalWidth'] ??
@@ -155,11 +158,13 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         final classified = await _modelService.classifyDetection(
           imageBytes: imageBytes,
           detection: topDetection,
+          localizations: widget.localizations,
         );
 
         final shelfInfo = _modelService.getShelfLifeAndRecommendation(
           classified['object'] ?? 'unknown',
           classified['vqr'] ?? 'VQR-0',
+          widget.localizations,
         );
 
         setState(() {
@@ -231,11 +236,11 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
     //check if the scan is already saved
     bool alreadyExists = scanData.any((entry) {
-      final decoded =json.decode(entry);
+      final decoded = json.decode(entry);
       return decoded['imagePath'] == widget.imagePath &&
-        decoded['frontImagePath'] == widget.frontImagePath &&
-        decoded['backImagePath'] == widget.backImagePath &&
-        decoded['isMultiAngle'] == widget.isMultiAngle;
+          decoded['frontImagePath'] == widget.frontImagePath &&
+          decoded['backImagePath'] == widget.backImagePath &&
+          decoded['isMultiAngle'] == widget.isMultiAngle;
     });
 
     if (alreadyExists) {
@@ -252,7 +257,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(widget.localizations.getTranslation('save successful')),
-        content: Text(widget.localizations.getTranslation('save successful desc')),
+        content:
+            Text(widget.localizations.getTranslation('save successful desc')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -265,16 +271,81 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   void _showDuplicateDialog() {
     showDialog(
-      context: context, 
+      context: context,
       builder: (context) => AlertDialog(
         title: Text(widget.localizations.getTranslation('already save')),
         content: Text(widget.localizations.getTranslation('already save desc')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text ('Ok'),)
+            child: const Text('Ok'),
+          )
         ],
-      ),);
+      ),
+    );
+  }
+
+  void _showVQRDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          widget.localizations.getTranslation('vqr_title'),
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF059212),
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.localizations.getTranslation('vqr_9_8'),
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.localizations.getTranslation('vqr_7_6'),
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.localizations.getTranslation('vqr_5_4'),
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.localizations.getTranslation('vqr_3'),
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.localizations.getTranslation('vqr_2'),
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.localizations.getTranslation('vqr_1'),
+                style: GoogleFonts.poppins(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              widget.localizations.getTranslation('ok'),
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF059212),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<Size> _getImageSize(File imageFile) async {
@@ -291,7 +362,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final bbox = detected['bbox'];
 
       if (bbox == null || bbox.isEmpty || bbox.length < 4) {
-       
         return const SizedBox();
       }
 
@@ -301,7 +371,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       final double originalHeight =
           (detected['originalHeight'] ?? _originalHeight).toDouble();
       if (originalWidth <= 0 || originalHeight <= 0) {
-       
         return const SizedBox();
       }
 
@@ -324,7 +393,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ? bbox[3].toDouble()
             : double.tryParse(bbox[3].toString()) ?? 0.0);
       } catch (e) {
-        
         return const SizedBox();
       }
 
@@ -499,8 +567,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                             children: [
                                               Text(
                                                 path == widget.frontImagePath
-                                                    ? widget.localizations.getTranslation('front view')
-                                                    : widget.localizations.getTranslation('back view'),
+                                                    ? widget.localizations
+                                                        .getTranslation(
+                                                            'front view')
+                                                    : widget.localizations
+                                                        .getTranslation(
+                                                            'back view'),
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 16,
@@ -701,6 +773,21 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                     },
                                   ),
                             const SizedBox(height: 20),
+                            // Add Info Icon for VQR Dialog
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.info_outline,
+                                    color: Color(0xFF059212),
+                                    size: 24,
+                                  ),
+                                  tooltip: 'VQR Info',
+                                  onPressed: _showVQRDialog,
+                                ),
+                              ],
+                            ),
                             if (_detectedObjects.isNotEmpty &&
                                 _detectedObjects[0]['error'] != null)
                               Card(
@@ -712,7 +799,8 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        widget.localizations.getTranslation('scan error'),
+                                        widget.localizations
+                                            .getTranslation('scan error'),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -933,7 +1021,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                   "📌 Recommendation: ${detected['recommendation'] ?? 'N/A'}"),
                                             ],
                                           ),
-
                                         )
                                       ],
                                     ),

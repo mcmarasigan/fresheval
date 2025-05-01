@@ -117,7 +117,9 @@ class _MyAppState extends State<MyApp> {
         '/onboarding': (context) => const OnboardingScreen(), // Add this route
         '/loading': (context) => const LoadingScreen(),
         '/carousel': (context) => const CarouselScreen(),
-        '/camera': (context) => CameraScreen(localizations: localizations,),
+        '/camera': (context) => CameraScreen(
+              localizations: localizations,
+            ),
         '/history': (context) =>
             ScanHistoryScreen(localizations: localizations),
         '/settings': (context) => SettingsScreen(
