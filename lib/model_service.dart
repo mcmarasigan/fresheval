@@ -26,7 +26,7 @@ class ModelService {
           await _loadLabels("assets/efficientnetb7_label.txt");
 
       await _flutterVision.loadYoloModel(
-        modelPath: "assets/yolov8_best.tflite",
+        modelPath: "assets/yolov8_vegetable.tflite",
         labels: "assets/yolov8_label.txt",
         modelVersion: "yolov8",
         quantization: false,
@@ -88,9 +88,7 @@ class ModelService {
 
     try {
       final img.Image? originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) {
-        return [];
-      }
+      if (originalImage == null) return [];
 
       final double originalWidth = originalImage.width.toDouble();
       final double originalHeight = originalImage.height.toDouble();
@@ -125,27 +123,36 @@ class ModelService {
         return [];
       }
 
-      // ✅ Map detections correctly
       final mappedDetections = rawDetections
           .map((detection) {
             final bbox = detection['box'];
             if (bbox.length < 5) return null;
 
-            double xMin = bbox[0].toDouble();
-            double yMin = bbox[1].toDouble();
-            double xMax = bbox[2].toDouble();
-            double yMax = bbox[3].toDouble();
-            double confidence = bbox[4].toDouble(); // ❗ NOT *100 yet
+            final String tag =
+                (detection['tag'] ?? '').toString().toLowerCase();
+
+            if (tag == 'invalid') {
+              log("⚠️ Skipped invalid detection");
+              return null;
+            }
+
+            final double xMin = bbox[0].toDouble();
+            final double yMin = bbox[1].toDouble();
+            final double xMax = bbox[2].toDouble();
+            final double yMax = bbox[3].toDouble();
+            final double confidence = bbox[4].toDouble();
+
+            log("✅ Detected: $tag (${(confidence * 100).toStringAsFixed(2)}%)");
+
 
             return {
-              'tag': detection['tag'],
+              'tag': tag,
               'box': [xMin, yMin, xMax, yMax, confidence],
             };
           })
           .whereType<Map<String, dynamic>>()
           .toList();
 
-      // ✅ Apply smart filter
       final smartFilteredDetections = _filterDetectionsSmartly(
         detections: mappedDetections,
         originalImageBytes: imageBytes,
@@ -155,9 +162,11 @@ class ModelService {
 
       return smartFilteredDetections;
     } catch (e) {
+      log("❌ Error during detection: $e");
       return [];
     }
   }
+
 
 List<Map<String, dynamic>> _filterDetectionsSmartly({
     required List<Map<String, dynamic>> detections,
