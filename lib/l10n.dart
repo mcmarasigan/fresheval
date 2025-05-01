@@ -78,6 +78,11 @@ class AppLocalizations {
       'tomato': 'Tomato',
       'potato': 'Potato',
       'unknown': 'Unknown',
+      'front r': 'Front',
+      'back r': 'Back',
+      'overall': 'Overall',
+      'shelf life': 'Shelf life',
+      'recommendation': 'Recommendation',
 
       // Confirmation Dialogs & Popup Dialogs
       'confirm_clear_history':
@@ -354,6 +359,11 @@ class AppLocalizations {
       'tomato': 'Kamatis',
       'potato': 'Patatas',
       'unknown': 'Hindi Kilala',
+      'front r': 'Harap',
+      'back r': 'Likod',
+      'overall': 'Kabuuan',
+      'shelf life': 'Itinatagal sa estante',
+      'recommendation': 'Rekomendasyon',
 
       // Confirmation Dialogs & Popup Dialogs
       'confirm_clear_history':
