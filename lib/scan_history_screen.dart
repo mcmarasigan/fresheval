@@ -428,7 +428,7 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen>
                                         : Icons.bookmark_border,
                                     color: isBookmarked
                                         ? Colors.yellow[700]
-                                        : Colors.grey,
+                                        : const Color.fromARGB(255, 255, 255, 255),
                                   ),
                                   onPressed: () {
                                     _toggleBookmark(index);

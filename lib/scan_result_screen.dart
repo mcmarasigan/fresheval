@@ -102,6 +102,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               'explanation': _modelService.getPredictionExplanation(
                 res['mergedVQR'] ?? res['vqr'] ?? 'VQR-0',
                 res['mergedConfidence'] ?? 0.0,
+                res['object'] ?? res['label'] ?? '',
               ),
               'bbox': res['front']?['bbox'] ?? res['back']?['bbox'],
               'originalWidth': res['front']?['originalWidth'] ??

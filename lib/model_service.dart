@@ -273,6 +273,7 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     final explanation = getPredictionExplanation(
       freshness['label'],
       freshness['confidence'],
+      detection['label'],
     );
     final freshnessLabel = getFreshnessLabel(freshness['label']);
 
@@ -414,51 +415,53 @@ List<Map<String, dynamic>> _filterDetectionsSmartly({
     }
   }
 
-  String getPredictionExplanation(String vqrLabel, double confidence,
+String getPredictionExplanation(String vqrLabel, double confidence,
       [String label = '']) {
     final int vqr = int.tryParse(vqrLabel.replaceAll("VQR-", "")) ?? -1;
     final vegetable = label.toLowerCase();
 
     if (vegetable.contains('eggplant')) {
       if (vqr >= 8) {
-        return "Looks fresh! Color is unchanged and the skin feels firm.";
+        return "The skin looks shiny and smooth, with a healthy color — very fresh.";
       } else if (vqr >= 6) {
-        return "Still good. Slightly soft when pressed, but color looks fine.";
+        return "Slightly soft and less shiny — still okay to use.";
       } else if (vqr >= 4) {
-        return "Starting to age. Less shiny and beginning to shrivel.";
+        return "Skin is getting dull and may have slight wrinkling — use soon.";
       } else if (vqr == 3) {
-        return "Looks spoiled. Dark spots and wrinkled skin are showing.";
+        return "Has wrinkles and dark spots — might be starting to spoil.";
       } else if (vqr >= 1) {
-        return "Severely rotten. Mold and discoloration are visible.";
+        return "Very soft or wrinkled with spots — not good for eating.";
       }
     } else if (vegetable.contains('tomato')) {
       if (vqr >= 8) {
-        return "Fresh and firm! Color change is normal for ripening.";
+        return "Firm and smooth with a natural color — perfectly fresh.";
       } else if (vqr >= 6) {
-        return "Still good. Slightly soft to the touch, but looks okay.";
+        return "A little soft when touched, but still looks fine.";
       } else if (vqr >= 4) {
-        return "Losing quality. Less shine and slight shriveling.";
+        return "Feels softer and skin is dull — best eaten soon.";
       } else if (vqr == 3) {
-        return "Going bad. Spots are showing and it feels shriveled.";
+        return "Has soft spots and may look darker — might not be safe.";
       } else if (vqr >= 1) {
-        return "Spoiled. Signs of rot and mold are clearly visible.";
+        return "Very soft or looks damaged — not safe to eat.";
       }
     } else if (vegetable.contains('potato')) {
       if (vqr >= 8) {
-        return "Very fresh. Color is normal and it's firm to touch.";
+        return "Very firm and clean — fresh and ready to use.";
       } else if (vqr >= 6) {
-        return "Good condition. Still firm with no major issues.";
+        return "Still firm but may have small marks or soft areas.";
       } else if (vqr >= 4) {
-        return "Not as firm. Starting to age, use soon.";
+        return "Getting softer — use soon before it gets worse.";
       } else if (vqr == 3) {
-        return "Not looking good. May have green spots and feels soft.";
+        return "Feels soft and may have green or dark spots — almost spoiled.";
       } else if (vqr >= 1) {
-        return "Rotten. Mold or dark spots are visible with wrinkled skin.";
+        return "Very soft or damaged — better to throw away.";
       }
     }
 
-    return "We couldn't analyze this clearly. Try scanning again in better lighting.";
+    return "We couldn't get a clear result. Try scanning again with better lighting.";
   }
+
+
 
 
   Map<String, String> getShelfLifeAndRecommendation(
