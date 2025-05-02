@@ -18,9 +18,7 @@ class ModelService {
   final double _efficientNetInputSize = 224;
 
   Future<void> loadModels() async {
-  
     try {
-
       _flutterVision = FlutterVision();
 
       _yoloLabels = await _loadLabels("assets/yolov8_label.txt");
@@ -46,6 +44,7 @@ class ModelService {
       log("❌ Error loading models: $e");
     }
   }
+
 
 
   Future<List<String>> _loadLabels(String assetPath) async {
@@ -160,104 +159,45 @@ class ModelService {
           .whereType<Map<String, dynamic>>()
           .toList();
 
-      final smartFilteredDetections = _filterDetectionsSmartly(
-        detections: mappedDetections,
-        originalImageBytes: imageBytes,
-        imageWidth: originalWidth,
-        imageHeight: originalHeight,
-      );
+     return mappedDetections.map((det) {
+        final bbox = det['box'];
+        final double resizedWidth = _yoloInputSize;
+        final double resizedHeight = _yoloInputSize;
 
-      return smartFilteredDetections;
+        // Compute original → resized scale
+        final double scale = math.min(
+            resizedWidth / originalWidth, resizedHeight / originalHeight);
+        final int newWidth = (originalWidth * scale).round();
+        final int newHeight = (originalHeight * scale).round();
+        final int offsetX = ((resizedWidth - newWidth) / 2).round();
+        final int offsetY = ((resizedHeight - newHeight) / 2).round();
+
+        // Map bbox back to original image coordinates
+        final double xMin =
+            ((bbox[0] - offsetX) / scale).clamp(0.0, originalWidth);
+        final double yMin =
+            ((bbox[1] - offsetY) / scale).clamp(0.0, originalHeight);
+        final double xMax =
+            ((bbox[2] - offsetX) / scale).clamp(0.0, originalWidth);
+        final double yMax =
+            ((bbox[3] - offsetY) / scale).clamp(0.0, originalHeight);
+
+        return {
+          'label': det['tag'],
+          'confidence': bbox[4] * 100,
+          'bbox': [xMin, yMin, xMax, yMax],
+          'originalWidth': originalWidth,
+          'originalHeight': originalHeight,
+        };
+      }).toList();
+
+
     } catch (e) {
       log("❌ Error during detection: $e");
       return [];
     }
   }
 
-  List<Map<String, dynamic>> _filterDetectionsSmartly({
-    required List<Map<String, dynamic>> detections,
-    required Uint8List originalImageBytes,
-    required double imageWidth,
-    required double imageHeight,
-  }) {
-    final List<Map<String, dynamic>> filtered = [];
-
-    for (final detection in detections) {
-      final bbox = detection['box'];
-      if (bbox == null || bbox.length < 4) continue;
-
-      double xMin = bbox[0];
-      double yMin = bbox[1];
-      double xMax = bbox[2];
-      double yMax = bbox[3];
-
-      final double resizedWidth = 640; // canvas size
-      final double resizedHeight = 640;
-
-      // Calculate scaling factors
-      final double scale =
-          math.min(resizedWidth / imageWidth, resizedHeight / imageHeight);
-      final int newWidth = (imageWidth * scale).round();
-      final int newHeight = (imageHeight * scale).round();
-      final int offsetX = ((resizedWidth - newWidth) / 2).round();
-      final int offsetY = ((resizedHeight - newHeight) / 2).round();
-
-      // Map bbox back to original image coordinates
-      xMin = ((xMin - offsetX) / scale).clamp(0.0, imageWidth);
-      yMin = ((yMin - offsetY) / scale).clamp(0.0, imageHeight);
-      xMax = ((xMax - offsetX) / scale).clamp(0.0, imageWidth);
-      yMax = ((yMax - offsetY) / scale).clamp(0.0, imageHeight);
-
-      final double width = (xMax - xMin).clamp(1, imageWidth);
-      final double height = (yMax - yMin).clamp(1, imageHeight);
-
-      final aspectRatio = width / height;
-      final objectArea = width * height;
-      final imageArea = imageWidth * imageHeight;
-      final areaRatio = objectArea / imageArea;
-      final confidence = (bbox.length > 4) ? (bbox[4] * 100) : 0.0;
-
-      final croppedBytes = cropObject(originalImageBytes,
-          [xMin, yMin, xMax, yMax], imageWidth, imageHeight);
-      final blurVariance = _calculateBlurVariance(croppedBytes);
-      final textureScore = (blurVariance / 100.0).clamp(0.0, 1.0);
-
-      double aspectScore = 0.0;
-      if (aspectRatio >= 0.5 && aspectRatio <= 3.5) {
-        aspectScore = 1.0;
-      } else if (aspectRatio >= 0.3 && aspectRatio <= 4.5) {
-        aspectScore = 0.6;
-      } else {
-        aspectScore = 0.2;
-      }
-
-      double sizeScore = 0.0;
-      if (areaRatio >= 0.005 && areaRatio <= 0.4) {
-        sizeScore = 1.0;
-      } else if (areaRatio >= 0.002 && areaRatio <= 0.6) {
-        sizeScore = 0.6;
-      } else {
-        sizeScore = 0.2;
-      }
-
-      final double finalScore = (confidence * 0.6) +
-          (textureScore * 0.2 * 100) +
-          (aspectScore * 0.1 * 100) +
-          (sizeScore * 0.1 * 100);
-
-      if (finalScore >= 35.0) {
-        filtered.add({
-          'label': detection['tag'],
-          'confidence': confidence,
-          'bbox': [xMin, yMin, xMax, yMax], // scaled bbox
-          'originalWidth': imageWidth,
-          'originalHeight': imageHeight,
-        });
-      }
-    }
-
-    return filtered;
-  }
 
   Future<Map<String, dynamic>> classifyDetection({
     required Uint8List imageBytes,

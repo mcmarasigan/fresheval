@@ -96,7 +96,11 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
             return {
               'label': (res['object'] ?? '').toLowerCase(),
-              'confidence': res['mergedConfidence'],
+               'confidence': res['front']?['confidence'] ??
+                  res['back']?['confidence'] ??
+                  0.0, // ✅ Use YOLO confidence
+              'mergedConfidence': res[
+                  'mergedConfidence'], // ✅ Keep freshness confidence separate
               'mergedFreshness': freshnessLabel,
               'vqr': res['mergedVQR'] ?? 'VQR-0',
               'freshnessConfidence': res['mergedConfidence'],
