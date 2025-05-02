@@ -18,7 +18,9 @@ class ModelService {
   final double _efficientNetInputSize = 224;
 
   Future<void> loadModels() async {
+  
     try {
+
       _flutterVision = FlutterVision();
 
       _yoloLabels = await _loadLabels("assets/yolov8_label.txt");
@@ -39,10 +41,12 @@ class ModelService {
       );
 
       _modelsLoaded = true;
+      log("✅ Models loaded successfully");
     } catch (e) {
       log("❌ Error loading models: $e");
     }
   }
+
 
   Future<List<String>> _loadLabels(String assetPath) async {
     try {

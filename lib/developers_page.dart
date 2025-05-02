@@ -79,7 +79,7 @@ class DevelopersPage extends StatelessWidget {
                         localizations.getTranslation('member1_role'),
                         localizations.getTranslation('member1_about'),                       
                         'assets/img/Marasigan.jpg',
-                        'qmcmarasigan@tip.edu.ph.com',
+                        'qmcmarasigan@tip.edu.ph',
                       ),
                       _buildTeamMember(
                         context,
@@ -95,7 +95,7 @@ class DevelopersPage extends StatelessWidget {
                         localizations.getTranslation('member3_role'),
                         localizations.getTranslation('member3_about'),
                         'assets/img/Belen.jpg',
-                        'qkcrbelen@tip.edu.ph.com',
+                        'qkcrbelen@tip.edu.ph',
                       ),
                       _buildTeamMember(
                         context,
@@ -103,7 +103,7 @@ class DevelopersPage extends StatelessWidget {
                         localizations.getTranslation('member4_role'),
                         localizations.getTranslation('member4_about'),
                         'assets/img/Limson.jpg',
-                        'qccflimson@tip.edu.ph.com',
+                        'qccflimson@tip.edu.ph',
                       ),
                     ],
                   ),

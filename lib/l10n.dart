@@ -78,6 +78,11 @@ class AppLocalizations {
       'tomato': 'Tomato',
       'potato': 'Potato',
       'unknown': 'Unknown',
+      'front r': 'Front',
+      'back r': 'Back',
+      'overall': 'Overall',
+      'shelf life': 'Shelf life',
+      'recommendation': 'Recommendation',
 
       // Confirmation Dialogs & Popup Dialogs
       'confirm_clear_history':
@@ -139,19 +144,19 @@ class AppLocalizations {
       'member1_name': 'Ma. Clarissa Marasigan',
       'member1_role': 'Main Programmer',
       'member1_about':
-          'Clarissa serves as the Main Programmer for FreshEval, orchestrating the core functionality and developed the robust logic that powers the camera, image processing, and data management, making FreshEval a reliable tool for freshness evaluation.',
+          'Clarissa is the Main Programmer of FreshEval, leading the development of its core features including the camera system, image processing, and data handling to ensure accurate and reliable freshness evaluation.',
       'member2_name': 'Vhon Joshua Agbayani',
-      'member2_role': 'AI Specialist',
+      'member2_role': 'Debugger/Model Trainer',
       'member2_about':
-          'Vhon is an AI expert and the Model Trainer behind the cutting-edge freshness detection of the application',
+          'Vhon trains the AI models and handles debugging to ensure accurate freshness detection in the app.',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
       'member3_about':
           'Krysteen is a skilled Front End Developer with a passion for crafting responsive and visually appealing interfaces',
       'member4_name': 'Clark Czedrick Limson',
-      'member4_role': 'UI/UX Designer',
+      'member4_role': 'Debugger',
       'member4_about':
-          'Clark designs intuitive user interfaces and ensures a seamless user experience for FreshEval.',
+          'Clark focuses on identifying and fixing bugs to ensure smooth and reliable performance for FreshEval.',
       'contact_us': 'Contact Us',
       'website_label': 'Website',
 
@@ -167,9 +172,8 @@ class AppLocalizations {
       'different vegetable error':
           'Different vegetables detected: Front ({front}) vs. Back({back}). Please scan the same vegetable.',
       'error_different_vegetables': '❌ Error – Different vegetables detected',
-      'no_objects_detected': 'No objects detected in the {side} image',
       'no_valid_vegetable_detected':
-          'No valid vegetable detected in the image. Please scan only eggplant, tomato, or potato. Ensure good lighting and a clear, non-blurry image.',
+          'No recognized vegetable found. Only eggplant, tomato, or potato are supported. Ensure the image is sharp and taken in good lighting.',
       'front': 'front',
       'back': 'back',
 
@@ -358,6 +362,11 @@ class AppLocalizations {
       'tomato': 'Kamatis',
       'potato': 'Patatas',
       'unknown': 'Hindi Kilala',
+      'front r': 'Harap',
+      'back r': 'Likod',
+      'overall': 'Kabuuan',
+      'shelf life': 'Itinatagal sa estante',
+      'recommendation': 'Rekomendasyon',
 
       // Confirmation Dialogs & Popup Dialogs
       'confirm_clear_history':
@@ -422,17 +431,17 @@ class AppLocalizations {
       'member1_about':
           'Si Clarissa ang nagsisilbing pangunahing programmer para sa FreshEval, na nag-aayos ng pangunahing pag-andar at bumuo ng matibay na lohika na nagpapatakbo sa kamera, pagproseso ng larawan, at pamamahala ng datos, na ginagawang isang maaasahang kagamitan para sa pagsusuri ng kasariwaan.',
       'member2_name': 'Vhon Joshua Agbayani',
-      'member2_role': 'Eksperto sa AI',
+      'member2_role': 'Debugger / Tagasanay ng Modelo',
       'member2_about':
-          'Si Vhon ay isang eksperto sa AI at ang tagapagsanay ng modelo sa likod ng makabagong sistema ng pagtukoy sa kasariwaan ng aplikasyon.',
+          'Si Vhon ang nagsasanay sa modelo ng AI at nag-aayos ng mga error para masigurong tama at maayos ang pagtukoy ng kasariwaan sa app.',
       'member3_name': 'Krysteen Clare Belen',
       'member3_role': 'FrontEnd Developer',
       'member3_about':
           'Si Krysteen ay isang bihasang Front End Developer na may pagkahilig sa paglikha ng mga tumutugon at kaakit-akit na interface.',
       'member4_name': 'Clark Czedrick Limson',
-      'member4_role': 'Designer ng UI/UX',
+      'member4_role': 'Debugger',
       'member4_about':
-          'Taga-disenyo si Clark ng mga makatuwiran na interface ng mga gumagamit at tinitiyak ang isang maayos na karanasan ng mga gumagamit para sa FreshEval.',
+          'Si Clark ang responsable sa pag-aayos ng mga error at pagsisiguro na maayos at tuloy-tuloy ang takbo ng FreshEval.',
       'contact_us': 'Makipag-ugnayan Sa Amin',
       'website_label': 'Website',
 
@@ -448,9 +457,8 @@ class AppLocalizations {
       'different vegetable error':
           'Magkaiba ang gulay: Harap ({front}) kumpara sa Likod ({back}). Paki-scan ang parehong gulay.',
       'error_different_vegetables': '❌ Mali – Magkaibang gulay ang natukoy',
-      'no_objects_detected': 'Walang bagay na nakita sa {side} ng imahe',
       'no_valid_vegetable_detected':
-          'Walang valid na gulay na nakita sa imahe. Paki-scan lamang ang talong, kamatis, o patatas. \n\nℹ️ Tiyaking may magandang ilaw at malinaw, hindi malabong imahe.',
+          'Walang nakilalang gulay. Pakisigurong talong, kamatis, o patatas lang ang nasa larawan. Tiyaking malinaw at maliwanag ang pagkuha ng litrato.',
       'front': 'harap',
       'back': 'likod',
 
