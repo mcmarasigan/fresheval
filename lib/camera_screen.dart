@@ -618,31 +618,6 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(
-                    _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                    color: Colors.white,
-                    size: 28,
-                    shadows: const [
-                      Shadow(
-                        color: Colors.black54,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  onPressed: () async {
-                    if (_cameraController != null) {
-                      setState(() {
-                        _isFlashOn = !_isFlashOn;
-                        _userFlashPreference = _isFlashOn;
-                      });
-                      await _cameraController!.setFlashMode(
-                        _isFlashOn ? FlashMode.torch : FlashMode.off,
-                      );
-                    }
-                  },
-                ),
-                IconButton(
                   icon: const Icon(
                     Icons.question_mark,
                     color: Colors.white,

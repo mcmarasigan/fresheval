@@ -341,10 +341,22 @@ class ModelService {
   }
 
   List<double> _softmax(List<double> scores) {
-    final expScores = scores.map(math.exp).toList();
-    final sumExpScores = expScores.reduce((a, b) => a + b);
-    return expScores.map((score) => score / sumExpScores).toList();
+    final maxVal = scores.reduce(math.max);
+    final expScores = scores.map((s) => math.exp(s - maxVal)).toList();
+    final sumExp = expScores.reduce((a, b) => a + b);
+    final softmax = expScores.map((e) => e / sumExp).toList();
+
+    // Log all softmax scores for inspection
+    for (int i = 0; i < softmax.length; i++) {
+      final label = i < _efficientNetLabels.length
+          ? _efficientNetLabels[i]
+          : 'Unknown-$i';
+      log("🔢 Softmax Score [$label]: ${(softmax[i] * 100).toStringAsFixed(2)}%");
+    }
+
+    return softmax;
   }
+
 
   String interpretFreshness(
       double confidence, String vqrLabel, AppLocalizations localizations) {
