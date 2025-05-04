@@ -692,7 +692,7 @@ class ModelService {
     final double frontConf = frontClassified['freshnessConfidence'] ?? 0.0;
     final double backConf = backClassified['freshnessConfidence'] ?? 0.0;
 
-    const double threshold = 60.0;
+    const double threshold = 50.0;
     double avgConf;
     int mergedVQRNum;
 
