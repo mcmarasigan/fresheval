@@ -254,7 +254,7 @@ class AppLocalizations {
       'shelf_life_eggplant_vqr_6': '🟡 Use within 3–4 days',
       'recommendation_eggplant_vqr_6': '⚠️ Store properly and use soon.',
       'shelf_life_eggplant_vqr_4': '🟡 Use within 2 days',
-      'recommendation_eggplant_vqr_4': '⚠️ Use quickly. Not the best quality.',
+      'recommendation_eggplant_vqr_4': '⚠️ Use quickly. Cut off dull or wrinkled parts.',
       'shelf_life_eggplant_vqr_3': '🔴 Use today',
       'recommendation_eggplant_vqr_3':
           '❌ Use now and remove any damaged parts.',
@@ -267,7 +267,7 @@ class AppLocalizations {
       'shelf_life_tomato_vqr_6': '🟡 Lasts 10–12 days',
       'recommendation_tomato_vqr_6': '⚠️ Store properly and monitor daily.',
       'shelf_life_tomato_vqr_4': '🟡 Lasts 4–9 days',
-      'recommendation_tomato_vqr_4': '⚠️ May be overripe. Use soon.',
+      'recommendation_tomato_vqr_4': '⚠️ May be overripe. Cut off soft areas and use soon.',
       'shelf_life_tomato_vqr_3': '🔴 Use within 1–3 days',
       'recommendation_tomato_vqr_3': '❌ Use now. Cut off any bad parts.',
       'shelf_life_tomato_vqr_2': '🔴 Not for sale or human consumption',
@@ -280,7 +280,7 @@ class AppLocalizations {
       'shelf_life_potato_vqr_6': '🟡 Lasts about 1 month',
       'recommendation_potato_vqr_6': '⚠️ Store in a dark, cool place.',
       'shelf_life_potato_vqr_4': '🟡 Use within 1–2 weeks',
-      'recommendation_potato_vqr_4': '⚠️ Getting old. Use soon.',
+      'recommendation_potato_vqr_4': '⚠️ Getting old. Remove soft spots and use soon.',
       'shelf_life_potato_vqr_3': '🔴 Less than 3 days',
       'recommendation_potato_vqr_3': '❌ Use now. Check for soft or bad spots.',
       'shelf_life_potato_vqr_2': '🔴 Not safe for human consumption',
@@ -289,6 +289,7 @@ class AppLocalizations {
       'recommendation_potato_vqr_1': '❌ Compost or throw away.',
       'shelf_life_unknown': '📆 Info not available',
       'recommendation_unknown': '📌 No recommendation yet.',
+      
     },
     'tl': {
       // General

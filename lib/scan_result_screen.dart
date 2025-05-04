@@ -120,6 +120,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               'backConfidence': res['back']?['freshnessConfidence'],
               'shelfLife': shelfInfo['shelfLife'],
               'recommendation': shelfInfo['recommendation'],
+              'vqr': res['mergedVQR'],
+              'frontVQR': res['front']?['vqr'],
+              'backVQR': res['back']?['vqr'],
               'frontFreshnessConfidence': res['front']?['freshnessConfidence'],
               'backFreshnessConfidence': res['back']?['freshnessConfidence'],
               'mergedConfidence': res['mergedConfidence'],
@@ -966,24 +969,26 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                               const SizedBox(height: 8),
 
                                               // 🫲 Front
-                                              if (detected['vqr'] != null &&
+                                              if (detected['frontVQR'] !=
+                                                      null &&
                                                   detected[
                                                           'frontFreshnessConfidence'] !=
                                                       null)
                                                 Text(
-                                                  "🫲 ${widget.localizations.getTranslation('front r')}: ${detected['vqr']} "
+                                                  "🫲 ${widget.localizations.getTranslation('front r')}: ${detected['frontVQR']} "
                                                   "(${(detected['frontFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
                                                 ),
 
-                                              // 🫱 Back
-                                              if (detected['vqr'] != null &&
+// 🫱 Back
+                                              if (detected['backVQR'] != null &&
                                                   detected[
                                                           'backFreshnessConfidence'] !=
                                                       null)
                                                 Text(
-                                                  "🫱 ${widget.localizations.getTranslation('back r')}: ${detected['vqr']} "
+                                                  "🫱 ${widget.localizations.getTranslation('back r')}: ${detected['backVQR']} "
                                                   "(${(detected['backFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
                                                 ),
+
 
                                               const SizedBox(height: 8),
 
