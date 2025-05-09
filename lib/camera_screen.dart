@@ -467,7 +467,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
     final frontImage = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 100,
+      imageQuality: 70,
       requestFullMetadata: true,
     );
     if (frontImage == null) {
@@ -511,7 +511,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
     final backImage = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 100,
+      imageQuality: 70,
       requestFullMetadata: true,
     );
     if (backImage == null) {

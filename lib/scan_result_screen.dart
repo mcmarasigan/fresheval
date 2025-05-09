@@ -457,7 +457,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
               color: boxColor.withOpacity(0.7),
               padding: const EdgeInsets.all(2),
               child: Text(
-                '${index + 1}. ${widget.localizations.getTranslation((detected['label'] ?? '').toLowerCase())} (${(detected['confidence'] as num?)?.toStringAsFixed(2) ?? '--'}%)',
+                '${index + 1}. ${widget.localizations.getTranslation((detected['label'] ?? '').toLowerCase())}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -969,24 +969,14 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                               const SizedBox(height: 8),
 
                                               // 🫲 Front
-                                              if (detected['frontVQR'] !=
-                                                      null &&
-                                                  detected[
-                                                          'frontFreshnessConfidence'] !=
-                                                      null)
+                                              if (detected['frontVQR'] != null)
                                                 Text(
-                                                  "🫲 ${widget.localizations.getTranslation('front r')}: ${detected['frontVQR']} "
-                                                  "(${(detected['frontFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
+                                                  "🫲 ${widget.localizations.getTranslation('front r')}: ${detected['frontVQR']}",
                                                 ),
-
-// 🫱 Back
-                                              if (detected['backVQR'] != null &&
-                                                  detected[
-                                                          'backFreshnessConfidence'] !=
-                                                      null)
+                                                // 🫱 Back
+                                              if (detected['backVQR'] != null)
                                                 Text(
-                                                  "🫱 ${widget.localizations.getTranslation('back r')}: ${detected['backVQR']} "
-                                                  "(${(detected['backFreshnessConfidence'] as num).toStringAsFixed(2)}%)",
+                                                  "🫱 ${widget.localizations.getTranslation('back r')}: ${detected['backVQR']}",
                                                 ),
 
 
@@ -994,16 +984,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
                                               // ✅ Merged
                                               if (detected['vqr'] != null &&
-                                                  detected[
-                                                          'mergedConfidence'] !=
-                                                      null &&
                                                   detected['mergedFreshness'] !=
                                                       null &&
                                                   detected['freshnessStatus'] !=
                                                       null)
-                                                Text(
-                                                  "✅ ${widget.localizations.getTranslation('overall')}: ${detected['vqr']} "
-                                                  "(${(detected['mergedConfidence'] as num).toStringAsFixed(2)}%) => ${detected['freshnessStatus']}",
+                                               Text(
+                                                  "✅ ${widget.localizations.getTranslation('overall')}: ${detected['vqr']} => ${detected['freshnessStatus']}",
                                                   style: const TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold),
@@ -1028,11 +1014,21 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                   "📆 ${widget.localizations.getTranslation('shelf life')}: ${detected['shelfLife'] ?? 'N/A'}"),
                                               Text(
                                                   "📌 ${widget.localizations.getTranslation('recommendation')}: ${detected['recommendation'] ?? 'N/A'}"),
+                                             
+                                                  
                                             ],
+
+
+                                            
                                           ),
+                        
+
                                         )
+                                        
                                       ],
                                     ),
+
+                                    
                                   );
                                 },
                               ),

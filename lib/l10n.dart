@@ -201,9 +201,9 @@ class AppLocalizations {
       'front_image_reset': '🔄 Front image reset. You can retake.',
 
       // Freshness Status (from ModelService.interpretFreshness)
-      'freshness_excellent': '🟢 Fresh (Excellent)',
-      'freshness_good': '🟡 Fresh (Good)',
-      'freshness_fair': '🟡 Fresh (Fair)',
+      'freshness_excellent': '🟢 Fresh (Very Fresh)', // was Excellent
+      'freshness_good': '🟢 Fresh (Still Good)', // was Good
+      'freshness_fair': '🟢 Fresh (Use Soon)', // was Fair
       'rotten_spoiling': '🔴 Rotten (Spoiling)',
       'rotten': '🔴 Rotten',
       'unknown_status': '⚠️ Unknown',
@@ -213,39 +213,45 @@ class AppLocalizations {
       'freshness_label_rotten': 'Rotten',
       'freshness_label_unknown': 'Unknown',
 
-      // Explanations (from ModelService.getPredictionExplanation)
+     // EGGPLANT
       'explanation_eggplant_vqr_8':
-          'The skin looks shiny and smooth, with a healthy color — very fresh.',
+          'Skin is smooth and shiny with a rich color — very fresh and ideal.',
       'explanation_eggplant_vqr_6':
-          'Slightly soft and less shiny — still okay to use.',
+          'Slightly soft and less glossy — still fresh and safe to use.',
       'explanation_eggplant_vqr_4':
-          'Skin is getting dull and may have slight wrinkling — use soon.',
+          'Color is fading and wrinkles are starting — use as soon as possible.',
       'explanation_eggplant_vqr_3':
-          'Has wrinkles and dark spots — might be starting to spoil.',
+          'Wrinkles and dark spots are visible — close to spoilage.',
       'explanation_eggplant_vqr_1':
-          'Very soft or wrinkled with spots — not good for eating.',
+          'Very soft with visible damage — not safe to eat.',
+
+// TOMATO
       'explanation_tomato_vqr_8':
-          'Firm and smooth with a natural color — perfectly fresh.',
+          'Firm, smooth, and evenly colored — very fresh.',
       'explanation_tomato_vqr_6':
-          'A little soft when touched, but still looks fine.',
+          'Slightly soft to touch but still in good condition.',
       'explanation_tomato_vqr_4':
-          'Feels softer and skin is dull — best eaten soon.',
+          'Softer texture and dull skin — eat soon before it spoils.',
       'explanation_tomato_vqr_3':
-          'Has soft spots and may look darker — might not be safe.',
+          'Soft spots and dark areas — not recommended for consumption.',
       'explanation_tomato_vqr_1':
-          'Very soft or looks damaged — not safe to eat.',
+          'Very soft and damaged — no longer safe to eat.',
+
+// POTATO
       'explanation_potato_vqr_8':
-          'Very firm and clean — fresh and ready to use.',
+          'Very firm and clean surface — fresh and ready for use.',
       'explanation_potato_vqr_6':
-          'Still firm but may have small marks or soft areas.',
-      'explanation_potato_vqr_4':
-          'Getting softer — use soon before it gets worse.',
+          'Still firm with minor soft spots or blemishes — safe to use.',
+      'explanation_potato_vqr_4': 'Getting softer — should be used soon.',
       'explanation_potato_vqr_3':
-          'Feels soft and may have green or dark spots — almost spoiled.',
+          'Soft texture with green or dark spots — nearly spoiled.',
       'explanation_potato_vqr_1':
-          'Very soft or damaged — better to throw away.',
+          'Very soft, damaged, or discolored — best to discard.',
+
+// FALLBACK
       'explanation_fallback':
-          'We couldn\'t get a clear result. Try scanning again with better lighting.',
+          'Unable to determine result. Try scanning again with better lighting.',
+
 
       // Shelf Life and Recommendations (from ModelService.getShelfLifeAndRecommendation)
       'shelf_life_eggplant_vqr_8': '🟢 Good for 5–6 days',
@@ -488,12 +494,12 @@ class AppLocalizations {
           '🔄 Na-reset ang harapang larawan. Maaari kang kumuha ulit.',
 
       // Freshness Status (from ModelService.interpretFreshness)
-      'freshness_excellent': '🟢 Sariwa (Napakahusay)',
-      'freshness_good': '🟡 Sariwa (Maganda)',
-      'freshness_fair': '🟡 Sariwa (Katamtaman)',
+      'freshness_excellent':'🟢 Sariwa (Napakasariwa)',
+      'freshness_good': '🟡 Sariwa (Maaayos)',
+      'freshness_fair':'🟡 Sariwa (Gamitin Kaagad)',
       'rotten_spoiling': '🔴 Bulok (Nasisira)',
       'rotten': '🔴 Bulok',
-      'unknown_status': '⚠️ Hindi Kilala',
+      'unknown_status': '⚠️ Hindi Tiyak',
 
       // Freshness Labels (from ModelService.getFreshnessLabel)
       'freshness_label_fresh': 'Sariwa',
