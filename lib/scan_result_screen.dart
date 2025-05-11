@@ -1014,7 +1014,50 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                   "📆 ${widget.localizations.getTranslation('shelf life')}: ${detected['shelfLife'] ?? 'N/A'}"),
                                               Text(
                                                   "📌 ${widget.localizations.getTranslation('recommendation')}: ${detected['recommendation'] ?? 'N/A'}"),
-                                             
+                                             ExpansionTile(
+                                                tilePadding: EdgeInsets.zero,
+                                                title: const Text(
+                                                  "🔧 Technical Details",
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                children: [
+                                                  if (detected['confidence'] !=
+                                                      null)
+                                                    Text(
+                                                      "🧠 Detection Confidence (YOLOv8): ${detected['confidence'].toStringAsFixed(2)}%",
+                                                      style: const TextStyle(
+                                                          fontSize: 14),
+                                                    ),
+                                                  if (detected[
+                                                          'frontFreshnessConfidence'] !=
+                                                      null)
+                                                    Text(
+                                                      "🫲 Front Freshness Confidence: ${detected['frontFreshnessConfidence'].toStringAsFixed(2)}%",
+                                                      style: const TextStyle(
+                                                          fontSize: 14),
+                                                    ),
+                                                  if (detected[
+                                                          'backFreshnessConfidence'] !=
+                                                      null)
+                                                    Text(
+                                                      "🫱 Back Freshness Confidence: ${detected['backFreshnessConfidence'].toStringAsFixed(2)}%",
+                                                      style: const TextStyle(
+                                                          fontSize: 14),
+                                                    ),
+                                                  const SizedBox(height: 4),
+                                                  const Text(
+                                                    "ℹ️ Confidence scores show how sure the model is:\n"
+                                                    "- Detection (YOLOv8): How likely it's the right object.\n"
+                                                    "- Freshness: How sure it is about the freshness rating.",
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey),
+                                                  ),
+                                                ],
+                                              ),
+
                                                   
                                             ],
 
