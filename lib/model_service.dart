@@ -302,7 +302,6 @@ class ModelService {
   }
 
 
-
   Future<Map<String, dynamic>> classifyFreshness(Uint8List croppedImage) async {
     if (!_modelsLoaded) {
       return {'label': 'Unknown', 'confidence': 0.0};
@@ -388,9 +387,9 @@ class ModelService {
       List.generate(_efficientNetInputSize.toInt(), (y) {
         return List.generate(_efficientNetInputSize.toInt(), (x) {
           final pixel = resizedImage.getPixel(x, y);
-          final r = ((pixel >> 16) & 0xFF) / 127.5 - 1.0;
-          final g = ((pixel >> 8) & 0xFF) / 127.5 - 1.0;
-          final b = (pixel & 0xFF) / 127.5 - 1.0;
+          final r = (((pixel >> 16) & 0xFF) / 255.0 - 0.485) / 0.229;
+          final g = (((pixel >> 8) & 0xFF) / 255.0 - 0.456) / 0.224;
+          final b = ((pixel & 0xFF) / 255.0 - 0.406) / 0.225;
           return [r, g, b];
         });
       })
