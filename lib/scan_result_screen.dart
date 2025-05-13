@@ -1017,47 +1017,56 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                              ExpansionTile(
                                                 tilePadding: EdgeInsets.zero,
                                                 title: const Text(
-                                                  "🔧 Technical Details",
+                                                  "🔧 More Details",
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold),
                                                 ),
                                                 children: [
-                                                  if (detected['confidence'] !=
-                                                      null)
+                                                  if (detected['label'] !=
+                                                          null &&
+                                                      detected['confidence'] !=
+                                                          null)
                                                     Text(
-                                                      "🧠 Detection Confidence (YOLOv8): ${detected['confidence'].toStringAsFixed(2)}%",
+                                                      "🧠 Detected: ${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)",
                                                       style: const TextStyle(
                                                           fontSize: 14),
                                                     ),
                                                   if (detected[
-                                                          'frontFreshnessConfidence'] !=
-                                                      null)
+                                                              'frontFreshnessLabel'] !=
+                                                          null &&
+                                                      detected[
+                                                              'frontFreshnessConfidence'] !=
+                                                          null)
                                                     Text(
-                                                      "🫲 Front Freshness Confidence: ${detected['frontFreshnessConfidence'].toStringAsFixed(2)}%",
+                                                      "🫲 Front Freshness: ${detected['frontFreshnessLabel']} (${detected['frontFreshnessConfidence'].toStringAsFixed(2)}%)",
                                                       style: const TextStyle(
                                                           fontSize: 14),
                                                     ),
                                                   if (detected[
-                                                          'backFreshnessConfidence'] !=
-                                                      null)
+                                                              'backFreshnessLabel'] !=
+                                                          null &&
+                                                      detected[
+                                                              'backFreshnessConfidence'] !=
+                                                          null)
                                                     Text(
-                                                      "🫱 Back Freshness Confidence: ${detected['backFreshnessConfidence'].toStringAsFixed(2)}%",
+                                                      "🫱 Back Freshness: ${detected['backFreshnessLabel']} (${detected['backFreshnessConfidence'].toStringAsFixed(2)}%)",
                                                       style: const TextStyle(
                                                           fontSize: 14),
                                                     ),
                                                   const SizedBox(height: 4),
                                                   const Text(
-                                                    "ℹ️ Confidence scores show how sure the model is:\n"
-                                                    "- Detection (YOLOv8): How likely it's the right object.\n"
-                                                    "- Freshness: How sure it is about the freshness rating.",
+                                                    "ℹ️ Confidence Scores Explained:\n"
+                                                    "- 🟦 *Detection (YOLOv8)*: Indicates how confident the model is that the detected object (e.g., Tomato, Eggplant) is correctly identified. Higher scores mean higher certainty.\n"
+                                                    "- 🟩 *Freshness Classification*: Reflects how sure the model is about the vegetable's freshness level (e.g., Fresh or Rotten). A higher score means the model is more certain of the condition.",
                                                     style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey),
+                                                      fontSize: 12,
+                                                      color: Colors.grey,
+                                                      height: 1.4,
+                                                    ),
                                                   ),
                                                 ],
                                               ),
-
                                                   
                                             ],
 

@@ -215,38 +215,39 @@ class AppLocalizations {
 
      // EGGPLANT
       'explanation_eggplant_vqr_8':
-          'Skin is smooth and shiny with a rich color — very fresh and ideal.',
+          'Skin is smooth, shiny, and richly colored — at peak freshness and quality.',
       'explanation_eggplant_vqr_6':
-          'Slightly soft and less glossy — still fresh and safe to use.',
+          'Slightly softer with a natural dulling of gloss — still fresh and good to use.',
       'explanation_eggplant_vqr_4':
-          'Color is fading and wrinkles are starting — use as soon as possible.',
+          'Color is starting to fade and mild wrinkling may appear — still usable, best if used soon.',
       'explanation_eggplant_vqr_3':
-          'Wrinkles and dark spots are visible — close to spoilage.',
+          'More visible signs of aging like wrinkles or spots — may still be usable if cooked today.',
       'explanation_eggplant_vqr_1':
-          'Very soft with visible damage — not safe to eat.',
+          'Very soft, with clear signs of spoilage — not recommended for consumption.',
 
 // TOMATO
       'explanation_tomato_vqr_8':
-          'Firm, smooth, and evenly colored — very fresh.',
+          'Firm, smooth, and evenly colored — at peak freshness.',
       'explanation_tomato_vqr_6':
-          'Slightly soft to touch but still in good condition.',
+          'Slightly soft to the touch — still fresh and great for eating.',
       'explanation_tomato_vqr_4':
-          'Softer texture and dull skin — eat soon before it spoils.',
+          'Noticeably softer with a duller skin — still safe, best if consumed soon.',
       'explanation_tomato_vqr_3':
-          'Soft spots and dark areas — not recommended for consumption.',
+          'Soft spots and dark patches are visible — may be spoiled, not ideal to eat.',
       'explanation_tomato_vqr_1':
-          'Very soft and damaged — no longer safe to eat.',
+          'Very soft, with major damage — unsafe for consumption.',
 
 // POTATO
       'explanation_potato_vqr_8':
-          'Very firm and clean surface — fresh and ready for use.',
+          'Very firm with a clean surface — at peak freshness and ideal for any dish.',
       'explanation_potato_vqr_6':
-          'Still firm with minor soft spots or blemishes — safe to use.',
-      'explanation_potato_vqr_4': 'Getting softer — should be used soon.',
+          'Still firm with minor blemishes — fresh and safe to use.',
+      'explanation_potato_vqr_4':
+          'Slightly softer than usual — still usable, best if cooked soon.',
       'explanation_potato_vqr_3':
-          'Soft texture with green or dark spots — nearly spoiled.',
+          'Noticeably soft with green or dark spots — may be spoiled, not ideal for use.',
       'explanation_potato_vqr_1':
-          'Very soft, damaged, or discolored — best to discard.',
+          'Very soft, discolored, or with visible damage — not safe for consumption.',
 
 // FALLBACK
       'explanation_fallback':
