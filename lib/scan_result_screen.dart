@@ -973,12 +973,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                 Text(
                                                   "🫲 ${widget.localizations.getTranslation('front r')}: ${detected['frontVQR']}",
                                                 ),
-                                                // 🫱 Back
+
+                                              // 🫱 Back
                                               if (detected['backVQR'] != null)
                                                 Text(
                                                   "🫱 ${widget.localizations.getTranslation('back r')}: ${detected['backVQR']}",
                                                 ),
-
 
                                               const SizedBox(height: 8),
 
@@ -988,7 +988,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                       null &&
                                                   detected['freshnessStatus'] !=
                                                       null)
-                                               Text(
+                                                Text(
                                                   "✅ ${widget.localizations.getTranslation('overall')}: ${detected['vqr']} => ${detected['freshnessStatus']}",
                                                   style: const TextStyle(
                                                       fontWeight:
@@ -1014,7 +1014,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                   "📆 ${widget.localizations.getTranslation('shelf life')}: ${detected['shelfLife'] ?? 'N/A'}"),
                                               Text(
                                                   "📌 ${widget.localizations.getTranslation('recommendation')}: ${detected['recommendation'] ?? 'N/A'}"),
-                                             ExpansionTile(
+
+                                              // 🔧 More Details
+                                              ExpansionTile(
                                                 tilePadding: EdgeInsets.zero,
                                                 title: const Text(
                                                   "🔧 More Details",
@@ -1023,34 +1025,36 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                           FontWeight.bold),
                                                 ),
                                                 children: [
-                                                  if (detected['label'] !=
-                                                          null &&
-                                                      detected['confidence'] !=
-                                                          null)
+                                                  if (detected['label'] != null)
                                                     Text(
-                                                      "🧠 Detected: ${detected['label']} (${detected['confidence'].toStringAsFixed(2)}%)",
+                                                      "🧠 Detected Object: ${detected['label']}",
                                                       style: const TextStyle(
                                                           fontSize: 14),
                                                     ),
-                                                  if (detected[
-                                                              'frontFreshnessLabel'] !=
+                                                  if (detected['confidence'] !=
+                                                      null)
+                                                    Text(
+                                                      "🔹 Detection Confidence (YOLOv8): ${detected['confidence'].toStringAsFixed(2)}%",
+                                                      style: const TextStyle(
+                                                          fontSize: 14),
+                                                    ),
+                                                  if (detected['frontVQR'] !=
                                                           null &&
                                                       detected[
                                                               'frontFreshnessConfidence'] !=
                                                           null)
                                                     Text(
-                                                      "🫲 Front Freshness: ${detected['frontFreshnessLabel']} (${detected['frontFreshnessConfidence'].toStringAsFixed(2)}%)",
+                                                      "🫲 Front Freshness (${detected['frontVQR']}): ${detected['frontFreshnessConfidence'].toStringAsFixed(2)}%",
                                                       style: const TextStyle(
                                                           fontSize: 14),
                                                     ),
-                                                  if (detected[
-                                                              'backFreshnessLabel'] !=
+                                                  if (detected['backVQR'] !=
                                                           null &&
                                                       detected[
                                                               'backFreshnessConfidence'] !=
                                                           null)
                                                     Text(
-                                                      "🫱 Back Freshness: ${detected['backFreshnessLabel']} (${detected['backFreshnessConfidence'].toStringAsFixed(2)}%)",
+                                                      "🫱 Back Freshness (${detected['backVQR']}): ${detected['backFreshnessConfidence'].toStringAsFixed(2)}%",
                                                       style: const TextStyle(
                                                           fontSize: 14),
                                                     ),
@@ -1067,17 +1071,11 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                                                   ),
                                                 ],
                                               ),
-                                                  
                                             ],
-
-
-                                            
                                           ),
-                        
-
-                                        )
-                                        
+                                        ),
                                       ],
+
                                     ),
 
                                     
