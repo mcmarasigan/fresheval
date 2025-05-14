@@ -48,9 +48,9 @@ class AppLocalizations {
       'clean your camera': 'Clean Your Camera',
       'clean camera desc':
           'Wipe your camera lens with a soft cloth to remove smudges and dust for clearer photos.',
-      'good lighting': 'Good Lighting',
+      'good lighting': 'Use Good Lighting & Whole Vegetables',
       'good lighting desc':
-          'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows.',
+          'Take photos in well-lit conditions. Avoid direct sunlight or dark shadows. Make sure to use whole, uncut vegetables for accurate results.',
       'steady and clear': 'Steady & Clear',
       'steady and clear desc':
           'Hold your phone steady to avoid blurry images. Tap to focus on the vegetables.',
@@ -339,9 +339,9 @@ class AppLocalizations {
       'clean your camera': 'Linisin ang iyong Kamera',
       'clean camera desc':
           'Punasan ang lens ng iyong camera gamit ang malambot na tela upang alisin ang mga mantsa at alikabok para sa mas malinaw na mga larawan.',
-      'good lighting': 'Magandang Ilaw',
+      'good lighting': 'Magandang Ilaw at Buong Gulay',
       'good lighting desc':
-          'Kumuha ng mga larawan sa maayos na kondisyon. Iwasan ang direktang sikat ng araw o madilim na anino.',
+          'Kumuha ng larawan sa maayos na liwanag. Iwasan ang direktang sikat ng araw o madilim na anino. Siguraduhing buong gulay (hindi hiniwa o luto) ang kinukuhanan para sa tamang resulta.',
       'steady and clear': 'Matatag at Malinaw',
       'steady and clear desc':
           'Hawakan nang matatag ang iyong telepono upang maiwasan ang malabong mga imahe. Mag-tap upang magpokus sa mga gulay.',
