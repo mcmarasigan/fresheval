@@ -1,4 +1,4 @@
-# FRESHEVAL – Real-Time Vegetable Freshness Evaluation App
+# FRESHEVAL: A Mobile Application for Real-Time Freshness Evaluation of Vegetables Using YOLOv8 and EfficientNetB7
 
 **Thesis Project** | Built with **Flutter**, **Python**, **YOLOv8**, and **EfficientNetB7**  
 
