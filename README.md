@@ -29,7 +29,6 @@ Developed in **Flutter** with **TensorFlow Lite**, FRESHEVAL runs on-device for 
 - **Backend:** Python  
 - **AI Models:** YOLOv8 (Object Detection), EfficientNetB7 (Classification)  
 - **Evaluation Metrics:** mAP@50, F1-score, ISO/IEC 25010 quality standards  
-- **Database:** (Specify if you used Firebase, SQLite, etc.)  
 
 ---
 
