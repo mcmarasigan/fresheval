@@ -59,9 +59,9 @@ Developed in **Flutter** with **TensorFlow Lite**, FRESHEVAL runs on-device for 
 
 ## 👨‍💻 Developers
 - **Ma. Clarissa Marasigan** – Lead Developer  
-- Vhon Joshua Agbayani  
-- Krysteen Clare R. Belen  
-- Clark Czedrick Limson  
+- Vhon Joshua Agbayani  - Debugger
+- Krysteen Clare R. Belen  - Developer
+- Clark Czedrick Limson  - Tester
 
 ---
 
