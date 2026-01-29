@@ -10,7 +10,7 @@ import 'settings.dart';
 import 'help_screen.dart';
 import 'developers_page.dart';
 import 'loading_screen.dart';
-import 'onboarding_screen.dart'; // Add this import
+import 'onboarding_screen.dart.old'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
